@@ -1,0 +1,53 @@
+---
+import Layout from '@layouts/Layout.astro';
+import { getCollection, getUsers } from '@logic/data.ts';
+
+const { collection: collectionId, user: userId } = Astro.params;
+const { collection, error } = await getCollection(collectionId || '', Astro.request.headers.get('x-amzn-oidc-accesstoken'));
+
+const userData = await (async () => {
+  const users = await getUsers(collectionId || '', Astro.request.headers.get('x-amzn-oidc-accesstoken'));
+  return users.find((item) => item.user_id === userId);
+})();
+
+---
+
+<Layout title={ 'Remove ' + userData?.user_email } error={ error }>
+
+  <nav class="govuk-breadcrumbs govuk-!-margin-bottom-6" aria-label="Breadcrumb">
+    <ol class="govuk-breadcrumbs__list">
+      <li class="govuk-breadcrumbs__list-item">
+        <a class="govuk-breadcrumbs__link" href="/">Collections</a>
+      </li>
+      <li class="govuk-breadcrumbs__list-item">
+        <a class="govuk-breadcrumbs__link" href="../../users">Users</a>
+      </li>
+      <li class="govuk-breadcrumbs__list-item">
+        Delete
+      </li>
+    </ol>
+  </nav>
+
+
+  <div class="govuk-grid-row">
+    <div class="govuk-grid-column-full">
+
+      <h1 class="govuk-heading-l">Remove user</h1>
+
+      <p><strong>User:</strong> { userData?.user_email }</p>
+      <p><strong>Collection:</strong> { collection.name }</p>
+
+      <form method="post" action="/api/remove-user/" enctype="multipart/form-data">
+        <input type="hidden" value={ collectionId } name="collection"/>
+        <input type="hidden" value={ userData?.user_id } name="user"/>
+        <div class="govuk-button-group">
+          <button class="govuk-button">Confirm remove</button>
+          <a class="govuk-button govuk-button--secondary" href="../../users">Cancel</a>
+        </div>
+        
+      </form>
+
+    </div>
+  </div>
+
+</Layout>

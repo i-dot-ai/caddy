@@ -1,0 +1,54 @@
+---
+import Layout from '@layouts/Layout.astro';
+import { getCollection } from '@logic/data.ts';
+
+const { collection: collectionId } = Astro.params;
+
+const { collection, error } = await getCollection(collectionId || '', Astro.request.headers.get('x-amzn-oidc-accesstoken'));
+
+---
+
+<Layout title={ 'Add user to ' + collection.name }, error={ error }>
+
+  <nav class="govuk-breadcrumbs govuk-!-margin-bottom-6" aria-label="Breadcrumb">
+    <ol class="govuk-breadcrumbs__list">
+      <li class="govuk-breadcrumbs__list-item">
+        <a class="govuk-breadcrumbs__link" href="/">Collections</a>
+      </li>
+      <li class="govuk-breadcrumbs__list-item">
+        <a class="govuk-breadcrumbs__link" href="../users">Users</a>
+      </li>
+      <li class="govuk-breadcrumbs__list-item">
+        Add user
+      </li>
+    </ol>
+  </nav>
+
+
+  <div class="govuk-grid-row">
+    <div class="govuk-grid-column-two-thirds">
+
+      <h1 class="govuk-heading-l">Add user</h1>
+
+      <p><strong>Collection:</strong> { collection.name }</p>
+
+      <form class="govuk-!-margin-top-7" method="post" action="/api/add-user/" enctype="multipart/form-data">
+        <input type="hidden" value={ collectionId } name="collection"/>
+        <div class="govuk-form-group">
+          <label class="govuk-label" for="email-address">Email address</label>
+          <input class="govuk-input" id="email-address" name="emailAddress" type="email">
+        </div>
+        <div class="govuk-form-group">
+          <label class="govuk-label" for="role">Role</label>
+          <select class="govuk-select" id="role" name="role">
+            <option value="member" selected>Member</option>
+            <option value="manager">Manager</option>
+          </select>
+        </div>
+        <button class="govuk-button">Add user</button>
+      </form>
+
+    </div>
+  </div>
+
+</Layout>

@@ -1,0 +1,16 @@
+[
+    {
+        "base_url": "https://www.citizensadvice.org.uk/",
+        "sitemap_url": "https://www.citizensadvice.org.uk/sitemap.xml",
+        "crawling_method": "brute",
+        "scrape_depth": 4,
+        "output_dir": "citizensadvice_scrape"
+    },
+    {
+        "base_url": "https://www.gov.uk/",
+        "sitemap_url": "https://www.gov.uk/sitemap.xml",
+        "crawling_method": "sitemap",
+        "downloading_method": "api",
+        "output_dir": "govuk_scrape"
+    }
+]

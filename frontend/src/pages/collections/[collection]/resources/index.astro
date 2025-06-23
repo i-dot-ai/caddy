@@ -1,0 +1,150 @@
+---
+import Layout from '@layouts/Layout.astro';
+import { getCollection, getResources} from '@logic/data.ts';
+
+const ITEMS_PER_PAGE = 100;
+const currentPage = parseInt(Astro.url.searchParams.get('page') || '1');
+
+const { collection: collectionId } = Astro.params;
+const resourcesData = await getResources(collectionId || '', currentPage, ITEMS_PER_PAGE, Astro.request.headers.get('x-amzn-oidc-accesstoken'));
+const { collection, error } = await getCollection(collectionId || '', Astro.request.headers.get('x-amzn-oidc-accesstoken'));
+
+const totalPages = Math.ceil(resourcesData.total / resourcesData.page_size);
+
+---
+
+<Layout title={ 'Resources - ' + collection.name } error={ error }>
+
+  <nav class="govuk-breadcrumbs govuk-!-margin-bottom-6" aria-label="Breadcrumb">
+    <ol class="govuk-breadcrumbs__list">
+      <li class="govuk-breadcrumbs__list-item">
+        <a class="govuk-breadcrumbs__link" href="/">Collections</a>
+      </li>
+      <li class="govuk-breadcrumbs__list-item">
+        Resources
+      </li>
+    </ol>
+  </nav>
+
+  <div class="govuk-grid-row">
+    <div class="govuk-grid-column-full">
+
+      <h1 class="govuk-heading-l">Resources</h1>
+
+      <p><strong>Collection:</strong> { collection.name }</p>
+
+      <a class="govuk-button" href="resources/add">Add file(s)</a>
+
+      <p class="govuk-body-l govuk-!-margin-top-5">Showing { resourcesData.resources?.length || 0 } of { resourcesData.total } resources</p>
+
+      <div style="overflow-x: auto; width: 100%;">
+        <table class="govuk-table">
+          <caption class="govuk-visually-hidden">Files</caption>
+          <thead class="govuk-table__head">
+            <tr class="govuk-table__row">
+              <th scope="col" class="govuk-table__header">Filename</th>
+              <th scope="col" class="govuk-table__header">Type</th>
+              <th scope="col" class="govuk-table__header">Created</th>
+              <th scope="col" class="govuk-table__header">Actions</th>
+            </tr>
+          </thead>
+          <tbody class="govuk-table__body">
+            { resourcesData.resources?.map((resource) =>
+              <tr class="govuk-table__row">
+                <td class="govuk-table__cell">
+                  { !resource.process_error ?
+                    <a class="govuk-!-display-block" href={ `resources/${resource.id}` }>{ resource.filename || resource.id }</a>
+                  :
+                    <>
+                      <span>{ resource.filename || resource.id }</span>
+                      <span class="govuk-error-message govuk-!-margin-bottom-0 govuk-!-display-block">{ resource.process_error }</span>
+                    </>
+                  }
+                </td>
+                <td class="govuk-table__cell">{ resource.content_type }</td>
+                <td class="govuk-table__cell">
+                  { resource.created_at ? new Date(resource.created_at).toLocaleString() : '-' }
+                </td>
+                <td class="govuk-table__cell">
+                  <a class="govuk-body-s" href={ `resources/${resource.id}/delete` }>
+                    Delete
+                    <span class="govuk-visually-hidden"> { resource.filename || resource.id }</span>
+                  </a>
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      { totalPages > 1 &&
+
+        <nav class="govuk-pagination" aria-label="Pagination">
+
+          { resourcesData.page > 1 && 
+            <div class="govuk-pagination__prev">
+              <a class="govuk-link govuk-pagination__link" href={ '?page=' + (resourcesData.page - 1) } rel="prev">
+                <svg class="govuk-pagination__icon govuk-pagination__icon--prev" xmlns="http://www.w3.org/2000/svg" height="13" width="15" aria-hidden="true" focusable="false" viewBox="0 0 15 13">
+                  <path d="m6.5938-0.0078125-6.7266 6.7266 6.7441 6.4062 1.377-1.449-4.1856-3.9768h12.896v-2h-12.984l4.2931-4.293-1.414-1.414z"></path>
+                </svg>
+                <span class="govuk-pagination__link-title">
+                  Previous<span class="govuk-visually-hidden"> page</span>
+                </span>
+              </a>
+            </div>
+          }
+
+          <ul class="govuk-pagination__list">
+            { Array.from(Array(totalPages).keys()).map((i) =>
+              <li class={'govuk-pagination__item' + ((i + 1) === resourcesData.page ? ' govuk-pagination__item--current' : '' )}>
+                <a 
+                  class="govuk-link govuk-pagination__link"
+                  href={ '?page=' + (i + 1) } 
+                  aria-label={ 'Page ' + (i + 1) } 
+                  aria-current={ (i + 1) === resourcesData.page ? 'page' : undefined }
+                >
+                  { i + 1 }
+                </a>
+              </li>
+            )}
+          </ul>
+
+          { resourcesData.page < totalPages && 
+            <div class="govuk-pagination__next">
+              <a class="govuk-link govuk-pagination__link" href={ '?page=' + (resourcesData.page + 1) } rel="next">
+                <span class="govuk-pagination__link-title">
+                  Next<span class="govuk-visually-hidden"> page</span>
+                </span>
+                <svg class="govuk-pagination__icon govuk-pagination__icon--next" xmlns="http://www.w3.org/2000/svg" height="13" width="15" aria-hidden="true" focusable="false" viewBox="0 0 15 13">
+                  <path d="m8.107-0.0078125-1.4136 1.414 4.2926 4.293h-12.986v2h12.896l-4.1855 3.9766 1.377 1.4492 6.7441-6.4062-6.7246-6.7266z"></path>
+                </svg>
+              </a>
+            </div>
+          }
+
+        </nav>
+
+      }
+
+    </div>
+  </div>
+
+</Layout>
+
+
+<style>
+  td a, td span {
+    max-width: 340px;
+    word-wrap: break-word;
+  }
+  @media (min-width: 641px) {
+    td a, td span {
+      max-width: 580px;
+    }
+  }
+  @media (min-width: 1021px) {
+    td a, td span {
+      max-width: 700px;
+    }
+  }
+</style>

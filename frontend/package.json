@@ -1,0 +1,26 @@
+{
+  "name": "",
+  "type": "module",
+  "version": "0.0.1",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "tests": "npx playwright test"
+  },
+  "dependencies": {
+    "@astrojs/node": "^9.2.1",
+    "@lit-labs/ssr": "^3.3.1",
+    "@sentry/astro": "^9.27.0",
+    "astro": "^5.7.13",
+    "dotenv": "^16.5.0",
+    "i.ai-design-system": "^0.7.4",
+    "jose": "^6.0.11",
+    "showdown": "^2.1.0"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "^4.10.1",
+    "@playwright/test": "^1.52.0",
+    "@types/node": "^22.15.23"
+  }
+}

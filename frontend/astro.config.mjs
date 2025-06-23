@@ -1,0 +1,37 @@
+// @ts-check
+import 'dotenv/config';
+import { defineConfig } from 'astro/config';
+import node from '@astrojs/node';
+import sentry from '@sentry/astro';
+
+
+// https://astro.build/config
+export default defineConfig({
+  server: { port: 4322 },
+  output: 'server',
+
+  adapter: node({
+    mode: 'standalone'
+  }),
+
+  devToolbar: {
+    enabled: false
+  },
+
+  integrations: [
+    sentry({
+      dsn: process.env.SENTRY_DSN,
+      tracesSampleRate: 0,
+      replaysSessionSampleRate: 0,
+      replaysOnErrorSampleRate: 0,
+      // Setting this option to true will send default PII data to Sentry.
+      // For example, automatic IP address collection on events
+      sendDefaultPii: true,
+      sourceMapsUploadOptions: {
+        project: "caddy",
+        authToken: process.env.SENTRY_AUTH_TOKEN,
+      },
+    })
+  ],
+
+});

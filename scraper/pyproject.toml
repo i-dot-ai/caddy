@@ -1,0 +1,28 @@
+[project]
+name = "caddy-scraper"
+version = "0.1.0"
+requires-python = ">=3.12"
+description = "The scraper for Caddy"
+readme = "README.md"
+
+
+[tool.poetry.dependencies]
+python = "^3.12"
+pandas = "^2.1.1"
+langchain = "^0.3.7"
+langchain-community = "^0.3.7"
+opensearch-py = "^2.7.1"
+boto3 = "^1.35.68"
+html2text = "^2020.1.16"
+python-dotenv = "^1.0.1"
+lxml = "^4.9.4"
+requests-aws4auth = "^1.3.1"
+pre-commit = "^4.0.1"
+fake-useragent = "^0.1.11"
+ratelimit = "^2.2.1"
+tqdm = "^4.66.4"
+bs4 = "^0.0.2"
+joblib = "^1.4.2"
+openai = "^1.63.2"
+tiktoken = "^0.9.0"
+ruff = "^0.9.7"

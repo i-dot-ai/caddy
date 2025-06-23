@@ -1,0 +1,56 @@
+name: Manual Release
+run-name: "🚀 Release ${{ inputs.new_tag }} created by @${{ github.event.sender.login }}"
+
+concurrency: this
+
+permissions:
+  contents: read
+
+on:
+  workflow_dispatch:
+    #checkov:skip=CKV_GHA_7:Dispatch inputs are a requirement for this use case
+    inputs:
+      new_tag:
+        type: string
+        required: true
+        description: 'Specify the version tag for this release (format: vX.Y.Z)'
+
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Display branch info
+        run: echo "This workflow will release from the main branch only"
+
+      - name: Dump inputs context
+        env:
+          INPUTS: ${{ toJSON(inputs) }}
+        run: echo "$INPUTS"
+
+      - name: Checkout selected branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: ncipollo/release-action@2c591bcc8ecdcd2db72b97d6147f871fcd833ba5 # v1.14.0
+        with:
+          generateReleaseNotes: true
+          tag: ${{ inputs.new_tag }}
+          body: |
+            ## Release ${{ inputs.new_tag }}
+            
+            🔖 **Version:** ${{ inputs.new_tag }}
+            👤 **Released by:** @${{ github.event.sender.login }}
+            
+            *This release was created from the main branch.*
+
+            ---
+            *Full changelog details generated automatically below*
+          token: ${{ secrets.AWS_GITHUBRUNNER_PAT }}
+
+
+
+    

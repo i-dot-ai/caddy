@@ -1,0 +1,101 @@
+# Put action within a raw block so that the curly bracket expressions aren't picked up by the cookiecutter
+# 
+
+name: Reset User
+
+run-name: Reset ${{ inputs.email }} by @${{ github.actor }} in ${{ github.event.inputs.environment }}
+
+on:
+  workflow_dispatch:
+      inputs:
+          email:
+              description: User Email.
+              required: true
+              type: string
+              
+          environment:
+            description: 'The Application Environment.'
+            required: true
+            default: prod
+            type: choice
+            options:
+            - prod
+            - preprod
+            - dev
+
+env: 
+  ENVIRONMENT: ${{ github.event.inputs.environment }}
+
+jobs:
+    set-vars:
+      runs-on: ubuntu-latest
+      outputs:
+        ec2-instance-type: ${{ steps.export.outputs.ec2-instance-type }}
+        aws-region: ${{ steps.export.outputs.aws-region }}
+        app-name: ${{ steps.export.outputs.app-name }}
+
+      steps:
+        - name: Checkout
+          uses: actions/checkout@v4
+        - id: export
+          run: |
+              . ./.github/.github.env
+              echo "ec2-instance-type=${EC2_INSTANCE_TYPE}" >> $GITHUB_OUTPUT
+              echo "aws-region=${AWS_REGION}" >> $GITHUB_OUTPUT
+              echo "app-name=${APP_NAME}" >> $GITHUB_OUTPUT
+
+    start-runner:
+      uses: i-dot-ai/i-dot-ai-core-github-actions/.github/workflows/start-runner.yml@main
+      needs: set-vars
+      permissions: write-all
+      with:
+        EC2_INSTANCE_TYPE: ${{ needs.set-vars.outputs.ec2-instance-type }}
+        ENVIRONMENT: ${{ github.event.inputs.environment }}
+        USE_OIDC: true
+      secrets:
+        AWS_GITHUBRUNNER_USER_ACCESS_KEY: ${{ secrets.AWS_GITHUBRUNNER_USER_ACCESS_KEY }}
+        AWS_GITHUBRUNNER_USER_SECRET_ID: ${{ secrets.AWS_GITHUBRUNNER_USER_SECRET_ID }}
+        AWS_GITHUBRUNNER_PAT: ${{ secrets.AWS_GITHUBRUNNER_PAT}}
+        AWS_REGION: ${{ secrets.AWS_REGION }}
+        AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+
+    reset-user: 
+      needs:
+        - set-vars
+        - start-runner
+      permissions: write-all
+      uses: i-dot-ai/i-dot-ai-core-github-actions/.github/workflows/reset-user.yml@main
+      with:
+        APP_NAME: ${{ needs.set-vars.outputs.app-name }}
+        RUNNER_LABEL: ${{ needs.start-runner.outputs.label }}
+        ENVIRONMENT: ${{ github.event.inputs.environment }}
+        EMAIL_ADDRESS: ${{ inputs.email }}
+        USE_OIDC: true
+      secrets:
+        AWS_GITHUBRUNNER_PAT: ${{ secrets.AWS_GITHUBRUNNER_PAT }}
+        AWS_GITHUBRUNNER_PAT_USER: ${{ secrets.AWS_GITHUBRUNNER_PAT_USER }}
+        AWS_REGION: ${{ secrets.AWS_REGION }}
+        AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+
+    stop-runner:
+      needs:
+        - set-vars
+        - start-runner
+        - reset-user
+      permissions: write-all
+      uses: i-dot-ai/i-dot-ai-core-github-actions/.github/workflows/stop-runner.yml@main
+      if: needs.start-runner.outputs.use-persisted == 0 && always()
+      with:
+        RUNNER_LABEL: ${{ needs.start-runner.outputs.label }}
+        EC2_INSTANCE_ID: ${{ needs.start-runner.outputs.ec2-instance-id }}
+        ENVIRONMENT: ${{ github.event.inputs.environment }}
+        USE_OIDC: true
+      secrets:
+        AWS_GITHUBRUNNER_USER_ACCESS_KEY: ${{ secrets.AWS_GITHUBRUNNER_USER_ACCESS_KEY }}
+        AWS_GITHUBRUNNER_USER_SECRET_ID: ${{ secrets.AWS_GITHUBRUNNER_USER_SECRET_ID }}
+        AWS_GITHUBRUNNER_PAT: ${{ secrets.AWS_GITHUBRUNNER_PAT }}
+        AWS_REGION: ${{ secrets.AWS_REGION }}
+        AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+
+
+        #

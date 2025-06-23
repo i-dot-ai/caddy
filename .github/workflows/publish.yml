@@ -1,0 +1,121 @@
+name: Publish
+run-name: "📦 ${{ github.event.release.tag_name }} → Public Repository"
+
+on:
+  release:
+    types: [released]
+
+jobs:
+
+  set-vars:
+    runs-on: ubuntu-latest
+    outputs:
+      app-name: ${{ steps.export.outputs.app-name }}
+      ec2-instance-type: ${{ steps.export.outputs.ec2-instance-type }}
+      version: ${{ steps.export.outputs.version }}
+      runner-size: ${{ steps.export.outputs.runner-size }}
+      docker-build-instance: ${{ steps.export.outputs.docker-build-instance }}
+      public-ecr-url: ${{ steps.export.outputs.public-ecr-url }}
+      public-registry-service: ${{ steps.export.outputs.public-registry-service }}
+      service_matrix: ${{ steps.build-services-matrix.outputs.result }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.release.tag_name }}
+      - id: export
+        run: |
+          . ./.github/.github.env
+          echo "ec2-instance-type=${EC2_INSTANCE_TYPE}" >> $GITHUB_OUTPUT
+          echo "app-name=${APP_NAME}" >> $GITHUB_OUTPUT
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+          echo "runner-size=${RUNNER_SIZE}" >> $GITHUB_OUTPUT
+          echo "docker-build-instance=${DOCKER_BUILD_INSTANCE}" >> $GITHUB_OUTPUT
+          echo "public-ecr-url=${USE_PUBLIC_URL}" >> $GITHUB_OUTPUT
+          echo "public-registry-service=${PUBLIC_REGISTRY_SERVICE}" >> $GITHUB_OUTPUT
+
+      - uses: actions/github-script@v6
+        id: build-services-matrix
+        env:
+          SERVICES: ${{ steps.export.outputs.public-registry-service }}  
+        with:
+          result-encoding: string
+          script: |
+            const { SERVICES } = process.env;
+            if (!SERVICES) {
+              throw new Error("SERVICES environment variable is undefined or empty");
+            }
+            const servicesArray = SERVICES.split(',')
+                                          .map(value => ({ service: value.trim() }));
+            console.log("Parsed Services Array:", servicesArray);
+            // Return as JSON string
+            return JSON.stringify(servicesArray);
+           
+      - name: Service Matrix
+        run: echo "${{ steps.build-services-matrix.outputs.result }}"
+
+  start-runner:
+    uses: i-dot-ai/i-dot-ai-core-github-actions/.github/workflows/start-runner.yml@main
+    needs: set-vars
+    permissions: write-all
+    with:
+        EC2_INSTANCE_TYPE: ${{ needs.set-vars.outputs.ec2-instance-type }}
+        ENVIRONMENT: prod
+        USE_OIDC: true
+    secrets:
+        AWS_GITHUBRUNNER_USER_ACCESS_KEY: ${{ secrets.AWS_GITHUBRUNNER_USER_ACCESS_KEY }}
+        AWS_GITHUBRUNNER_USER_SECRET_ID: ${{ secrets.AWS_GITHUBRUNNER_USER_SECRET_ID }}
+        AWS_GITHUBRUNNER_PAT: ${{ secrets.AWS_GITHUBRUNNER_PAT}}
+        AWS_REGION: ${{ secrets.AWS_REGION }}
+        AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+            
+  
+  build-image:
+    strategy:
+      matrix:
+        object: ${{ fromJson(needs.set-vars.outputs.service_matrix) }}
+    needs:
+        - set-vars
+        - start-runner
+    permissions: write-all
+    uses: i-dot-ai/i-dot-ai-core-github-actions/.github/workflows/build-docker.yml@main
+    with:
+        APP_NAME: ${{ needs.set-vars.outputs.app-name }}
+        RUNNER_LABEL: ${{ needs.start-runner.outputs.label }}
+        INFRASTRUCTURE_FOLDER: "terraform" 
+        DOCKER_BUILD_INSTANCE: ${{ needs.set-vars.outputs.docker-build-instance }}
+        SERVICE: ${{ matrix.object.service }}
+        COMMIT_HASH: ${{ github.sha }}
+        USE_OIDC: true
+        PUBLIC_ECR: true
+        VERSION: ${{ github.event.release.tag_name }}
+        USE_PUBLIC_URL:  ${{ needs.set-vars.outputs.public-ecr-url }}
+    secrets:
+        AWS_GITHUBRUNNER_PAT: ${{ secrets.AWS_GITHUBRUNNER_PAT}}
+        AWS_REGION: ${{ secrets.AWS_REGION }}
+        AWS_GITHUBRUNNER_PAT_USER: ${{ secrets.AWS_GITHUBRUNNER_PAT_USER }}
+        AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+
+  stop-runner:
+    uses: i-dot-ai/i-dot-ai-core-github-actions/.github/workflows/stop-runner.yml@main
+    if: needs.start-runner.outputs.use-persisted == 0 && always()
+    needs:
+        - set-vars
+        - start-runner
+        - build-image
+    permissions: write-all
+    with:
+        RUNNER_LABEL: ${{ needs.start-runner.outputs.label }}
+        EC2_INSTANCE_ID: ${{ needs.start-runner.outputs.ec2-instance-id }}
+        USE_OIDC: true
+    secrets:
+        AWS_GITHUBRUNNER_USER_ACCESS_KEY: ${{ secrets.AWS_GITHUBRUNNER_USER_ACCESS_KEY }}
+        AWS_GITHUBRUNNER_USER_SECRET_ID: ${{ secrets.AWS_GITHUBRUNNER_USER_SECRET_ID }}
+        AWS_GITHUBRUNNER_PAT: ${{ secrets.AWS_GITHUBRUNNER_PAT}}
+        AWS_REGION: ${{ secrets.AWS_REGION }}
+        AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+        
+#      
+
+       

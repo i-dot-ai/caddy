@@ -1,0 +1,152 @@
+services:
+  model:
+    build:
+      context: ./model
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./model:/app
+      - /app/.venv # do not clobber installed venv
+      - ~/.aws/:/root/.aws:ro
+    healthcheck:
+      test: curl --fail 'http://localhost:8080/healthcheck' || exit 1
+      interval: 5s
+      timeout: 30s
+      retries: 50
+    depends_on:
+      opensearch:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    networks:
+      - caddy-net
+    env_file: ".env"
+
+  frontend:
+    build:
+      context: ./frontend
+    ports:
+      - "8082:8081"
+    env_file:
+      - .env
+    networks:
+      - caddy-net
+    environment:
+      - BACKEND_HOST=http://model:8080
+    depends_on:
+      model:
+        condition: service_healthy
+
+  opensearch:
+    image: opensearchproject/opensearch:3
+    container_name: opensearch
+    environment:
+      - discovery.type=single-node
+      - OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m
+      - DISABLE_SECURITY_PLUGIN=true
+      - DISABLE_PERFORMANCE_ANALYZER_AGENT_CLI=true
+      - logger.level=INFO
+      - OPENSEARCH_INITIAL_ADMIN_PASSWORD=1ns3cu4eE!
+    ports:
+      - "9200:9200"
+      - "9600:9600"
+    volumes:
+      - opensearch_data:/usr/share/opensearch/data
+    # ulimit values come from the opensearch Docker docs
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 65536
+        hard: 65536
+    healthcheck:
+      # we're happy to be yellow because green indicates replicas are up... and we don't have replicas!
+      test: curl --fail http://localhost:9200/_cluster/health?wait_for_status=yellow || exit 1
+      interval: 5s
+      timeout: 30s
+      retries: 50
+    restart: unless-stopped
+    networks:
+      - caddy-net
+
+  postgres:
+    image: pgvector/pgvector:pg17
+    ports:
+      - '5432:5432'
+    environment:
+    - POSTGRES_USER=root # because root will execute the init script
+    - POSTGRES_PASSWORD=postgres
+    restart: always
+    volumes:
+      - postgres_data:/var/lib/postgresql/data:Z
+      - ./model/scripts/postgres-init.sql:/docker-entrypoint-initdb.d/postgres-init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready"]
+      interval: 1s
+      timeout: 5s
+      retries: 10
+    networks:
+      - caddy-net
+
+  minio:
+    image: minio/minio
+    expose:
+      - "9000"
+      - "9001"
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      - MINIO_ACCESS_KEY=minioadmin
+      - MINIO_SECRET_KEY=minioadmin
+    command: server --console-address ":9001" /data
+    networks:
+      - caddy-net
+    volumes:
+      - minio_data:/var/lib/minio/data:Z
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD", "mc", "ready", "local" ]
+      interval: 5s
+      timeout: 30s
+      retries: 24
+      start_period: 30s
+
+  mcp_test_server:
+    build:
+      context: ../gov-ai-client
+      dockerfile: mcp-server-demo/Dockerfile
+    container_name: mcp_test_server
+    ports:
+      - "3210:3210"
+    networks:
+      - caddy-net
+
+  client:
+    build:
+      context: ../gov-ai-client
+      dockerfile: frontend/Dockerfile
+      # Uncomment the below line and comment out the two above to use a remote image
+      # Image versions can be found here https://gallery.ecr.aws/idotai/gov-ai-client
+      # image: public.ecr.aws/idotai/gov-ai-client:b0f3cf190dc6c2e8c74f084ea28665fb78072bc3
+    container_name: gov-ai-client
+    ports:
+      - "8081:8081"
+    env_file:
+      - ../gov-ai-client/.env
+    environment:
+      - MCP_CADDY_URL=http://model:8080/mcp/sse
+      - MCP_TEST_SERVER_URL=http://mcp_test_server:3210/sse
+    networks:
+      - caddy-net
+
+volumes:
+  opensearch_data:
+  postgres_data:
+  minio_data:
+
+networks:
+  caddy-net:

@@ -1,0 +1,69 @@
+---
+import Layout from '@layouts/Layout.astro';
+import { getCollection, getUsers } from '@logic/data.ts';
+
+const { collection: collectionId } = Astro.params;
+const { collection, error } = await getCollection(collectionId || '', Astro.request.headers.get('x-amzn-oidc-accesstoken'));
+const users = await getUsers(collectionId || '', Astro.request.headers.get('x-amzn-oidc-accesstoken'));
+
+---
+
+<Layout title={ 'Users - ' + collection.name } error={ error }>
+
+  <nav class="govuk-breadcrumbs govuk-!-margin-bottom-6" aria-label="Breadcrumb">
+    <ol class="govuk-breadcrumbs__list">
+      <li class="govuk-breadcrumbs__list-item">
+        <a class="govuk-breadcrumbs__link" href="/">Collections</a>
+      </li>
+      <li class="govuk-breadcrumbs__list-item">
+        Users
+      </li>
+    </ol>
+  </nav>
+
+  <div class="govuk-grid-row">
+    <div class="govuk-grid-column-full">
+
+      <h1 class="govuk-heading-l">Users</h1>
+
+      <p><strong>Collection:</strong> { collection.name }</p>
+
+      <a class="govuk-button" href="users/add">Add user</a>
+
+      <div style="overflow-x: auto; width: 100%;">
+        <table class="govuk-table">
+          <caption class="govuk-visually-hidden">Files</caption>
+          <thead class="govuk-table__head">
+            <tr class="govuk-table__row">
+              <th scope="col" class="govuk-table__header">Email address</th>
+              <th scope="col" class="govuk-table__header">Role</th>
+              <th scope="col" class="govuk-table__header">Actions</th>
+            </tr>
+          </thead>
+          <tbody class="govuk-table__body">
+            { users?.map((user) =>
+              <tr class="govuk-table__row">
+                <td class="govuk-table__cell">{ user.user_email }</td>
+                <td class="govuk-table__cell">{ user.role }</td>
+                <td class="govuk-table__cell">
+                  <span class="govuk-!-display-flex" style="gap: 10px 20px;">
+                    <a class="govuk-body-s govuk-!-margin-bottom-0" href={ `users/${user.user_id}/edit` }>
+                      Edit
+                      <span class="govuk-visually-hidden"> { user.user_email }</span>
+                    </a>
+                    <a class="govuk-body-s govuk-!-margin-bottom-0" href={ `users/${user.user_id}/remove` }>
+                      Remove
+                      <span class="govuk-visually-hidden"> { user.user_email }</span>
+                    </a>
+                  </span>
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
+    </div>
+  </div>
+
+</Layout>

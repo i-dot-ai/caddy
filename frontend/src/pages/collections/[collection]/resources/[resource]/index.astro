@@ -1,0 +1,49 @@
+---
+import Layout from '@layouts/Layout.astro';
+import { getResourceDetails, getResourceFragments } from '@logic/data.ts';
+import LitWrapper from '@components/lit-wrapper.astro';
+
+const { collection: collectionId, resource: resourceId } = Astro.params;
+const resource = await getResourceDetails(collectionId || '', resourceId || '', Astro.request.headers.get('x-amzn-oidc-accesstoken'));
+const fragments = await getResourceFragments(collectionId || '', resourceId || '', Astro.request.headers.get('x-amzn-oidc-accesstoken'));
+
+---
+
+<Layout title={ resource.filename || resource.id }>
+
+  <nav class="govuk-breadcrumbs govuk-!-margin-bottom-6" aria-label="Breadcrumb">
+    <ol class="govuk-breadcrumbs__list">
+      <li class="govuk-breadcrumbs__list-item">
+        <a class="govuk-breadcrumbs__link" href="/">Collections</a>
+      </li>
+      <li class="govuk-breadcrumbs__list-item">
+        <a class="govuk-breadcrumbs__link" href="../resources">Resources</a>
+      </li>
+      <li class="govuk-breadcrumbs__list-item">
+        Resource details
+      </li>
+    </ol>
+  </nav>
+
+
+  <div class="govuk-grid-row">
+    <div class="govuk-grid-column-full">
+
+      <h1 class="govuk-heading-l">Resource details</h1>
+
+      <p><strong>Resource:</strong> { resource.filename || resource.id }</p>
+
+      { fragments?.map((chunk) =>
+        <LitWrapper>
+          <markdown-converter class="govuk-!-display-block govuk-!-padding-5 govuk-!-margin-top-5" style="border: 1px solid #b1b4b6;" content={ chunk.page_content }></markdown-converter>
+        </LitWrapper>
+      )}
+
+      { !fragments?.length &&
+        <p class="govuk-!-margin-top-7">There is no text data for this resource.</p>
+      }
+
+    </div>
+  </div>
+
+</Layout>

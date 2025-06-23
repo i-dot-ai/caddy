@@ -1,0 +1,56 @@
+---
+import Layout from '@layouts/Layout.astro';
+import { getCollection, getUsers } from '@logic/data.ts';
+
+const { collection: collectionId, user: userId } = Astro.params;
+const { collection, error } = await getCollection(collectionId || '', Astro.request.headers.get('x-amzn-oidc-accesstoken'));
+
+const userData = await (async () => {
+  const users = await getUsers(collectionId || '', Astro.request.headers.get('x-amzn-oidc-accesstoken'));
+  return users.find((item) => item.user_id === userId);
+})();
+
+---
+
+<Layout title={ 'Edit user - ' + userData?.user_email } error={ error }>
+
+  <nav class="govuk-breadcrumbs govuk-!-margin-bottom-6" aria-label="Breadcrumb">
+    <ol class="govuk-breadcrumbs__list">
+      <li class="govuk-breadcrumbs__list-item">
+        <a class="govuk-breadcrumbs__link" href="/">Collections</a>
+      </li>
+      <li class="govuk-breadcrumbs__list-item">
+        <a class="govuk-breadcrumbs__link" href="../../users">Users</a>
+      </li>
+      <li class="govuk-breadcrumbs__list-item">
+        Add user
+      </li>
+    </ol>
+  </nav>
+
+
+  <div class="govuk-grid-row">
+    <div class="govuk-grid-column-two-thirds">
+
+      <h1 class="govuk-heading-l">Edit user</h1>
+
+      <p><strong>User:</strong> { userData?.user_email }</p>
+      <p><strong>Collection:</strong> { collection.name }</p>
+
+      <form class="govuk-!-margin-top-7" method="post" action="/api/add-user/" enctype="multipart/form-data">
+        <input type="hidden" value={ collectionId } name="collection"/>
+        <input type="hidden" value={ userData?.user_email } name="emailAddress"/>
+        <div class="govuk-form-group">
+          <label class="govuk-label" for="role">Role</label>
+          <select class="govuk-select" id="role" name="role">
+            <option value="member" selected={ userData?.role === 'member' }>Member</option>
+            <option value="manager" selected={ userData?.role === 'manager' }>Manager</option>
+          </select>
+        </div>
+        <button class="govuk-button">Update user</button>
+      </form>
+
+    </div>
+  </div>
+
+</Layout>

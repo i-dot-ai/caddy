@@ -1,0 +1,83 @@
+---
+import Layout from '@layouts/Layout.astro';
+import { getCollections } from '@logic/data.ts';
+
+let { collectionsData, error } = await getCollections(Astro.request.headers.get('x-amzn-oidc-accesstoken'));
+
+const collections = collectionsData.collections?.sort((a, b) => {
+  return a.name > b.name ? 1 : -1;
+}) || [];
+
+---
+
+<Layout title="Collections" error={error}>
+  
+  <div class="govuk-grid-row">
+    <div class="govuk-grid-column-two-thirds">
+      <h1 class="govuk-visually-hidden">Welcome to Caddy</h1>
+      <h2 class="govuk-heading-l">What is Caddy?</h2>
+      <p>Caddy allows you to create and share collections of documents that can be searched and queried using AI chat tools.</p>
+      <p>Right now you can only search collections using Caddy's built in chat, but in the future we hope to make it available via other tools, like Microsoft Copilot.</p>
+      <p>Caddy is a beta product - it's still in development and likely to change. If you'd like to create and share your own document collections, contact us. </p>
+    </div>
+  </div>
+
+  <div class="govuk-grid-row">
+    <div class="govuk-grid-column-full">
+      <h2 class="govuk-heading-m govuk-!-margin-top-5">Collections</h2>
+      
+      { collectionsData.is_admin &&
+        <a class="govuk-button" href="/collections/add">Add a collection</a>
+      }
+
+      { collections.length ?
+
+        <div style="overflow-x: auto; width: 100%;">
+          <table class="govuk-table">
+            <caption class="govuk-visually-hidden">My collections</caption>
+            <thead class="govuk-table__head">
+              <tr class="govuk-table__row">
+                <th scope="col" class="govuk-table__header">Name</th>
+                <th scope="col" class="govuk-table__header">Actions</th>
+              </tr>
+            </thead>
+            <tbody class="govuk-table__body">
+              { collections.map((collection) =>
+                <tr class="govuk-table__row">
+                  <td class="govuk-table__cell">
+                    <span>{ collection.name }</span>
+                    { collection.description &&
+                      <span class="govuk-!-display-block govuk-!-margin-top-2 govuk-!-margin-bottom-1 govuk-body-s">{ collection.description }</span>
+                    }
+                  </td>
+                  <td class="govuk-table__cell">
+                    <span class="govuk-!-display-flex" style="gap: 10px 20px;">
+                      <a class="govuk-body-s govuk-!-margin-bottom-0" href={ `/collections/${collection.id}/resources` }>
+                        Resources<span class="govuk-visually-hidden"> for { collection.name }</span>
+                      </a>
+                      <a class="govuk-body-s govuk-!-margin-bottom-0" href={ `/collections/${collection.id}/users` }>
+                        Users<span class="govuk-visually-hidden"> for { collection.name }</span>
+                      </a>
+                      { collectionsData.is_admin &&
+                        <a class="govuk-body-s govuk-!-margin-bottom-0" href={ `/collections/${collection.id}/edit/` }>
+                          Edit<span class="govuk-visually-hidden"> { collection.name }</span>
+                        </a>
+                        <a class="govuk-body-s govuk-!-margin-bottom-0" href={ `/collections/${collection.id}/delete` }>
+                          Delete<span class="govuk-visually-hidden"> { collection.name }</span>
+                        </a>
+                      }
+                    </span>
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+
+      :
+        <p>No collections found.</p>
+      }
+    </div>
+  </div>
+
+</Layout>

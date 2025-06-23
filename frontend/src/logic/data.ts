@@ -1,0 +1,194 @@
+import 'dotenv/config';
+
+const backendHost = process.env['BACKEND_HOST'];
+if (!backendHost) {
+  throw new Error('BACKEND_HOST env var not set');
+}
+
+
+const makeRequest = async (endPoint: string, keycloakToken: string | null, options?: {method?: 'GET' | 'POST' | 'DELETE' | 'PUT', body?: any, contentType?: string}) => {
+  
+  let response;
+  let error = '';
+  let headers: any = {
+    'x-external-access-token': process.env['BACKEND_TOKEN'] || '',
+    'Authorization': keycloakToken || process.env['KEYCLOAK_TOKEN'] || '',
+  };
+  if (options?.contentType) {
+    headers['Content-Type'] = options?.contentType;
+  }
+
+  try {
+    response = await fetch(`${backendHost}${endPoint}`, {
+      method: options?.method || 'GET',
+      headers: headers,
+      body: options?.body
+    });
+    if (!response.ok) {
+      error = `Error connecting to the backend: `;
+      error += response.status === 403 ? 'You do not have sufficient permissions.' : `HTTP ${response.status}.`;
+    }
+  } catch (err) {
+    error = `Error connecting to the backend: ${err}`;
+  }
+
+  let json: {[key: string]: any} = {}
+  if (response) {
+    try {
+      json = await response.json();
+    } catch(err) {
+      console.log(error);
+    }
+  }
+  return { json, error };
+};
+
+
+interface Collection {
+  id: string,
+  name: string,
+  description: string,
+  is_manager: boolean,
+  created_at: Date
+}
+
+interface Collections {
+  collections: Collection[],
+  is_admin: boolean
+}
+
+export const getCollections = async (keycloakToken: string | null) => {
+  const { json, error } = await makeRequest('/collections', keycloakToken);
+  const collectionsData = (json as Collections) || {collections: [], is_admin: false};
+
+  if (process.env['IS_ADMIN'] === 'true') {
+    collectionsData.is_admin = true;
+  }
+
+  return { collectionsData, error };
+};
+
+
+export const getCollection = async (collectionId: string, keycloakToken: string | null) => {
+  const { collectionsData, error } = (await getCollections(keycloakToken));
+  const collection = collectionsData.collections.find((item: Collection) => item.id === collectionId) as Collection;
+  return { collection, error };
+};
+
+
+export const updateCollection = async (collectionId: string, name: string, description: string, keycloakToken: string | null) => {
+  const { json } = await makeRequest(`/collections/${collectionId}`, keycloakToken, {
+    method: 'PUT',
+    body: JSON.stringify({
+      name: name,
+      description: description,
+    }),
+    contentType: 'application/json',
+  });
+  return json;
+};
+
+
+export const addCollection = async (name: string, description: string, keycloakToken: string | null) => {
+  const { json } = await makeRequest(`/collections`, keycloakToken, {
+    method: 'POST',
+    body: JSON.stringify({
+      name: name,
+      description: description,
+    }),
+    contentType: 'application/json',
+  });
+  return json;
+};
+
+
+export const deleteCollection = async (collectionId: string, keycloakToken: string | null) => {
+  const { json } = await makeRequest(`/collections/${collectionId}`, keycloakToken, {
+    method: 'DELETE',
+  });
+  return json;
+};
+
+
+interface ResourceDetail {
+  id: string,
+  filename?: string,
+  content_type: string,
+  created_at?: string,
+  process_error?: string,
+}
+interface ResourceList {
+  total: number,
+  page_size: number,
+  page: number,
+  resources: ResourceDetail[]
+}
+export const getResources = async (collectionId: string, page: number, itemsPerPage: number, keycloakToken: string | null) => {
+  const { json } = await makeRequest(`/collections/${collectionId}/resources?page=${page}&page_size=${itemsPerPage}`, keycloakToken);
+  return json as ResourceList;
+};
+
+
+export const getResourceDetails = async (collectionId: string, resourceId: string, keycloakToken: string | null) => {
+  const { json } = await makeRequest(`/collections/${collectionId}/resources/${resourceId}`, keycloakToken);
+  return json as ResourceDetail;
+};
+
+
+interface ResourceFragment {
+  documents?: {
+    page_content: string,
+  }[]
+}
+export const getResourceFragments = async (collectionId: string, resourceId: string, keycloakToken: string | null) => {
+  const { json } = await makeRequest(`/collections/${collectionId}/resources/${resourceId}/documents`, keycloakToken);
+  return (json as ResourceFragment).documents;
+};
+
+
+export const uploadFile = async (collectionId: string, body: FormData, keycloakToken: string | null) => {
+  const { json } = await makeRequest(`/collections/${collectionId}/resources`, keycloakToken, {
+    method: 'POST',
+    body: body,
+  });
+  return json;
+};
+
+
+export const deleteFile = async (collectionId: string, resourceId: string, keycloakToken: string | null) => {
+  const { json } = await makeRequest(`/collections/${collectionId}/resources/${resourceId}`, keycloakToken, {
+    method: 'DELETE',
+  });
+  return json;
+};
+
+
+interface User {
+  created_at: string,
+  user_id: string,
+  collection_id: string,
+  user_email: string,
+  role: 'member' | 'manager',
+}
+export const getUsers = async (collectionId: string, keycloakToken: string | null) => {
+  const { json } = await makeRequest(`/collections/${collectionId}/users?page_size=1000`, keycloakToken);
+  return json.user_roles as User[];
+};
+
+
+export const addUser = async (collectionId: string, body: {}, keycloakToken: string | null) => {
+  const { json } = await makeRequest(`/collections/${collectionId}/users`, keycloakToken, {
+    method: 'POST',
+    body: JSON.stringify(body),
+    contentType: 'application/json',
+  });
+  return json;
+};
+
+
+export const removeUser = async (collectionId: string, userId: string, keycloakToken: string | null) => {
+  const { json } = await makeRequest(`/collections/${collectionId}/users/${userId}`, keycloakToken, {
+    method: 'DELETE',
+  });
+  return json;
+};

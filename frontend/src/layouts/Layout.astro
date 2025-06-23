@@ -1,0 +1,47 @@
+---
+import '../../node_modules/i.ai-design-system/dist/iai-design-system.css';
+import LitWrapper from '@components/lit-wrapper.astro';
+
+const { title, error } = Astro.props;
+---
+
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width" />
+		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+		<title>{ title } - Caddy Admin</title>
+	</head>
+	<body class="govuk-template__body govuk-frontend-supported">
+
+		<LitWrapper>
+			<iai-header product-name="Caddy Admin"></iai-header>
+		</LitWrapper>
+
+		<div class="govuk-width-container">
+			<main class="govuk-main-wrapper">
+
+				{ error &&
+					<div class="govuk-error-summary" data-module="govuk-error-summary">
+						<div role="alert">
+							<h2 class="govuk-error-summary__title">
+								There is a problem
+							</h2>
+							<div class="govuk-error-summary__body">
+								<p>{ error }</p>
+							</div>
+						</div>
+					</div>
+				}
+
+				<slot />
+			</main>
+		</div>
+
+		<script>
+			import '../../node_modules/i.ai-design-system/dist/iai-design-system.js';
+		</script>
+
+	</body>
+</html>

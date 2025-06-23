@@ -1,0 +1,121 @@
+---
+import Layout from '@layouts/Layout.astro';
+import { getCollection } from '@logic/data.ts';
+
+const { collection: collectionId } = Astro.params;
+
+const { collection, error } = await getCollection(collectionId || '', Astro.request.headers.get('x-amzn-oidc-accesstoken'));
+
+---
+
+<Layout title={'Upload to ' + collection.name } error={ error }>
+
+  <nav class="govuk-breadcrumbs govuk-!-margin-bottom-6" aria-label="Breadcrumb">
+    <ol class="govuk-breadcrumbs__list">
+      <li class="govuk-breadcrumbs__list-item">
+        <a class="govuk-breadcrumbs__link" href="/">Collections</a>
+      </li>
+      <li class="govuk-breadcrumbs__list-item">
+        <a class="govuk-breadcrumbs__link" href="../resources">Resources</a>
+      </li>
+      <li class="govuk-breadcrumbs__list-item">
+        Upload
+      </li>
+    </ol>
+  </nav>
+
+
+  <div class="govuk-grid-row">
+    <div class="govuk-grid-column-full">
+
+      <h1 class="govuk-heading-l">Upload file(s)</h1>
+
+      <p><strong>Collection:</strong> { collection.name }</p>
+
+      <form class="govuk-!-margin-top-7" method="post" action="/api/upload/" enctype="multipart/form-data">
+        <input type="hidden" value={ collectionId } name="collection"/>
+        <div class="govuk-form-group">
+          <label class="govuk-label" for="file-upload-1">
+            Upload file(s)
+          </label>
+          <div
+            class="govuk-drop-zone"
+            data-module="govuk-file-upload">
+            <input class="govuk-file-upload" id="file-upload-1" name="fileUpload1" type="file" required multiple>
+          </div>
+        </div>
+        <button class="govuk-button">Send file(s)</button>
+
+        <upload-info input-id="file-upload-1-input" collection={ collectionId } resources-page="../resources"></upload-info>
+
+      </form>
+
+    </div>
+  </div>
+
+</Layout>
+
+
+<script src="../../../../components/upload-info.ts"></script>
+
+
+<style is:global>
+  .form-submitted button.govuk-button {
+    display: none;
+  }
+
+  .upload-info:focus-visible {
+    display: block;
+    outline: 2px solid var(--iai-pink);
+    outline-offset: 5px;
+  }
+  .upload-info__ellipsis {
+    span {
+      animation-duration: 1.5s;
+      animation-iteration-count: infinite;
+      margin: 0 -2px;
+    }
+    span:nth-of-type(2) {
+      animation-name: ellipsis-1;
+    }
+    span:nth-of-type(3) {
+      animation-name: ellipsis-2;
+    }
+    span:nth-of-type(4) {
+      animation-name: ellipsis-3;
+    }
+  }
+  @keyframes ellipsis-1 {
+    0% {
+      opacity: 0;
+    }
+    24% {
+      opacity: 0;
+    }
+    25% {
+      opacity: 1;
+    }
+  }
+  @keyframes ellipsis-2 {
+    0% {
+      opacity: 0;
+    }
+    49% {
+      opacity: 0;
+    }
+    50% {
+      opacity: 1;
+    }
+  }
+  @keyframes ellipsis-3 {
+    0% {
+      opacity: 0;
+    }
+    74% {
+      opacity: 0;
+    }
+    75% {
+      opacity: 1;
+    }
+  }
+</style>

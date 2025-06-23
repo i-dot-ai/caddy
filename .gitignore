@@ -1,0 +1,56 @@
+venv
+.DS_Store
+.idea
+.gcloudignore
+.git
+.venv
+__pycache__/
+/setup.cfg
+.ipynb_checkpoints
+*.ipynb
+.env
+Brewfile.lock.json
+*.pdf
+
+# Terraform
+**/.terraform/*
+**/terraform/terraform.tfstate.d
+**/.terraform*
+# Terraform lock files
+*/.terraform.lock.hcl
+.terraform.lock.hcl
+*.terraform.lock.hcl 
+
+# Data
+*.csv
+*.xlsx
+*.xls
+*.pkl
+*.parquet
+*.zip
+*.ods
+
+# Rendered presentations
+*.html
+*_files/
+
+# Docker cache
+.build-cache
+
+*.db
+
+# Coverage
+*.coverage
+*.coverage.*
+
+
+vscode/**
+
+# Scraper
+
+scraper/excluded_gcoe_domains.json
+scraper/gcoe_scrape/**
+scraper/scrape_result/**
+scraper/folder/**
+scraper/citizensadvice_scrape/**
+scraper/govuk_scrape/**

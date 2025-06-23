@@ -1,0 +1,192 @@
+import contextlib
+import contextvars
+import os
+from logging import getLogger
+from typing import Iterator
+
+from fastapi import HTTPException
+from langchain_core.documents import Document
+from mcp import types
+from mcp.server.lowlevel import Server
+from mcp.server.streamable_http_manager import StreamableHTTPSessionManager
+from pydantic import BaseModel, EmailStr
+from sqlmodel import Session, select
+from starlette.requests import Request
+from starlette.types import Receive, Scope, Send
+
+from api.auth import get_authorised_user
+from api.environment import config
+from api.models import Collection, User, UserCollection
+from api.search import search_collection
+
+logger = getLogger(__file__)
+
+mcp_server = Server("Caddy MCP server")
+
+KEYCLOAK_ALLOWED_ROLES = config.keycloak_allowed_roles
+
+# Context variable to store current user email
+_current_user_email: contextvars.ContextVar[str | None] = contextvars.ContextVar(
+    "current_user_email", default=None
+)
+
+
+@contextlib.asynccontextmanager
+async def current_user_email(value: EmailStr) -> Iterator[None]:
+    """Context manager to set the current-user-email"""
+    token = _current_user_email.set(value)
+    try:
+        yield
+    finally:
+        _current_user_email.reset(token)
+
+
+class ToolResponse(BaseModel):
+    documents: list[Document]
+
+
+def __validate_user_access(request: Request) -> EmailStr | None:
+    if config.env == "LOCAL":
+        if admin := os.environ.get("ADMIN_USERS", "").split(",")[0]:
+            return admin.strip()
+        raise ValueError("local env selected but no ADMIN_USERS set")
+
+    auth_header = request.headers.get("Authorization")
+    if not auth_header:
+        logger.info("auth_header not found")
+        return None
+
+    token = auth_header.removeprefix("Bearer ")
+    authorised_user = get_authorised_user(token, KEYCLOAK_ALLOWED_ROLES)
+    if not authorised_user:
+        logger.info("user not authorised for roles: %s", KEYCLOAK_ALLOWED_ROLES)
+        return None
+    return authorised_user
+
+
+def get_current_user() -> EmailStr:
+    if user_email := _current_user_email.get():
+        return user_email
+
+    raise HTTPException(401, detail="Authentication required")
+
+
+@mcp_server.call_tool()
+async def call_tool(
+    name: str, arguments: dict
+) -> list[types.TextContent | types.ImageContent | types.EmbeddedResource]:
+    logger.info(f"Calling tool {name} with args {arguments}")
+
+    user_email = get_current_user()
+    logger.info(f"Tool called by user: {user_email}")
+
+    with Session(config.get_database()) as session:
+        # Check if user is a member of this collection
+        statement = (
+            select(UserCollection)
+            .join(User)
+            .join(Collection)
+            .where(
+                User.email == user_email,
+                Collection.name == name,
+            )
+        )
+        user_collection = session.exec(statement).first()
+        if not user_collection:
+            raise HTTPException(
+                403, detail="User does not have access to this collection"
+            )
+
+        documents = await search_collection(
+            user_collection.collection_id,
+            arguments.get("query"),
+            arguments.get("keywords", []),
+        )
+
+    return [
+        types.TextContent(
+            type="text",
+            text=ToolResponse(documents=documents).model_dump_json(),
+        )
+    ]
+
+
+@mcp_server.list_tools()
+async def list_tools() -> list[types.Tool]:
+    logger.info("Listing tools")
+
+    user_email = get_current_user()
+
+    logger.info(f"Listing tools for user: {user_email}")
+
+    with Session(config.get_database()) as session:
+        expression = (
+            select(Collection)
+            .join(UserCollection)
+            .join(User)
+            .where(User.email == user_email)
+        )
+
+        collections = session.exec(expression).all()
+
+    return [
+        types.Tool(
+            name=collection.name,
+            description=collection.description,
+            inputSchema={
+                "type": "object",
+                "required": ["query"],
+                "properties": {
+                    "query": {
+                        "type": "string",
+                        "description": "what do you want to search for?",
+                    },
+                    "keywords": {
+                        "type": "array",
+                        "description": "- Extract 3-5 specific terms that capture key issues or needs"
+                        "- Include amounts, dates, or specific services mentioned"
+                        "- Focus on actionable terms that could help find relevant documents"
+                        "- Avoid generic words or category names",
+                        "items": {"type": "string"},
+                    },
+                },
+            },
+        )
+        for collection in collections
+    ]
+
+
+# Create the session manager with true stateless mode
+session_manager = StreamableHTTPSessionManager(
+    app=mcp_server,
+    event_store=None,
+    json_response=True,
+    stateless=True,
+)
+
+
+async def handle_streamable_http(scope: Scope, receive: Receive, send: Send) -> None:
+    request = Request(scope, receive)
+    user_email = __validate_user_access(request)
+    if not user_email:
+        logger.info("user not authorized")
+        await send(
+            {
+                "type": "http.response.start",
+                "status": 401,
+                "headers": [
+                    [b"content-type", b"text/plain"],
+                ],
+            }
+        )
+        await send(
+            {
+                "type": "http.response.body",
+                "body": b"Not Found",
+            }
+        )
+        return
+
+    # Set user email in context for the duration of this request
+    async with current_user_email(user_email):
+        await session_manager.handle_request(scope, receive, send)

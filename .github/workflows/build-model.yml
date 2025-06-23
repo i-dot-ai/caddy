@@ -1,0 +1,28 @@
+name: build caddy model
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - model/**
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./model
+          push: false
+          tags: caddy-model:${{ github.sha }}
