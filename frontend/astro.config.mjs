@@ -7,7 +7,8 @@ import sentry from '@sentry/astro';
 
 // https://astro.build/config
 export default defineConfig({
-  server: { port: 4322 },
+  // host: true enables astro to work in Docker
+  server: { port: 4322, host: true },
   output: 'server',
 
   adapter: node({

@@ -1,9 +1,25 @@
 services:
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "8080:80"    # model
+      - "8081:81"    # client
+      - "8082:82"    # frontend
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - model
+      - frontend
+      - client
+    networks:
+      - caddy-net
+    restart: unless-stopped
+
   model:
     build:
       context: ./model
-    ports:
-      - "8080:8080"
+    expose:
+      - "8080"
     volumes:
       - ./model:/app
       - /app/.venv # do not clobber installed venv
@@ -27,14 +43,18 @@ services:
   frontend:
     build:
       context: ./frontend
-    ports:
-      - "8082:8081"
+    expose:
+      - "4322"
+    entrypoint: npm run dev
     env_file:
       - .env
     networks:
       - caddy-net
     environment:
       - BACKEND_HOST=http://model:8080
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
     depends_on:
       model:
         condition: service_healthy
@@ -47,7 +67,7 @@ services:
       - OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m
       - DISABLE_SECURITY_PLUGIN=true
       - DISABLE_PERFORMANCE_ANALYZER_AGENT_CLI=true
-      - logger.level=INFO
+      - logger.level=ERROR
       - OPENSEARCH_INITIAL_ADMIN_PASSWORD=1ns3cu4eE!
     ports:
       - "9200:9200"
@@ -133,8 +153,8 @@ services:
       # Image versions can be found here https://gallery.ecr.aws/idotai/gov-ai-client
       # image: public.ecr.aws/idotai/gov-ai-client:b0f3cf190dc6c2e8c74f084ea28665fb78072bc3
     container_name: gov-ai-client
-    ports:
-      - "8081:8081"
+    expose:
+      - "8081"
     env_file:
       - ../gov-ai-client/.env
     environment:
