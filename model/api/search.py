@@ -35,7 +35,7 @@ async def search_collection(
         k=10,
         search_type=HYBRID_SEARCH,
         search_pipeline=config.opensearch_url_pipeline,
-        pre_filter=pre_filter,
+        post_filter=pre_filter,
     )
 
     def build_document(document: Document):

@@ -433,7 +433,7 @@ def test_update_collection_401(client):
     assert response.status_code == 401
 
 
-def test_search(client, collection_manager, example_document):
+def test_search(client, collection_manager, example_document, another_example_document):
     response = client.post(
         "/search",
         json={
@@ -444,6 +444,7 @@ def test_search(client, collection_manager, example_document):
     )
 
     assert response.status_code == 200, response.content
+    assert len(response.json()) == 1
 
     output = Document.model_validate(response.json()[0])
     assert isinstance(output, Document)
