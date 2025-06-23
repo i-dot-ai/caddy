@@ -130,6 +130,27 @@ def example_document(database_transaction, example_collection):
 
 
 @pytest.fixture
+def another_example_document(database_transaction, another_example_collection):
+    resource = Resource(
+        collection_id=another_example_collection.id,
+        filename="gov.pdf",
+        content_type="text/html",
+    )
+
+    text_chunk = TextChunk(
+        resource=resource,
+        text="The best place to find government services and information",
+        embedding=list(range(EMBEDDING_DIMENSION)),
+        order=1,
+    )
+
+    database_transaction.add(resource)
+    database_transaction.add(text_chunk)
+    database_transaction.commit()
+    yield text_chunk
+
+
+@pytest.fixture
 def many_documents(
     example_collection: Collection,
     database_transaction,
