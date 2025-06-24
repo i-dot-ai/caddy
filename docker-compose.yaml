@@ -136,16 +136,6 @@ services:
       retries: 24
       start_period: 30s
 
-  mcp_test_server:
-    build:
-      context: ../gov-ai-client
-      dockerfile: mcp-server-demo/Dockerfile
-    container_name: mcp_test_server
-    ports:
-      - "3210:3210"
-    networks:
-      - caddy-net
-
   client:
     build:
       context: ../gov-ai-client
