@@ -22,6 +22,8 @@ docker-compose --env-file .env up
 
 Requires .env file – copy from .env.example.
 
+**Important note**: you must allocate at least 4GB for Docker or performance will be horrible and opensearch will keep dying.
+
 Dependencies
 - Python 3.12+
 - Docker (for OpenSearch/Postgres)
