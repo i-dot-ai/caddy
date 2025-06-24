@@ -149,8 +149,7 @@ services:
     env_file:
       - ../gov-ai-client/.env
     environment:
-      - MCP_CADDY_URL=http://model:8080/mcp/sse
-      - MCP_TEST_SERVER_URL=http://mcp_test_server:3210/sse
+      - MCP_SERVERS={"servers":[{"name":"caddy","url":"http://model:8080/search/"}]}
     networks:
       - caddy-net
 
