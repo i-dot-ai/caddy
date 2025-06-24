@@ -148,6 +148,15 @@ services:
     networks:
       - caddy-net
 
+  welcome:
+    restart: no
+    build:
+      context: docker-compose-config
+      dockerfile: welcome.Dockerfile
+    depends_on:
+      frontend:
+        condition: service_healthy
+
 volumes:
   opensearch_data:
   postgres_data:
