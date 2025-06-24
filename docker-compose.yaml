@@ -41,7 +41,7 @@ services:
         condition: service_healthy
     networks:
       - caddy-net
-    env_file: ".env"
+    env_file: "docker-compose-config/.env"
 
   frontend:
     build:
@@ -49,8 +49,7 @@ services:
     expose:
       - "4322"
     entrypoint: npm run dev
-    env_file:
-      - .env
+    env_file: "docker-compose-config/.env"
     networks:
       - caddy-net
     environment:

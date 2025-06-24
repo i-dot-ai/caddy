@@ -17,17 +17,16 @@ Caddy is a Retrieval-Augmented Generation (RAG) platform combining:
 With Docker:
 
 ```bash
-docker-compose --env-file .env up
+cp docker-compose-config/.env.example docker-compose-config/.env
 ```
 
-Requires .env file – copy from .env.example.
+And populate the `docker-compose-config/.env` file with the necessary vars. Then
+
+```bash
+docker compose up
+```
 
 **Important note**: you must allocate at least 4GB for Docker or performance will be horrible and opensearch will keep dying.
-
-Dependencies
-- Python 3.12+
-- Docker (for OpenSearch/Postgres)
-- Poetry (for dependency management)
 
 ### Working with dependencies
 
