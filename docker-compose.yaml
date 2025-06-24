@@ -52,8 +52,6 @@ services:
     env_file: "docker-compose-config/.env"
     networks:
       - caddy-net
-    environment:
-      - BACKEND_HOST=http://model:8080
     volumes:
       - ./frontend:/app
       - /app/node_modules
