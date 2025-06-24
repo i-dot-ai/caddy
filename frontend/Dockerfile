@@ -17,6 +17,8 @@ RUN npm run build
 
 # Production image, copy all the files and run
 FROM base AS runner
+
+RUN apk add curl
 WORKDIR /app
 
 ENV NODE_ENV production

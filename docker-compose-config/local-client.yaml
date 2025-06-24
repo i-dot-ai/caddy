@@ -1,0 +1,19 @@
+services:
+  client:
+    build:
+      context: ../gov-ai-client
+      dockerfile: frontend/Dockerfile
+    container_name: gov-ai-client
+    expose:
+      - "8081"
+    entrypoint: npm run dev
+    volumes:
+      - ../gov-ai-client/frontend:/app
+      - /app/node_modules
+    env_file:
+      - ../gov-ai-client/.env
+    environment:
+      - MCP_SERVERS={"servers":[{"name":"caddy","url":"http://model:8080/search/"}]}
+    networks:
+      - caddy-net
+
