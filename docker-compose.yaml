@@ -6,8 +6,8 @@ services:
       - "8081:81"    # client
       - "8082:82"    # frontend
     volumes:
-      - ./nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./user-switcher.conf:/etc/nginx/user-switcher.conf:ro
+      - ./docker-compose-config/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./docker-compose-config/user-switcher.conf:/etc/nginx/user-switcher.conf:ro
     depends_on:
       - model
       - frontend
@@ -61,15 +61,15 @@ services:
         condition: service_healthy
 
   opensearch:
-    image: opensearchproject/opensearch:3
+    build:
+      dockerfile: docker-compose-config/opensearch.Dockerfile
     container_name: opensearch
     environment:
       - discovery.type=single-node
       - OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m
-      - DISABLE_SECURITY_PLUGIN=true
       - DISABLE_PERFORMANCE_ANALYZER_AGENT_CLI=true
       - logger.level=ERROR
-      - OPENSEARCH_INITIAL_ADMIN_PASSWORD=1ns3cu4eE!
+      - bootstrap.memory_lock=true
     ports:
       - "9200:9200"
       - "9600:9600"
