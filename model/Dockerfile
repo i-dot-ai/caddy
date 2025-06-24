@@ -10,6 +10,8 @@ COPY . .
 
 RUN pip install poetry
 
+# poetry must use .venv
+ENV POETRY_VENV_IN_PROJECT=1
 RUN poetry install --no-interaction --no-root
 
 EXPOSE 8080
