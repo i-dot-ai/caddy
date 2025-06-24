@@ -26,6 +26,15 @@ And populate the `docker-compose-config/.env` file with the necessary vars. Then
 docker compose up
 ```
 
+If you need to work on GovAI client at the same time, you can use the
+`local-client` override. When the override is active, docker compose will draw
+the client from `../gov-ai-client`. To activate the override, use the `-f`
+option for `docker compose`.
+
+```bash
+ docker compose -f docker-compose.yaml -f docker-compose-config/local-client.yaml up
+ ```
+
 **Important note**: you must allocate at least 4GB for Docker or performance will be horrible and opensearch will keep dying.
 
 ### Working with dependencies

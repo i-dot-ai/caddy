@@ -138,19 +138,11 @@ services:
       start_period: 30s
 
   client:
-    build:
-      context: ../gov-ai-client
-      dockerfile: frontend/Dockerfile
-      # Uncomment the below line and comment out the two above to use a remote image
-      # Image versions can be found here https://gallery.ecr.aws/idotai/gov-ai-client
-      # image: public.ecr.aws/idotai/gov-ai-client:b0f3cf190dc6c2e8c74f084ea28665fb78072bc3
+    image: public.ecr.aws/idotai/gov-ai-client:068ee7adce7c62c6836239c57415d517cf870dd5
     container_name: gov-ai-client
     expose:
       - "8081"
-    env_file:
-      - ../gov-ai-client/.env
-    environment:
-      - MCP_SERVERS={"servers":[{"name":"caddy","url":"http://model:8080/search/"}]}
+    env_file: "docker-compose-config/.env"
     networks:
       - caddy-net
 
