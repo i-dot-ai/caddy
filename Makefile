@@ -128,7 +128,9 @@ AUTO_APPLY_RESOURCES = module.model.aws_ecs_service.aws-ecs-service \
 					   module.model.aws_ecs_task_definition.task_definition \
 					   module.frontend.aws_ecs_service.aws-ecs-service \
   					   module.frontend.data.aws_ecs_task_definition.main \
-					   module.frontend.aws_ecs_task_definition.task_definition
+					   module.frontend.aws_ecs_task_definition.task_definition \
+					   module.load_balancer.aws_security_group.load_balancer_security_group \
+					   module.load_balancer.aws_security_group_rule.load_balancer_https_whitelist
 
 
 auto_apply_target_resources = $(foreach resource,$(AUTO_APPLY_RESOURCES),-target $(resource))
