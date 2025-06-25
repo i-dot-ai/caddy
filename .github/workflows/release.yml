@@ -42,6 +42,7 @@ jobs:
           echo "infra-config-repo=${INFRA_CONFIG_REPO}" >> $GITHUB_OUTPUT
           echo "ecr-repo=${ECR_REPO}" >> $GITHUB_OUTPUT
           echo "::add-mask::${AWS_REGION}"
+          echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
 
       - id: env-var
         run: |
@@ -122,8 +123,8 @@ jobs:
     with:
       WORKFLOW_PASSED: ${{ needs.determine-success.outputs.success == 'true' }}
       RUNNER_LABEL: ${{ needs.start-runner.outputs.label }}
-      SUCCESS_PAYLOAD: "{\"blocks\":[{\"type\":\"header\",\"text\":{\"type\":\"plain_text\",\"text\":\":airplane: ${{ github.repository }} - Deployment to ${{ needs.set-vars.outputs.environment }} Succeeded :large_green_circle:\"}},{\"type\":\"section\",\"text\":{\"type\":\"mrkdwn\",\"text\":\"${{ github.sha }} successfully deployed to ${{ needs.set-vars.outputs.environment }}\"}}]}"
-      FAILURE_PAYLOAD: "{\"blocks\":[{\"type\":\"header\",\"text\":{\"type\":\"plain_text\",\"text\":\":x: ${{ github.repository }} - Deployment to ${{ needs.set-vars.outputs.environment }} Failed :x:\"}},{\"type\":\"section\",\"text\":{\"type\":\"mrkdwn\",\"text\":\"${{ github.sha }} failed to deploy to ${{ needs.set-vars.outputs.environment }}\"}}]}"
+      SUCCESS_PAYLOAD: "{ \"blocks\": [ { \"type\": \"section\", \"text\": { \"type\": \"mrkdwn\", \"text\": \":large_green_circle: `${{ needs.set-vars.outputs.environment }}` *deployment succeeded*\\n\\n Deployed SHA: `${{ github.sha_short }}`\" } } ] }"
+      FAILURE_PAYLOAD: "{ \"blocks\": [ { \"type\": \"section\", \"text\": { \"type\": \"mrkdwn\", \"text\": \":x: `${{ needs.set-vars.outputs.environment }}` *deployment failed*\\n\\n Attempted SHA: `${{ github.sha_short }}`. Logs: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}\" } } ] }"
     secrets:
       SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 

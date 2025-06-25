@@ -45,6 +45,7 @@ jobs:
           echo "infra-config-repo=${INFRA_CONFIG_REPO}" >> $GITHUB_OUTPUT
           echo "ecr-repo=${ECR_REPO}" >> $GITHUB_OUTPUT
           echo "::add-mask::${AWS_REGION}"
+          echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
 
   start-runner:
     uses: i-dot-ai/i-dot-ai-core-github-actions/.github/workflows/start-runner.yml@main
@@ -111,8 +112,8 @@ jobs:
     with:
       WORKFLOW_PASSED: ${{ needs.determine-success.outputs.success == 'true' }}
       RUNNER_LABEL: ${{ needs.start-runner.outputs.label }}
-      SUCCESS_PAYLOAD: "{\"blocks\":[{\"type\":\"header\",\"text\":{\"type\":\"plain_text\",\"text\":\":rocket: ${{ github.repository }} - Release ${{ github.event.release.tag_name }} Deployed to Production :large_green_circle:\"}},{\"type\":\"section\",\"text\":{\"type\":\"mrkdwn\",\"text\":\"Release ${{ github.event.release.tag_name }} successfully deployed to production\"}}]}"
-      FAILURE_PAYLOAD: "{\"blocks\":[{\"type\":\"header\",\"text\":{\"type\":\"plain_text\",\"text\":\":x: ${{ github.repository }} - Release ${{ github.event.release.tag_name }} Production Deployment Failed :x:\"}},{\"type\":\"section\",\"text\":{\"type\":\"mrkdwn\",\"text\":\"Release ${{ github.event.release.tag_name }} failed to deploy to production\"}}]}"
+      SUCCESS_PAYLOAD: "{ \"blocks\": [ { \"type\": \"section\", \"text\": { \"type\": \"mrkdwn\", \"text\": \":large_green_circle: `prod` *deployment succeeded*\\n\\n Deployed SHA: `${{ github.sha_short }}`\" } } ] }"
+      FAILURE_PAYLOAD: "{ \"blocks\": [ { \"type\": \"section\", \"text\": { \"type\": \"mrkdwn\", \"text\": \":x: `prod` *deployment failed*\\n\\n Attempted SHA: `${{ github.sha_short }}`. Logs: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}\" } } ] }"
     secrets:
       SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 
