@@ -1,4 +1,5 @@
 ---
+import 'dotenv/config';
 import Layout from '@layouts/Layout.astro';
 import { getCollections } from '@logic/data.ts';
 
@@ -7,6 +8,16 @@ let { collectionsData, error } = await getCollections(Astro.request.headers.get(
 const collections = collectionsData.collections?.sort((a, b) => {
   return a.name > b.name ? 1 : -1;
 }) || [];
+
+const chatLink = (() => {
+  let urlSegment = '';
+  if (process.env['ENVIRONMENT']?.toLowerCase() === 'preprod') {
+    urlSegment = '-preprod';
+  } else if (process.env['ENVIRONMENT']?.toLowerCase() === 'dev') {
+    urlSegment = '-dev';
+  }
+  return `https://gov-ai-client${urlSegment}.ai.cabinetoffice.gov.uk`;
+})();
 
 ---
 
@@ -17,7 +28,7 @@ const collections = collectionsData.collections?.sort((a, b) => {
       <h1 class="govuk-visually-hidden">Welcome to Caddy</h1>
       <h2 class="govuk-heading-l">What is Caddy?</h2>
       <p>Caddy allows you to create and share collections of documents that can be searched and queried using AI chat tools.</p>
-      <p>Right now you can only search collections using Caddy's built in chat, but in the future we hope to make it available via other tools, like Microsoft Copilot.</p>
+      <p>Right now you can only search collections using Caddy's <a href={chatLink}>built in chat interface</a>, but in the future we hope to make it available via other tools, like Microsoft Copilot.</p>
       <p>Caddy is a beta product - it's still in development and likely to change. If you'd like to create and share your own document collections, contact us. </p>
     </div>
   </div>
