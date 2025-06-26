@@ -25,6 +25,7 @@ jobs:
       infra-config-repo: ${{ steps.export.outputs.infra-config-repo }}
       environment: ${{ steps.env-var.outputs.environment }}
       ecr-repo: ${{ steps.export.outputs.ecr-repo }}
+      sha-short: ${{ steps.export.outputs.sha_short }}
 
     steps:
       - name: Checkout
@@ -123,8 +124,8 @@ jobs:
     with:
       WORKFLOW_PASSED: ${{ needs.determine-success.outputs.success == 'true' }}
       RUNNER_LABEL: ${{ needs.start-runner.outputs.label }}
-      SUCCESS_PAYLOAD: "{ \"blocks\": [ { \"type\": \"section\", \"text\": { \"type\": \"mrkdwn\", \"text\": \":large_green_circle: `${{ needs.set-vars.outputs.environment }}` *deployment succeeded*\\n\\n Deployed SHA: `${{ github.sha_short }}`\" } } ] }"
-      FAILURE_PAYLOAD: "{ \"blocks\": [ { \"type\": \"section\", \"text\": { \"type\": \"mrkdwn\", \"text\": \":x: `${{ needs.set-vars.outputs.environment }}` *deployment failed*\\n\\n Attempted SHA: `${{ github.sha_short }}`. Logs: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}\" } } ] }"
+      SUCCESS_PAYLOAD: "{ \"blocks\": [ { \"type\": \"section\", \"text\": { \"type\": \"mrkdwn\", \"text\": \":large_green_circle: `${{ needs.set-vars.outputs.environment }}` *deployment succeeded*\\n\\n Deployed SHA: `${{ needs.set-vars.outputs.sha-short }}`\" } } ] }"
+      FAILURE_PAYLOAD: "{ \"blocks\": [ { \"type\": \"section\", \"text\": { \"type\": \"mrkdwn\", \"text\": \":x: `${{ needs.set-vars.outputs.environment }}` *deployment failed*\\n\\n Attempted SHA: `${{ needs.set-vars.outputs.sha-short }}`. Logs: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}\" } } ] }"
     secrets:
       SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 
