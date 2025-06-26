@@ -15,6 +15,8 @@ def load_embedding_model(model_identifier: str):
     if model_identifier == "fake":
         return FakeEmbeddings(size=EMBEDDING_DIMENSION)
     if model_identifier == "text-embedding-3-large":
-        return AzureOpenAIEmbeddings(model=model_identifier, chunk_size=1000)
+        return AzureOpenAIEmbeddings(
+            model=model_identifier, chunk_size=1000, dimensions=EMBEDDING_DIMENSION
+        )
     msg = "model_name=%s not recognised"
     raise ValueError(msg, model_identifier)
