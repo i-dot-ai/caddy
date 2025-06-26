@@ -25,7 +25,7 @@ jobs:
       infra-config-repo: ${{ steps.export.outputs.infra-config-repo }}
       environment: ${{ steps.env-var.outputs.environment }}
       ecr-repo: ${{ steps.export.outputs.ecr-repo }}
-      sha-short: ${{ steps.export.outputs.sha_short }}
+      sha-short: ${{ steps.export.outputs.sha-short }}
 
     steps:
       - name: Checkout
@@ -43,7 +43,7 @@ jobs:
           echo "infra-config-repo=${INFRA_CONFIG_REPO}" >> $GITHUB_OUTPUT
           echo "ecr-repo=${ECR_REPO}" >> $GITHUB_OUTPUT
           echo "::add-mask::${AWS_REGION}"
-          echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+          echo "sha-short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
 
       - id: env-var
         run: |

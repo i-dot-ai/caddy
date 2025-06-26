@@ -22,7 +22,7 @@ jobs:
       environment: prod
       ecr-repo: ${{ steps.export.outputs.ecr-repo }}
       commit-hash: ${{ steps.get-commit.outputs.commit_hash }}
-      sha-short: ${{ steps.get-commit.outputs.sha_short }}
+      sha-short: ${{ steps.get-commit.outputs.sha-short }}
 
     steps:
       - name: Checkout
@@ -46,7 +46,7 @@ jobs:
           echo "infra-config-repo=${INFRA_CONFIG_REPO}" >> $GITHUB_OUTPUT
           echo "ecr-repo=${ECR_REPO}" >> $GITHUB_OUTPUT
           echo "::add-mask::${AWS_REGION}"
-          echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+          echo "sha-short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
 
   start-runner:
     uses: i-dot-ai/i-dot-ai-core-github-actions/.github/workflows/start-runner.yml@main
