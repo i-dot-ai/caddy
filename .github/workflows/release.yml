@@ -26,6 +26,7 @@ jobs:
       environment: ${{ steps.env-var.outputs.environment }}
       ecr-repo: ${{ steps.export.outputs.ecr-repo }}
       sha-short: ${{ steps.export.outputs.sha-short }}
+      git-tag: ${{ steps.export.outputs.git-tag }}
 
     steps:
       - name: Checkout
@@ -44,6 +45,7 @@ jobs:
           echo "ecr-repo=${ECR_REPO}" >> $GITHUB_OUTPUT
           echo "::add-mask::${AWS_REGION}"
           echo "sha-short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+          echo "git-tag=$(git tag)" >> $GITHUB_OUTPUT
 
       - id: env-var
         run: |
@@ -124,7 +126,7 @@ jobs:
     with:
       WORKFLOW_PASSED: ${{ needs.determine-success.outputs.success == 'true' }}
       RUNNER_LABEL: ${{ needs.start-runner.outputs.label }}
-      SUCCESS_PAYLOAD: "{ \"blocks\": [ { \"type\": \"section\", \"text\": { \"type\": \"mrkdwn\", \"text\": \":large_green_circle: `${{ needs.set-vars.outputs.environment }}` *deployment succeeded*\\n\\n Deployed SHA: `${{ needs.set-vars.outputs.sha-short }}`\" } } ] }"
+      SUCCESS_PAYLOAD: "{ \"blocks\": [ { \"type\": \"section\", \"text\": { \"type\": \"mrkdwn\", \"text\": \":large_green_circle: `${{ needs.set-vars.outputs.environment }}` *deployment succeeded*\\n\\n Deployed SHA: `${{ needs.set-vars.outputs.sha-short }}`. Tag: `${{ needs.set-vars.outputs.git-tag }}`\" } } ] }"
       FAILURE_PAYLOAD: "{ \"blocks\": [ { \"type\": \"section\", \"text\": { \"type\": \"mrkdwn\", \"text\": \":x: `${{ needs.set-vars.outputs.environment }}` *deployment failed*\\n\\n Attempted SHA: `${{ needs.set-vars.outputs.sha-short }}`. Logs: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}\" } } ] }"
     secrets:
       SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
