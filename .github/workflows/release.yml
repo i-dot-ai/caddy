@@ -124,7 +124,7 @@ jobs:
     with:
       WORKFLOW_PASSED: ${{ needs.determine-success.outputs.success == 'true' }}
       RUNNER_LABEL: ${{ needs.start-runner.outputs.label }}
-      SUCCESS_PAYLOAD: "{ \"blocks\": [ { \"type\": \"section\", \"text\": { \"type\": \"mrkdwn\", \"text\": \":large_green_circle: `${{ needs.set-vars.outputs.environment }}` *deployment succeeded*\\n\\n Deployed SHA: `${{ needs.set-vars.outputs.sha-short }}`\" } } ] }"
+      SUCCESS_PAYLOAD: "{ \"blocks\": [ { \"type\": \"section\", \"text\": { \"type\": \"mrkdwn\", \"text\": \":large_green_circle: `${{ needs.set-vars.outputs.environment }}` *deployment succeeded*\\n\\n Deployed SHA: `${{ needs.set-vars.outputs.sha-short }}`. Tag: `${{  github.event.release.tag_name }}`\" } } ] }"
       FAILURE_PAYLOAD: "{ \"blocks\": [ { \"type\": \"section\", \"text\": { \"type\": \"mrkdwn\", \"text\": \":x: `${{ needs.set-vars.outputs.environment }}` *deployment failed*\\n\\n Attempted SHA: `${{ needs.set-vars.outputs.sha-short }}`. Logs: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}\" } } ] }"
     secrets:
       SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
