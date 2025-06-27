@@ -180,7 +180,7 @@ def create_collection(
     session.refresh(collection)
 
     if user_collection := session.get(
-            UserCollection, {"collection_id": collection.id, "user_id": user.id}
+        UserCollection, {"collection_id": collection.id, "user_id": user.id}
     ):
         user_collection.role = Role.MANAGER
     else:
