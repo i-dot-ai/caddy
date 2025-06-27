@@ -110,7 +110,7 @@ export const deleteCollection = async (collectionId: string, keycloakToken: stri
 };
 
 
-interface ResourceDetail {
+export interface ResourceDetail {
   id: string,
   filename?: string,
   content_type: string,
