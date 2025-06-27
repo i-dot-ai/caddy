@@ -191,7 +191,7 @@ def create_collection(
         )
     session.add(user_collection)
     session.commit()
-    session.refresh(user_collection)
+    session.refresh(collection)
 
     return collection
 
