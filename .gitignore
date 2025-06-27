@@ -55,3 +55,4 @@ scraper/folder/**
 scraper/citizensadvice_scrape/**
 scraper/govuk_scrape/**
 scraper/url_list_scrape_result/**
+scraper/url_scrape.json
