@@ -1,0 +1,55 @@
+---
+import { getResources, type ResourceDetail } from '@logic/data.ts';
+
+let { collection: collectionId, page, count, token, resources } = Astro.props;
+
+if (!resources) {
+  const resourcesData = await getResources(collectionId, page, count, token);
+  resources = resourcesData.resources;
+}
+
+---
+
+{ resources?.map((resource: ResourceDetail) =>
+  <tr class="govuk-table__row">
+    <td class="govuk-table__cell">
+      { !resource.process_error ?
+        <a class="govuk-!-display-block" href={ `resources/${resource.id}` }>{ resource.filename || resource.id }</a>
+      :
+        <>
+          <span>{ resource.filename || resource.id }</span>
+          <span class="govuk-error-message govuk-!-margin-bottom-0 govuk-!-display-block">{ resource.process_error }</span>
+        </>
+      }
+    </td>
+    <td class="govuk-table__cell">{ resource.content_type }</td>
+    <td class="govuk-table__cell">
+      <span class="govuk-!-display-inline-block">{ resource.created_at ? `${new Date(resource.created_at).toLocaleDateString()}, ` : '-' }</span>
+      <span class="govuk-!-display-inline-block">{ resource.created_at ? new Date(resource.created_at).toLocaleTimeString() : '' }</span>
+    </td>
+    <td class="govuk-table__cell">
+      <a class="govuk-body-s" href={ `resources/${resource.id}/delete` }>
+        Delete
+        <span class="govuk-visually-hidden"> { resource.filename || resource.id }</span>
+      </a>
+    </td>
+  </tr>
+)}
+
+
+<style>
+  td a, td span {
+    max-width: 340px;
+    word-wrap: break-word;
+  }
+  @media (min-width: 641px) {
+    td a, td span {
+      max-width: 580px;
+    }
+  }
+  @media (min-width: 1021px) {
+    td a, td span {
+      max-width: 700px;
+    }
+  }
+</style>
