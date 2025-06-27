@@ -178,6 +178,21 @@ def create_collection(
     session.add(collection)
     session.commit()
     session.refresh(collection)
+
+    if user_collection := session.get(
+            UserCollection, {"collection_id": collection.id, "user_id": user.id}
+    ):
+        user_collection.role = Role.MANAGER
+    else:
+        user_collection = UserCollection(
+            user_id=user.id,
+            collection_id=collection.id,
+            role=Role.MANAGER,
+        )
+    session.add(user_collection)
+    session.commit()
+    session.refresh(user_collection)
+
     return collection
 
 
