@@ -43,17 +43,7 @@ def get_current_user(
     try:
         email, role_names = parse_auth_token(authorization)
 
-        # Checks the user has the required role for this app
-        # (bypassing for now, as any role is allowed for Caddy Admin)
-        """
-        if config.app_name not in role_names:
-            logger.info("User %s does not have the required role", email)
-            raise HTTPException(
-                status_code=401,
-                detail="Unauthorised",
-                headers={"WWW-Authenticate": "Bearer"},
-            )
-        """
+        # We have decided not to check Keycloak roles (any role is allowed)
 
         statement = select(User).where(User.email == email)
         if user := session.exec(statement).one_or_none():
