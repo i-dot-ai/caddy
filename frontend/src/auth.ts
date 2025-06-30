@@ -15,9 +15,15 @@ export async function isAuthorisedUser(header: string): Promise<boolean> {
     return false;
   }
 
+  /*
+  Checks the user has the required role for this app
+  (bypassing for now, as any role is allowed for Caddy Admin)
   return parsedToken.roles.some((role: string) => 
     role === process.env.REPO || role === "local-testing"
   )
+  */
+  return parsedToken.roles;
+
 }
 
 async function parseAuthToken(header: string) {
@@ -46,7 +52,7 @@ async function parseAuthToken(header: string) {
   }
 
   let roles = tokenContent.realm_access.roles || [];
-  console.debug(`Roles found for user ${email}: ${roles}`);
+  // console.debug(`Roles found for user ${email}: ${roles}`);
   return {
     email,
     roles,

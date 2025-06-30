@@ -5,7 +5,7 @@ from fastapi import Depends, Header, HTTPException
 from sqlmodel import Session, select
 
 from api.auth.token_auth import parse_auth_token
-from api.environment import config, get_session
+from api.environment import get_session
 from api.models import User
 
 logging.basicConfig(level=logging.INFO)
@@ -43,6 +43,9 @@ def get_current_user(
     try:
         email, role_names = parse_auth_token(authorization)
 
+        # Checks the user has the required role for this app
+        # (bypassing for now, as any role is allowed for Caddy Admin)
+        """
         if config.app_name not in role_names:
             logger.info("User %s does not have the required role", email)
             raise HTTPException(
@@ -50,6 +53,7 @@ def get_current_user(
                 detail="Unauthorised",
                 headers={"WWW-Authenticate": "Bearer"},
             )
+        """
 
         statement = select(User).where(User.email == email)
         if user := session.exec(statement).one_or_none():
