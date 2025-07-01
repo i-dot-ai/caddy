@@ -62,4 +62,5 @@ config = CaddyConfig(
     auth_provider_public_key=auth_provider_public_key,
     sentry_dsn=sentry_dsn,
     keycloak_allowed_roles=keycloak_allowed_roles,
+    git_sha=os.getenv("GIT_SHA"),
 )

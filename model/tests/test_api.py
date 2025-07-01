@@ -590,3 +590,8 @@ def test_get_collection_non_admin_user_is_attached_to(
     )
     assert response.status_code == 200
     assert len(response.json()["collections"]) == 1
+
+
+def test_healthcheck(client):
+    response = client.get("/healthcheck")
+    assert response.json()["sha"] == "test"
