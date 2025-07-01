@@ -1,4 +1,5 @@
 ---
+import Footer from '@components/footer.astro';
 import '../../node_modules/i.ai-design-system/dist/iai-design-system.css';
 import LitWrapper from '@components/lit-wrapper.astro';
 
@@ -38,6 +39,8 @@ const { title, error } = Astro.props;
 				<slot />
 			</main>
 		</div>
+
+		<Footer />
 
 		<script>
 			import '../../node_modules/i.ai-design-system/dist/iai-design-system.js';
