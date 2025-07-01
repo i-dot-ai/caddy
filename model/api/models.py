@@ -23,11 +23,7 @@ def user_token(user):
         "email": user.email,
         "aud": "account",
         "exp": 1727262399,
-        "realm_access": {
-            "roles": [
-                config.app_name,
-            ]
-        },
+        "realm_access": {"roles": []},
         "resource_access": {"account": {"roles": ["view-profile"]}},
     }
     jwt_headers = {
