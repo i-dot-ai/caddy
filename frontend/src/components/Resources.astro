@@ -8,6 +8,12 @@ if (!resources) {
   resources = resourcesData.resources;
 }
 
+const dateOptions: Intl.DateTimeFormatOptions = {
+  day:   '2-digit',
+  month: '2-digit',
+  year:  '2-digit',
+};
+
 ---
 
 { resources?.map((resource: ResourceDetail) =>
@@ -24,7 +30,7 @@ if (!resources) {
     </td>
     <td class="govuk-table__cell">{ resource.content_type }</td>
     <td class="govuk-table__cell">
-      <span class="govuk-!-display-inline-block">{ resource.created_at ? `${new Date(resource.created_at).toLocaleDateString()}, ` : '-' }</span>
+      <span class="govuk-!-display-inline-block">{ resource.created_at ? `${new Date(resource.created_at).toLocaleDateString('en-GB', dateOptions) }, ` : '-' }</span>
       <span class="govuk-!-display-inline-block">{ resource.created_at ? new Date(resource.created_at).toLocaleTimeString() : '' }</span>
     </td>
     <td class="govuk-table__cell">
