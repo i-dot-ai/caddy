@@ -52,4 +52,5 @@ config = CaddyConfig(
     disable_auth_signature_verification=True,
     auth_provider_public_key="None",
     keycloak_allowed_roles=keycloak_allowed_roles,
+    git_sha="local",
 )

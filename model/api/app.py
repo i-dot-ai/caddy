@@ -85,7 +85,7 @@ async def log_requests(request: Request, call_next: Callable):
 
 @app.get("/healthcheck")
 async def health_check():
-    return {"status": "caddy is healthy"}
+    return {"status": "ok", "sha": config.git_sha}
 
 
 @app.post("/search")

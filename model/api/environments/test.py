@@ -57,4 +57,5 @@ config = CaddyConfig(
     disable_auth_signature_verification=disable_auth_signature_verification,
     auth_provider_public_key=auth_provider_public_key,
     keycloak_allowed_roles=keycloak_allowed_roles,
+    git_sha=os.getenv("GIT_SHA", "test"),  # tests can override if they want
 )

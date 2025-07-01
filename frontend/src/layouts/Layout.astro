@@ -4,6 +4,7 @@ import '../../node_modules/i.ai-design-system/dist/iai-design-system.css';
 import LitWrapper from '@components/lit-wrapper.astro';
 
 const { title, error } = Astro.props;
+const version = `caddy-${process.env.GIT_SHA}`;
 ---
 
 <!doctype html>
@@ -11,6 +12,7 @@ const { title, error } = Astro.props;
 	<head>
 		<meta charset="UTF-8" />
 		<meta name="viewport" content="width=device-width" />
+		<meta name="generator" content={ version } />
 		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 		<title>{ title } - Caddy Admin</title>
 	</head>
