@@ -52,7 +52,7 @@ module "model" {
     "PORT" : local.backend_port,
     "REPO" : "caddy",
     "AWS_ACCOUNT_ID": var.account_id,
- 
+    "GIT_SHA": var.image_tag
   }
 
   secrets = [
@@ -103,7 +103,8 @@ module "frontend" {
     "APP_NAME" : "caddy"
     "PORT" : local.frontend_port,
     "REPO" : "caddy",
-    "BACKEND_HOST" : "http://${aws_service_discovery_service.service_discovery_service.name}.${aws_service_discovery_private_dns_namespace.private_dns_namespace.name}:${local.backend_port}"
+    "BACKEND_HOST" : "http://${aws_service_discovery_service.service_discovery_service.name}.${aws_service_discovery_private_dns_namespace.private_dns_namespace.name}:${local.backend_port}",
+    "GIT_SHA": var.image_tag
   }
 
   secrets = [
