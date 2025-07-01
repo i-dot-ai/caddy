@@ -1,5 +1,6 @@
 import contextlib
 import logging
+import os
 import time
 from typing import Annotated, AsyncIterator, Callable
 
@@ -85,7 +86,7 @@ async def log_requests(request: Request, call_next: Callable):
 
 @app.get("/healthcheck")
 async def health_check():
-    return {"status": "caddy is healthy"}
+    return {"status": "caddy is healthy", "sha": os.getenv("GIT_SHA", None)}
 
 
 @app.post("/search")
