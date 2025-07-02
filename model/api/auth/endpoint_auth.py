@@ -4,7 +4,7 @@ from typing import Annotated
 from fastapi import Depends, Header, HTTPException
 from sqlmodel import Session, select
 
-from api.auth.token_auth import parse_auth_token
+from api.auth.token_auth import get_authorised_user
 from api.environment import get_session
 from api.models import User
 
@@ -41,7 +41,7 @@ def get_current_user(
     logger.debug("Auth from token: %s", authorization)
 
     try:
-        email, role_names = parse_auth_token(authorization)
+        email = get_authorised_user(authorization)
 
         # We have decided not to check Keycloak roles (any role is allowed)
 

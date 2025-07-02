@@ -57,7 +57,7 @@ def __validate_user_access(request: Request) -> EmailStr | None:
         return None
 
     token = auth_header.removeprefix("Bearer ")
-    authorised_user = get_authorised_user(token, KEYCLOAK_ALLOWED_ROLES)
+    authorised_user = get_authorised_user(token)
     if not authorised_user:
         logger.info("user not authorised for roles: %s", KEYCLOAK_ALLOWED_ROLES)
         return None

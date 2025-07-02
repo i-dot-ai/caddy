@@ -56,7 +56,7 @@ def __get_decoded_jwt(jwt_token: str, verify_signature: bool) -> dict:
         raise Exception(f"Unhanded decoding error: {e}")
 
 
-def parse_auth_token(auth_header: str) -> tuple[str, list[str]]:
+def get_authorised_user(auth_header: str) -> EmailStr | None:
     """
     Takes a Keycloak JWT (auth token) as input and returns the user's email address and associated roles.
     Use this function to identify the logged-in user, and which roles they are assigned by Keycloak.
@@ -84,23 +84,6 @@ def parse_auth_token(auth_header: str) -> tuple[str, list[str]]:
         logger.error(error_msg)
         raise ValueError(error_msg)
 
-    role_names = realm_access.get("roles")
-    logger.debug(f"Roles for found in token for {email}: {role_names}")
-    return email, role_names
+    # We have decided not to check Keycloak roles (any Keycloak role is allowed)
 
-
-def get_authorised_user(
-    auth_header, desired_roles: list[str] | None = None
-) -> EmailStr | None:
-    """
-    A simple wrapper function to check if the user has the required role to access the resource.
-    """
-    if desired_roles is None:
-        desired_roles = []
-    email, roles = parse_auth_token(auth_header)
-    if (
-        config.app_name in roles
-        or len([role for role in desired_roles if role in roles]) > 0
-    ):
-        return email
-    return None
+    return email
