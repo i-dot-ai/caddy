@@ -48,5 +48,11 @@ const version = `caddy-${process.env.GIT_SHA}`;
 			import '../../node_modules/i.ai-design-system/dist/iai-design-system.js';
 		</script>
 
+		<style is:global>
+			body:has(.iai-footer) .govuk-main-wrapper {
+				min-height: calc(100vh - 235px);
+			}
+		</style>
+
 	</body>
 </html>
