@@ -1,5 +1,15 @@
 ---
-  const { version, links, feedback } = Astro.props;
+const { version, links, feedback } = Astro.props;
+let githubLink, shortVersion;
+
+if (version && version != "local") {
+  githubLink = `https://github.com/i-dot-ai/caddy/commit/${version}`;
+  shortVersion = version.substring(0,6);
+} else {
+  githubLink = "#";
+  shortVersion = "local";
+}
+
 ---
 
 <footer class="iai-footer">
@@ -21,7 +31,9 @@
               </ul>
             }
             { version &&
-              <span class="govuk-body-xs govuk-!-margin-0">Version: { version }</span>
+            <span class="govuk-body-xs govuk-!-margin-0">
+              Version: <a href={ githubLink }>{ shortVersion }<span class="govuk-visually-hidden"> on github</span></a>
+            </span>
             }
           </div>
         }
