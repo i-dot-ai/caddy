@@ -98,7 +98,7 @@ docker_push:
 
 docker_push_public_ecr:
 	docker push $(PUBLIC_IMAGE)
-	
+
 docker_tag_is_present_on_image:
 	aws ecr describe-images --repository-name $(repo) --image-ids imageTag=$(IMAGE_TAG) --query 'imageDetails[].imageTags' | jq -e '.[]|any(. == "$(tag)")' >/dev/null
 
@@ -111,14 +111,14 @@ docker_update_tag: ## Tag the docker image with the specified tag
 docker_echo:
 	echo $($(value))
 
-## Terraform 
+## Terraform
 
 ifndef env
 override env = default
 endif
 workspace = $(env)
 CONFIG_DIR=../../caddy-infra-config
-tf_build_args =-var "image_tag=$(IMAGE_TAG)" -var-file="$(CONFIG_DIR)/global.tfvars" -var-file="$(CONFIG_DIR)/$(env).tfvars"  
+tf_build_args =-var "image_tag=$(IMAGE_TAG)" -var-file="$(CONFIG_DIR)/global.tfvars" -var-file="$(CONFIG_DIR)/$(env).tfvars"
 TF_BACKEND_CONFIG=$(CONFIG_DIR)/backend.hcl
 
 
@@ -175,7 +175,7 @@ tf_auto_apply: ## Auto apply terraform
 
 ## Release app
 .PHONY: release
-release: 
+release:
 	chmod +x ./release.sh && ./release.sh $(env)
 
 
