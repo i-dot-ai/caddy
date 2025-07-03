@@ -41,8 +41,6 @@ pgvector = "^0.4.1"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.3.3"
-black = "^24.10.0"
-isort = "^5.13.2"
 mypy = "^1.13.0"
 ruff = "^0.8.0"
 pytest-cov = "^6.0.0"
@@ -60,15 +58,6 @@ testpaths = ["tests"]
 env = [
   "ENVIRONMENT=test"
 ]
-
-[tool.black]
-line-length = 88
-target-version = ['py38']
-include = '\.pyi?$'
-
-[tool.isort]
-profile = "black"
-multi_line_output = 3
 
 [tool.ruff]
 line-length = 88
