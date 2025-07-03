@@ -6,16 +6,16 @@ import Showdown from 'showdown';
 
 
 const MarkdownConverter = class extends LitElement {
-  
+
   static properties = {
-    content: {type: String},
+    content: { type: String },
   };
 
   /**
-   * @param {string} markdown 
+   * @param {string} markdown
    * @returns {string}
    */
-  convert(markdown) {
+  convert (markdown) {
     let converter = new Showdown.Converter({
       disableForced4SpacesIndentedSublists: true,
       headerLevelStart: 2,
@@ -24,12 +24,12 @@ const MarkdownConverter = class extends LitElement {
     return converter.makeHtml(markdown);
   }
 
-  createRenderRoot() {
+  createRenderRoot () {
     this.innerHTML = '';
     return this;
   }
 
-  render() {
+  render () {
     return html`
       <div>
         ${unsafeHTML(this.convert(this.content))}
@@ -39,4 +39,4 @@ const MarkdownConverter = class extends LitElement {
 
 };
 
-customElements.define("markdown-converter", MarkdownConverter);
+customElements.define('markdown-converter', MarkdownConverter);

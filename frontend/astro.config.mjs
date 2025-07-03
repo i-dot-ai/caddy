@@ -12,11 +12,11 @@ export default defineConfig({
   output: 'server',
 
   adapter: node({
-    mode: 'standalone'
+    mode: 'standalone',
   }),
 
   devToolbar: {
-    enabled: false
+    enabled: false,
   },
 
   integrations: [
@@ -25,14 +25,17 @@ export default defineConfig({
       tracesSampleRate: 0,
       replaysSessionSampleRate: 0,
       replaysOnErrorSampleRate: 0,
-      // Setting this option to true will send default PII data to Sentry.
-      // For example, automatic IP address collection on events
+
+      /*
+       * Setting this option to true will send default PII data to Sentry.
+       * For example, automatic IP address collection on events
+       */
       sendDefaultPii: true,
       sourceMapsUploadOptions: {
-        project: "caddy",
+        project: 'caddy',
         authToken: process.env.SENTRY_AUTH_TOKEN,
       },
-    })
+    }),
   ],
 
 });

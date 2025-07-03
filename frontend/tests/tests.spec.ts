@@ -5,7 +5,7 @@ import AxeBuilder from '@axe-core/playwright';
 
 
 const testAccessibility = async (page: Page) => {
-  const accessibilityScanResults = await new AxeBuilder({page}).analyze();
+  const accessibilityScanResults = await new AxeBuilder({ page }).analyze();
   expect(accessibilityScanResults.violations).toEqual([]);
 };
 
@@ -45,7 +45,7 @@ test('Manage collections', async ({ page }) => {
 
   // Collections page (2)
   await expect(page.locator('h2').last()).toContainText('Collections');
-  await expect (page.locator(`span:has-text("${collectionName}")`).first()).toBeVisible();
+  await expect(page.locator(`span:has-text("${collectionName}")`).first()).toBeVisible();
   let newCollectionIndex = await getRowIndex(collectionName, page);
   await page.locator(`tbody tr:nth-child(${newCollectionIndex}) a:has-text("Edit")`).click();
 
@@ -53,15 +53,15 @@ test('Manage collections', async ({ page }) => {
   await expect(page.locator('h1')).toContainText('Edit collection');
   await testAccessibility(page);
   expect(await page.getByLabel('Collection name').inputValue()).toEqual(collectionName);
-  expect(await page.getByLabel('Description').inputValue()).toEqual("Added by Playwright");
+  expect(await page.getByLabel('Description').inputValue()).toEqual('Added by Playwright');
   const testDescription = `Description set at ${Date.now()}`;
   await page.getByLabel('Description').fill(testDescription);
   await page.locator('button:has-text("Update")').click();
 
   // Collections page (3)
   await expect(page.locator('h2').last()).toContainText('Collections');
-  await expect (page.locator(`span:has-text("${collectionName}")`).first()).toBeVisible();
-  await expect (page.locator(`span:has-text("${testDescription}")`)).toBeVisible();
+  await expect(page.locator(`span:has-text("${collectionName}")`).first()).toBeVisible();
+  await expect(page.locator(`span:has-text("${testDescription}")`)).toBeVisible();
   newCollectionIndex = await getRowIndex(collectionName, page);
   await page.locator(`tbody tr:nth-child(${newCollectionIndex}) a:has-text("Delete")`).click();
 
@@ -73,8 +73,8 @@ test('Manage collections', async ({ page }) => {
 
   // Collections page (4)
   await expect(page.locator('h2').last()).toContainText('Collections');
-  expect (await page.locator(`span:has-text("${collectionName}")`).count()).toEqual(0);
-  
+  expect(await page.locator(`span:has-text("${collectionName}")`).count()).toEqual(0);
+
 });
 
 
@@ -97,7 +97,7 @@ test('Manage resources', async ({ page }) => {
   await expect(page.getByText(collectionName)).toBeVisible();
   await testAccessibility(page);
   const __filename = fileURLToPath(import.meta.url);
-  const __dirname  = path.dirname(__filename);
+  const __dirname = path.dirname(__filename);
   const fileChooserPromise = page.waitForEvent('filechooser');
   await page.getByText('Choose file').click();
   const fileChooser = await fileChooserPromise;
@@ -107,7 +107,7 @@ test('Manage resources', async ({ page }) => {
   // Resources page (2)
   await expect(page.locator('h1')).toContainText('Resources');
   await testAccessibility(page);
-  expect (await page.locator('tbody tr').count()).toEqual(resourceCount + 1);
+  expect(await page.locator('tbody tr').count()).toEqual(resourceCount + 1);
   const rowIndex = await getRowIndex('README.md', page);
   await page.locator(`tbody tr:nth-child(${rowIndex}) a:has-text("Delete")`).click();
 
@@ -118,7 +118,7 @@ test('Manage resources', async ({ page }) => {
 
   // Resources page (3)
   await expect(page.locator('h1')).toContainText('Resources');
-  expect (await page.locator('tbody tr').count()).toEqual(resourceCount);
+  expect(await page.locator('tbody tr').count()).toEqual(resourceCount);
   const resourceLink = page.locator('td a').first();
   const resourceName = await resourceLink.innerText();
   await resourceLink.click();
@@ -131,7 +131,7 @@ test('Manage resources', async ({ page }) => {
 
   // Resources page (4)
   await expect(page.locator('h1')).toContainText('Resources');
- 
+
 });
 
 
