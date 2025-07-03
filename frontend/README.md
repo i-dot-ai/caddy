@@ -39,3 +39,4 @@ All commands are run from the frontend directory:
 | `npm run build`           | Build your production site to `./dist/`          |
 | `npm run preview`         | Preview your build locally, before deploying     |
 | `npm run tests`           | Run Playwright end-to-end tests                  |
+| `npm run lint`            | Run ESLint                                       |

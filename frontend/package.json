@@ -6,7 +6,8 @@
     "dev": "astro dev",
     "build": "astro build",
     "preview": "astro preview",
-    "tests": "npx playwright test"
+    "tests": "npx playwright test",
+    "lint": "npx eslint --fix"
   },
   "dependencies": {
     "@astrojs/node": "^9.2.1",
