@@ -155,6 +155,15 @@ export const uploadFile = async(collectionId: string, body: FormData, keycloakTo
 };
 
 
+export const addUrls = async(collectionId: string, body: FormData, keycloakToken: string | null) => {
+  const { json } = await makeRequest(`/collections/${collectionId}/resources/urls`, keycloakToken, {
+    method: 'POST',
+    body: body,
+  });
+  return json;
+};
+
+
 export const deleteFile = async(collectionId: string, resourceId: string, keycloakToken: string | null) => {
   const { json } = await makeRequest(`/collections/${collectionId}/resources/${resourceId}`, keycloakToken, {
     method: 'DELETE',
