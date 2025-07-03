@@ -388,8 +388,11 @@ def test_create_collection_same_name(client, collection_manager, example_collect
         json={"name": example_collection.name, "description": "a collection"},
         headers={"Authorization": collection_manager.user.token},
     )
-    assert response.status_code == 201
-    assert response.json()["name"] == example_collection.name
+    assert response.status_code == 404
+    assert (
+        response.json()["detail"][0]["msg"]
+        == "An error occurred when creating this collection"
+    )
 
 
 @pytest.mark.parametrize(
