@@ -8,8 +8,8 @@ export async function POST({ request, redirect }: EndpointParams) {
   const collectionId = data.get('collection')?.toString() || '';
   const userId = data.get('user')?.toString() || '';
 
-  const response = await removeUser(collectionId, userId, request.headers.get('x-amzn-oidc-accesstoken'));
+  await removeUser(collectionId, userId, request.headers.get('x-amzn-oidc-accesstoken'));
 
-  return redirect(`/collections/${collectionId}/users`, 307);
+  return redirect(`/collections/${collectionId}/users`, 307)
 
 }
