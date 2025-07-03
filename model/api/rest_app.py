@@ -175,20 +175,21 @@ def create_collection(
         raise HTTPException(status_code=403, detail="User needs to be an admin")
 
     collection = Collection(**new_collection.model_dump())
+    stmt = select(Collection).where(Collection.name == collection.name)
+    results = session.exec(stmt).all()
+    if results:
+        raise HTTPException(
+            status_code=404, detail="An error occurred when creating this collection"
+        )
     session.add(collection)
     session.commit()
     session.refresh(collection)
 
-    if user_collection := session.get(
-        UserCollection, {"collection_id": collection.id, "user_id": user.id}
-    ):
-        user_collection.role = Role.MANAGER
-    else:
-        user_collection = UserCollection(
-            user_id=user.id,
-            collection_id=collection.id,
-            role=Role.MANAGER,
-        )
+    user_collection = UserCollection(
+        user_id=user.id,
+        collection_id=collection.id,
+        role=Role.MANAGER,
+    )
     session.add(user_collection)
     session.commit()
     session.refresh(collection)
