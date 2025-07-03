@@ -27,26 +27,24 @@ async function parseAuthToken(header: string) {
     return null;
   }
 
-  let verifyJwtSource = !process.env.DISABLE_AUTH_SIGNATURE_VERIFICATION;
-  let tokenContent = await getDecodedJwt(header, false);
-
+  const tokenContent = await getDecodedJwt(header, false);
   if (!tokenContent) {
     return null;
   }
 
-  let email = tokenContent.email;
+  const email = tokenContent.email;
   if (!email) {
     console.error("No email found in token");
     return null;
   }
 
-  let realmAccess = tokenContent.realm_access;
+  const realmAccess = tokenContent.realm_access;
   if (!realmAccess) {
     console.error("No realm access information found in token");
     return null;
   }
 
-  let roles = tokenContent.realm_access.roles || [];
+  const roles = tokenContent.realm_access.roles || [];
   
   return {
     email,

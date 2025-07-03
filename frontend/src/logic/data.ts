@@ -6,11 +6,11 @@ if (!backendHost) {
 }
 
 
-const makeRequest = async (endPoint: string, keycloakToken: string | null, options?: {method?: 'GET' | 'POST' | 'DELETE' | 'PUT', body?: any, contentType?: string}) => {
+const makeRequest = async (endPoint: string, keycloakToken: string | null, options?: {method?: 'GET' | 'POST' | 'DELETE' | 'PUT', body?: string | FormData, contentType?: string}) => {
   
   let response;
   let error = '';
-  let headers: any = {
+  const headers: { [key: string]: string } = {
     'x-external-access-token': process.env['BACKEND_TOKEN'] || '',
     'Authorization': keycloakToken || process.env['KEYCLOAK_TOKEN'] || '',
   };
@@ -32,12 +32,12 @@ const makeRequest = async (endPoint: string, keycloakToken: string | null, optio
     error = `Error connecting to the backend: ${err}`;
   }
 
-  let json: {[key: string]: any} = {}
+  let json: { [key: string]: unknown } = {}
   if (response) {
     try {
       json = await response.json();
     } catch(err) {
-      console.log(error);
+      console.log(error, err);
     }
   }
   return { json, error };
@@ -59,7 +59,7 @@ interface Collections {
 
 export const getCollections = async (keycloakToken: string | null) => {
   const { json, error } = await makeRequest('/collections', keycloakToken);
-  const collectionsData = (json as Collections) || {collections: [], is_admin: false};
+  const collectionsData = (json as unknown as Collections) || {collections: [], is_admin: false};
 
   if (process.env['IS_ADMIN'] === 'true') {
     collectionsData.is_admin = true;
@@ -125,13 +125,13 @@ interface ResourceList {
 }
 export const getResources = async (collectionId: string, page: number, itemsPerPage: number, keycloakToken: string | null) => {
   const { json } = await makeRequest(`/collections/${collectionId}/resources?page=${page}&page_size=${itemsPerPage}`, keycloakToken);
-  return json as ResourceList;
+  return json as unknown as ResourceList;
 };
 
 
 export const getResourceDetails = async (collectionId: string, resourceId: string, keycloakToken: string | null) => {
   const { json } = await makeRequest(`/collections/${collectionId}/resources/${resourceId}`, keycloakToken);
-  return json as ResourceDetail;
+  return json as unknown as ResourceDetail;
 };
 
 
@@ -176,7 +176,7 @@ export const getUsers = async (collectionId: string, keycloakToken: string | nul
 };
 
 
-export const addUser = async (collectionId: string, body: {}, keycloakToken: string | null) => {
+export const addUser = async (collectionId: string, body: FormData, keycloakToken: string | null) => {
   const { json } = await makeRequest(`/collections/${collectionId}/users`, keycloakToken, {
     method: 'POST',
     body: JSON.stringify(body),
