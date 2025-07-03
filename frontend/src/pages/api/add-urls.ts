@@ -6,12 +6,14 @@ export async function POST({ request, redirect }: EndpointParams) {
   
   const data = await request.formData();
   const collectionId = data.get('collection')?.toString() || '';
-  const urls = data.get('addUrls')?.toString() || '';
+  const urlsString = data.get('addUrls')?.toString() || '';
 
-  const formData = new FormData();
-  formData.append('urls', urls);
+  const urls = urlsString
+    .split(/\r?\n/)
+    .map(line => line.trim())
+    .filter(line => line); // remove empty lines
 
-  await addUrls(collectionId, formData, request.headers.get('x-amzn-oidc-accesstoken'));
+  await addUrls(collectionId, urls, request.headers.get('x-amzn-oidc-accesstoken'));
 
   return redirect(`/collections/${collectionId}/resources`, 307);
 
