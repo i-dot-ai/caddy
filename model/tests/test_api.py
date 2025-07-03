@@ -363,6 +363,14 @@ def test_create_collection(client, admin_user):
     assert response.status_code == 201
     assert response.json()["name"] == collection_name
 
+    manager_response = client.get(
+        f"/collections/{response.json()["id"]}/users",
+        headers={"Authorization": admin_user.token},
+    )
+
+    assert manager_response.status_code == 200
+    assert manager_response.json()["user_roles"][0]["user_id"] == str(admin_user.id)
+
 
 def test_create_collection_401(client):
     collection_name = "my-collection"
@@ -380,8 +388,7 @@ def test_create_collection_same_name(client, collection_manager, example_collect
         json={"name": example_collection.name, "description": "a collection"},
         headers={"Authorization": collection_manager.user.token},
     )
-    assert response.status_code == 201
-    assert response.json()["name"] == example_collection.name
+    assert response.status_code == 422
 
 
 @pytest.mark.parametrize(

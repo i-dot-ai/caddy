@@ -175,9 +175,25 @@ def create_collection(
         raise HTTPException(status_code=403, detail="User needs to be an admin")
 
     collection = Collection(**new_collection.model_dump())
+    stmt = select(Collection).where(Collection.name == collection.name)
+    results = session.exec(stmt).all()
+    if results:
+        raise HTTPException(
+            status_code=422, detail="A collection with this name already exists"
+        )
     session.add(collection)
     session.commit()
     session.refresh(collection)
+
+    user_collection = UserCollection(
+        user_id=user.id,
+        collection_id=collection.id,
+        role=Role.MANAGER,
+    )
+    session.add(user_collection)
+    session.commit()
+    session.refresh(collection)
+
     return collection
 
 
