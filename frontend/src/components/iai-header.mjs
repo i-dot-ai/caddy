@@ -29,6 +29,6 @@ const IaiHeader = class extends LitElement {
     `;
   }
 
-}
+};
 
 customElements.define("iai-header", IaiHeader);

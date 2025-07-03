@@ -1,4 +1,4 @@
-import { removeUser } from '@logic/data.ts'
+import { removeUser } from '@logic/data.ts';
 import type { EndpointParams } from './types';
 
 
@@ -10,6 +10,6 @@ export async function POST({ request, redirect }: EndpointParams) {
 
   await removeUser(collectionId, userId, request.headers.get('x-amzn-oidc-accesstoken'));
 
-  return redirect(`/collections/${collectionId}/users`, 307)
+  return redirect(`/collections/${collectionId}/users`, 307);
 
 }

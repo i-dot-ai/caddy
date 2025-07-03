@@ -32,7 +32,7 @@ const makeRequest = async (endPoint: string, keycloakToken: string | null, optio
     error = `Error connecting to the backend: ${err}`;
   }
 
-  let json: { [key: string]: unknown } = {}
+  let json: { [key: string]: unknown } = {};
   if (response) {
     try {
       json = await response.json();

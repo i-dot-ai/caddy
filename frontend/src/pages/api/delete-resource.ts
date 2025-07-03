@@ -1,4 +1,4 @@
-import { deleteFile } from '@logic/data.ts'
+import { deleteFile } from '@logic/data.ts';
 import type { EndpointParams } from './types';
 
 
