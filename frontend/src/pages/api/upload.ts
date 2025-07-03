@@ -1,4 +1,4 @@
-import { uploadFile } from '@logic/data.ts'
+import { uploadFile } from '@logic/data.ts';
 import type { EndpointParams } from './types';
 
 

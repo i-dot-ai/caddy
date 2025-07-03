@@ -47,7 +47,7 @@ repos:
             for file in "$@"; do
               # remove the leading "frontend/" from each path
               rel="${file#frontend/}";
-              npx eslint "$rel" || exit $?
+              npx eslint "$rel" --fix || exit $?
             done
           ' _
         language: system

@@ -1,5 +1,5 @@
-import 'dotenv/config'
-import { jwtVerify, decodeJwt, errors, importSPKI } from "jose"
+import 'dotenv/config';
+import { jwtVerify, decodeJwt, errors, importSPKI } from "jose";
 
 
 export async function isAuthorisedUser(header: string): Promise<boolean> {
@@ -8,7 +8,7 @@ export async function isAuthorisedUser(header: string): Promise<boolean> {
     return false;
   }
 
-  const parsedToken = await parseAuthToken(header)
+  const parsedToken = await parseAuthToken(header);
 
   if (!parsedToken) {
     console.error("No token found for user");
@@ -23,7 +23,7 @@ export async function isAuthorisedUser(header: string): Promise<boolean> {
 
 async function parseAuthToken(header: string) {
   if (!header) {
-    console.error("No auth token provided to parse")
+    console.error("No auth token provided to parse");
     return null;
   }
 
@@ -49,7 +49,7 @@ async function parseAuthToken(header: string) {
   return {
     email,
     roles,
-  }
+  };
 }
 
 async function getDecodedJwt(header: string, verifyJwtSource: boolean) {

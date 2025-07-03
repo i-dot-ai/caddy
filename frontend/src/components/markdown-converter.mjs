@@ -1,8 +1,8 @@
 // @ts-check
 
-import { LitElement, html } from 'lit'
-import { unsafeHTML } from 'lit-html/directives/unsafe-html.js'
-import Showdown from 'showdown'
+import { LitElement, html } from 'lit';
+import { unsafeHTML } from 'lit-html/directives/unsafe-html.js';
+import Showdown from 'showdown';
 
 
 const MarkdownConverter = class extends LitElement {
@@ -37,6 +37,6 @@ const MarkdownConverter = class extends LitElement {
     `;
   }
 
-}
+};
 
 customElements.define("markdown-converter", MarkdownConverter);

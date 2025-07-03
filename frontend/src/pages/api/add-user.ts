@@ -1,4 +1,4 @@
-import { addUser } from '@logic/data.ts'
+import { addUser } from '@logic/data.ts';
 import type { EndpointParams } from './types';
 
 

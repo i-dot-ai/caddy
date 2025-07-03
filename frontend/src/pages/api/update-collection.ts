@@ -1,4 +1,4 @@
-import { updateCollection, addCollection } from '@logic/data.ts'
+import { updateCollection, addCollection } from '@logic/data.ts';
 import type { EndpointParams } from './types';
 
 

@@ -3,6 +3,7 @@ import globals from "globals";
 import tseslint from "typescript-eslint";
 import css from "@eslint/css";
 import { defineConfig, globalIgnores } from "eslint/config";
+import stylistic from '@stylistic/eslint-plugin';
 
 
 export default defineConfig([
@@ -11,4 +12,12 @@ export default defineConfig([
   tseslint.configs.recommended,
   { files: ["**/*.css"], plugins: { css }, language: "css/css", extends: ["css/recommended"] },
   globalIgnores(["dist/*", ".astro/*"]),
+  {
+    plugins: {
+      '@stylistic': stylistic
+    },
+    rules: {
+      '@stylistic/semi': 'error'
+    }
+  }
 ]);

@@ -63,6 +63,6 @@ const UploadInfo = class extends HTMLElement {
 
   }
 
-}
+};
 
 customElements.define("upload-info", UploadInfo);
