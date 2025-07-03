@@ -8,6 +8,7 @@ from langchain_core.documents import Document
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from markitdown import MarkItDown, MarkItDownException
 from sqlalchemy import func
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import Session, select
 
 from api.auth import get_current_user
@@ -23,6 +24,7 @@ from api.models import (
     UserRoleList,
     utc_now,
 )
+from api.scrape import Scraper
 from api.types import (
     Chunks,
     CollectionBase,
@@ -56,14 +58,17 @@ def _split_text(text: str) -> list[Document]:
     return text_splitter.split_documents([document])
 
 
-def __check_user_is_member_of_collection(
-    user: User | None, collection_id: UUID, session: Session, is_manager: bool = True
+async def __check_user_is_member_of_collection(
+    user: User | None,
+    collection_id: UUID,
+    session: AsyncSession,
+    is_manager: bool = True,
 ):
     if user is None:
         logger.info("Anonymous access request for collection % denied", collection_id)
         raise HTTPException(status_code=401, detail="Unauthorised")
 
-    if not session.get(Collection, collection_id):
+    if not await session.get(Collection, collection_id):
         logger.info("Collection not found for route request for user %".format())
         raise HTTPException(status_code=404, detail="Collection Not Found")
 
@@ -73,7 +78,7 @@ def __check_user_is_member_of_collection(
         )
         return
 
-    user_collection = session.get(
+    user_collection = await session.get(
         UserCollection, {"user_id": user.id, "collection_id": collection_id}
     )
 
@@ -125,20 +130,26 @@ def __process_resource(resource: Resource, session: Session):
     session.commit()
 
 
+async def __add_resource_to_db(resource: Resource):
+    pass
+
+
 @router.get(
     "/collections/{collection_id}/resources", status_code=200, tags=["collections"]
 )
-def get_collection_resources(
+async def get_collection_resources(
     collection_id: UUID,
-    session: Annotated[Session, Depends(get_session)],
+    session: Annotated[AsyncSession, Depends(get_session)],
     user: Annotated[User, Depends(get_current_user)],
     page: int = Query(1, ge=1),
     page_size: int = Query(10, ge=1),
 ) -> CollectionResources:
     """returns a list of resources belonging to this collection"""
-    __check_user_is_member_of_collection(user, collection_id, session, is_manager=False)
+    await __check_user_is_member_of_collection(
+        user, collection_id, session, is_manager=False
+    )
 
-    if not session.get(Collection, collection_id):
+    if not await session.get(Collection, collection_id):
         raise HTTPException(status_code=404)
 
     resources_statement = (
@@ -148,12 +159,12 @@ def get_collection_resources(
         .offset(page_size * (page - 1))
         .limit(page_size)
     )
-    resources = session.exec(resources_statement).all()
+    resources = await session.execute(resources_statement).all()
 
     count_statement = select(func.count(Resource.id)).where(
         Resource.collection_id == collection_id
     )
-    total = session.scalar(count_statement)
+    total = await session.scalar(count_statement)
 
     return CollectionResources(
         collection_id=collection_id,
@@ -198,24 +209,24 @@ def create_collection(
 
 
 @router.put("/collections/{collection_id}", status_code=200, tags=["collections"])
-def update_collection(
+async def update_collection(
     collection_id: UUID,
     collection_details: CollectionBase,
-    session: Annotated[Session, Depends(get_session)],
+    session: Annotated[AsyncSession, Depends(get_session)],
     user: Annotated[User, Depends(get_current_user)],
 ) -> CollectionDto:
     """update a collection"""
-    if collection := session.get(Collection, collection_id):
+    if collection := await session.get(Collection, collection_id):
         collection.name = collection_details.name
         collection.description = collection_details.description
         session.add(collection)
-        session.commit()
-        session.refresh(collection)
+        await session.commit()
+        await session.refresh(collection)
 
         is_manager = False
         if user:
             is_manager = (
-                session.scalar(
+                await session.scalar(
                     select(func.count(UserCollection.user_id)).where(
                         UserCollection.collection_id == collection.id,
                         UserCollection.user_id == user.id,
@@ -237,13 +248,13 @@ def update_collection(
 
 
 @router.delete("/collections/{collection_id}", status_code=200, tags=["collections"])
-def delete_collection(
+async def delete_collection(
     collection_id: UUID,
     user: Annotated[User, Depends(get_current_user)],
-    session: Annotated[Session, Depends(get_session)],
+    session: Annotated[AsyncSession, Depends(get_session)],
 ) -> UUID:
     """delete a collection"""
-    __check_user_is_member_of_collection(user, collection_id, session)
+    await __check_user_is_member_of_collection(user, collection_id, session)
 
     objects = config.s3_client.list_objects_v2(
         Bucket=config.data_s3_bucket, Prefix=f"{config.s3_prefix}/{collection_id}"
@@ -254,9 +265,9 @@ def delete_collection(
             Bucket=config.data_s3_bucket, Delete={"Objects": object_keys}
         )
 
-    if collection := session.get(Collection, collection_id):
-        session.delete(collection)
-        session.commit()
+    if collection := await session.get(Collection, collection_id):
+        await session.delete(collection)
+        await session.commit()
         return collection_id
 
     raise HTTPException(status_code=404)
@@ -265,10 +276,10 @@ def delete_collection(
 @router.post(
     "/collections/{collection_id}/resources", status_code=201, tags=["resources"]
 )
-def create_resource(
+async def create_resource(
     collection_id: UUID,
     file: Annotated[UploadFile, File(...)],
-    session: Annotated[Session, Depends(get_session)],
+    session: Annotated[AsyncSession, Depends(get_session)],
     user: Annotated[User, Depends(get_current_user)],
 ) -> Resource:
     """
@@ -283,7 +294,7 @@ def create_resource(
     Returns:
         Resource
     """
-    __check_user_is_member_of_collection(user, collection_id, session)
+    await __check_user_is_member_of_collection(user, collection_id, session)
 
     resource = Resource(
         collection_id=collection_id,
@@ -292,8 +303,8 @@ def create_resource(
         created_by=user,
     )
     session.add(resource)
-    session.commit()
-    session.refresh(resource)
+    await session.commit()
+    await session.refresh(resource)
 
     config.s3_client.put_object(
         Bucket=config.data_s3_bucket,
@@ -313,8 +324,8 @@ def create_resource(
     finally:
         resource.process_time = utc_now() - process_time_start
         resource.is_processed = True
-        session.commit()
-        session.refresh(resource)
+        await session.commit()
+        await session.refresh(resource)
         return resource
 
 
@@ -324,7 +335,7 @@ def create_resource(
 async def create_resource_from_url_list(
     collection_id: UUID,
     urls: list[str],
-    session: Annotated[Session, Depends(get_session)],
+    session: Annotated[AsyncSession, Depends(get_session)],
     user: Annotated[User, Depends(get_current_user)],
 ) -> list[Resource]:
     """
@@ -339,9 +350,10 @@ async def create_resource_from_url_list(
     Returns:
         Resources
     """
-    __check_user_is_member_of_collection(user, collection_id, session)
+    await __check_user_is_member_of_collection(user, collection_id, session)
 
-    # await scrape_urls(urls)
+    scraper = Scraper()
+    _ = await scraper.download_urls(urls)
     return {}
 
 
@@ -350,19 +362,21 @@ async def create_resource_from_url_list(
     status_code=200,
     tags=["resources"],
 )
-def get_resource_documents(
+async def get_resource_documents(
     collection_id: UUID,
     resource_id: UUID,
-    session: Annotated[Session, Depends(get_session)],
+    session: Annotated[AsyncSession, Depends(get_session)],
     user: Annotated[User, Depends(get_current_user)],
     page: int = Query(1, ge=1),
     page_size: int = Query(10, ge=1),
 ) -> Chunks:
     """get a documents belonging to a resource"""
 
-    __check_user_is_member_of_collection(user, collection_id, session, is_manager=False)
+    await __check_user_is_member_of_collection(
+        user, collection_id, session, is_manager=False
+    )
 
-    if not session.get(Resource, resource_id):
+    if not await session.get(Resource, resource_id):
         raise HTTPException(status_code=404)
 
     statement = (
@@ -373,7 +387,8 @@ def get_resource_documents(
         .limit(page_size)
     )
 
-    text_chunks = session.exec(statement).all()
+    result = await session.execute(statement)
+    text_chunks = result.scalars().all()
 
     def to_document(tc: TextChunk):
         return Document(
@@ -393,7 +408,7 @@ def get_resource_documents(
     count_statement = select(func.count(TextChunk.id)).where(
         TextChunk.resource_id == resource_id
     )
-    total = session.exec(count_statement).one()
+    total = await session.scalar(count_statement)
 
     return Chunks(
         collection_id=collection_id,
@@ -410,23 +425,23 @@ def get_resource_documents(
     status_code=200,
     tags=["resources"],
 )
-def delete_resource(
+async def delete_resource(
     collection_id: UUID,
     resource_id: UUID,
-    session: Annotated[Session, Depends(get_session)],
+    session: Annotated[AsyncSession, Depends(get_session)],
     user: Annotated[User, Depends(get_current_user)],
 ) -> None:
     """delete a resource"""
-    __check_user_is_member_of_collection(user, collection_id, session)
+    await __check_user_is_member_of_collection(user, collection_id, session)
 
     config.s3_client.delete_object(
         Bucket=config.data_s3_bucket,
         Key=f"{config.s3_prefix}/{collection_id}/{resource_id}",
     )
 
-    if resource := session.get(Resource, resource_id):
-        session.delete(resource)
-        session.commit()
+    if resource := await session.get(Resource, resource_id):
+        await session.delete(resource)
+        await session.commit()
     else:
         raise HTTPException(status_code=404)
 
@@ -436,23 +451,25 @@ def delete_resource(
     status_code=200,
     tags=["resources"],
 )
-def get_resource(
+async def get_resource(
     collection_id: UUID,
     resource_id: UUID,
-    session: Annotated[Session, Depends(get_session)],
+    session: Annotated[AsyncSession, Depends(get_session)],
     user: Annotated[User, Depends(get_current_user)],
 ) -> Resource:
     """get a resource"""
-    __check_user_is_member_of_collection(user, collection_id, session, is_manager=False)
+    await __check_user_is_member_of_collection(
+        user, collection_id, session, is_manager=False
+    )
 
-    if resource := session.get(Resource, resource_id):
+    if resource := await session.get(Resource, resource_id):
         return resource
     raise HTTPException(status_code=404)
 
 
 @router.get("/collections", status_code=200, tags=["collections"])
-def get_collections(
-    session: Annotated[Session, Depends(get_session)],
+async def get_collections(
+    session: Annotated[AsyncSession, Depends(get_session)],
     user: Annotated[User, Depends(get_current_user)],
     page: int = Query(1, ge=1),
     page_size: int = Query(10, ge=1),
@@ -490,8 +507,14 @@ def get_collections(
             .offset(page_size * (page - 1))
             .limit(page_size)
         )
-        count_statement = select(func.count(Collection.id))
-        query_results = session.exec(statement).all()
+        count_statement = (
+            select(func.count(Collection.id))
+            .join(UserCollection, isouter=True)
+            .where(*where_clauses)
+            .distinct()
+        )
+        result = await session.execute(statement)
+        query_results = result.all()
 
         # Build collections based on previous statements
         collections = [
@@ -505,7 +528,7 @@ def get_collections(
             for collection, is_manager in query_results
         ]
 
-        total = session.exec(count_statement).one()
+        total = await session.scalar(count_statement)
 
         return CollectionsDto(
             total=total,
@@ -522,14 +545,14 @@ def get_collections(
 
 
 @router.get("/collections/{collection_id}/users", status_code=200, tags=["user-roles"])
-def get_collections_user_roles(
+async def get_collections_user_roles(
     collection_id: UUID,
-    session: Annotated[Session, Depends(get_session)],
+    session: Annotated[AsyncSession, Depends(get_session)],
     user: Annotated[User, Depends(get_current_user)],
     page: int = Query(1, ge=1),
     page_size: int = Query(10, ge=1),
 ) -> UserRoleList:
-    __check_user_is_member_of_collection(user, collection_id, session)
+    await __check_user_is_member_of_collection(user, collection_id, session)
 
     statement = (
         select(UserCollection, User.email.label("user_email"))
@@ -539,7 +562,8 @@ def get_collections_user_roles(
         .offset(page_size * (page - 1))
         .limit(page_size)
     )
-    user_roles = session.exec(statement).all()
+    query = await session.execute(statement)
+    user_roles = query.all()
 
     user_roles_with_emails: list[UserCollectionWithEmail] = [
         UserCollectionWithEmail(user_email=email, **ur.model_dump())
@@ -547,33 +571,34 @@ def get_collections_user_roles(
     ]
 
     count_statement = func.count(UserCollection.user_id)
-    total = session.exec(count_statement).scalar()
+    total = await session.scalar(count_statement)
     return UserRoleList(
         page=page, page_size=page_size, total=total, user_roles=user_roles_with_emails
     )
 
 
 @router.post("/collections/{collection_id}/users", status_code=201, tags=["user-roles"])
-def create_collections_user_role(
+async def create_collections_user_role(
     collection_id: UUID,
     user_role: UserRole,
-    session: Annotated[Session, Depends(get_session)],
+    # a_session: Annotated[AsyncSession, Depends(get_session)],
+    session: Annotated[AsyncSession, Depends(get_session)],
     user: Annotated[User, Depends(get_current_user)],
 ) -> UserCollection:
-    __check_user_is_member_of_collection(user, collection_id, session)
+    await __check_user_is_member_of_collection(user, collection_id, session)
 
-    user = User.get_by_email(session, user_role.email)
+    user = await User.get_by_email(session, user_role.email)
 
     if not user:
         user = User(email=user_role.email)
         session.add(user)
-        session.commit()
-        session.refresh(user)
+        await session.commit()
+        await session.refresh(user)
 
-    if not session.get(Collection, collection_id):
+    if not await session.get(Collection, collection_id):
         raise HTTPException(status_code=404, detail="Collection Not Found")
 
-    if user_collection := session.get(
+    if user_collection := await session.get(
         UserCollection, {"collection_id": collection_id, "user_id": user.id}
     ):
         user_collection.role = user_role.role
@@ -585,8 +610,8 @@ def create_collections_user_role(
         )
 
     session.add(user_collection)
-    session.commit()
-    session.refresh(user_collection)
+    await session.commit()
+    await session.refresh(user_collection)
     return user_collection
 
 
@@ -595,18 +620,18 @@ def create_collections_user_role(
     status_code=200,
     tags=["user-roles"],
 )
-def delete_collections_user_role(
+async def delete_collections_user_role(
     collection_id: UUID,
     user_id: UUID,
-    session: Annotated[Session, Depends(get_session)],
+    session: Annotated[AsyncSession, Depends(get_session)],
     user: Annotated[User, Depends(get_current_user)],
 ) -> bool:
-    __check_user_is_member_of_collection(user, collection_id, session)
+    await __check_user_is_member_of_collection(user, collection_id, session)
 
-    if user_role := session.get(
+    if user_role := await session.get(
         UserCollection, {"collection_id": collection_id, "user_id": user_id}
     ):
-        session.delete(user_role)
-        session.commit()
+        await session.delete(user_role)
+        await session.commit()
         return True
     raise HTTPException(status_code=404)
