@@ -44,6 +44,7 @@ repos:
         entry: >
           bash -c '
             cd frontend;
+            npm install;
             for file in "$@"; do
               # remove the leading "frontend/" from each path
               rel="${file#frontend/}";
