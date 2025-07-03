@@ -1,0 +1,203 @@
+import functools
+import logging
+import re
+import time
+from typing import Dict, List, Optional
+
+import html2text
+from bs4 import BeautifulSoup
+from langchain_community.document_loaders import AsyncHtmlLoader
+from tqdm import tqdm
+
+logger = logging.getLogger(__name__)
+
+
+def retry(num_retries=3, delay=1, backoff=2, exceptions=(Exception,)):
+    """
+    Retry decorator
+
+    Parameters:
+    num_retries (int): Number of times to retry before giving up
+    delay (int): Initial delay between retries in seconds
+    backoff (int): Factor by which the delay should be multiplied each retry
+    exceptions (tuple): Exceptions to trigger a retry
+    """
+
+    def decorator_retry(func):
+        @functools.wraps(func)
+        def wrapper_retry(*args, **kwargs):
+            _num_retries, _delay = num_retries, delay
+            while _num_retries > 0:
+                try:
+                    return func(*args, **kwargs)
+                except exceptions as e:
+                    _num_retries -= 1
+                    if _num_retries == 0:
+                        raise
+                    time.sleep(_delay)
+                    _delay *= backoff
+                    logger.warning(
+                        f"Retrying {_num_retries} more times after exception: {e}"
+                    )
+
+        return wrapper_retry
+
+    return decorator_retry
+
+
+class Scraper:
+    def __init__(self, batch_size=100):
+        self.batch_size = batch_size
+        self.problematic_urls = set()
+        self.div_classes: Optional[List] = ["main-content", "cads-main-content"]
+        self.div_ids: Optional[List] = ["main-content", "cads-main-content"]
+
+    def remove_markdown_index_links(self, markdown_text: str) -> str:
+        """Clean markdown text by removing index links.
+
+        Args:
+            markdown_text (str): markdown text to clean.
+
+        Returns:
+            str: cleaned markdown string.
+        """
+        # Regex patterns
+        list_item_link_pattern = re.compile(
+            r"^\s*\*\s*\[[^\]]+\]\([^\)]+\)\s*$", re.MULTILINE
+        )
+        list_item_header_link_pattern = re.compile(
+            r"^\s*\*\s*#+\s*\[[^\]]+\]\([^\)]+\)\s*$", re.MULTILINE
+        )
+        header_link_pattern = re.compile(
+            r"^\s*#+\s*\[[^\]]+\]\([^\)]+\)\s*$", re.MULTILINE
+        )
+        # Remove matches
+        cleaned_text = re.sub(list_item_header_link_pattern, "", markdown_text)
+        cleaned_text = re.sub(list_item_link_pattern, "", cleaned_text)
+        cleaned_text = re.sub(header_link_pattern, "", cleaned_text)
+        # Removing extra newlines resulting from removals
+        cleaned_text = re.sub(r"\n\s*\n", "\n", cleaned_text)
+        cleaned_text = re.sub(
+            r"^\s*\n", "", cleaned_text, flags=re.MULTILINE
+        )  # Remove leading newlines
+        return cleaned_text
+
+    async def download_urls(self, urls: List[str]):
+        """Split URLs into batches and scrape their content.
+        Args:
+            url_data (List[Dict[str, str]]): URL data with metadata to scrape.
+        """
+        url_batches = [
+            urls[i : i + self.batch_size] for i in range(0, len(urls), self.batch_size)
+        ]
+        pages = []
+
+        for ind, url_batch in enumerate(url_batches):
+            logger.info(
+                f"Processing batch {ind + 1}/{len(url_batches)} ({len(url_batch)} URLs)"
+            )
+            results = await self.scrape_url_batch(url_batch)
+            pages.extend(results)
+            logger.info(
+                f"Batch {ind + 1} completed. {len(results)} pages scraped successfully."
+            )
+        self.log_problematic_urls()
+        return pages
+
+    @retry()
+    async def scrape_url_batch(self, url_list: List[str]) -> List[Dict[str, str]]:
+        """Takes a batch of URLs, iteratively scrapes the content of each page.
+        Args:
+            url_list (List[str]): list of URLs in batch.
+        Returns:
+            List[Dict[str, str]]: List of dicts containing scraped data from URLs.
+        """
+        loader = AsyncHtmlLoader(url_list)
+        scraped_pages = []
+
+        try:
+            docs = await loader.aload()
+            for page in tqdm(docs, desc="Processing pages"):
+                try:
+                    current_url = page.metadata["source"]
+                    soup = BeautifulSoup(page.page_content, "html.parser")
+                    main_section_html = await self.extract_main_content(soup)
+
+                    if main_section_html and len(str(main_section_html)) > 0:
+                        current_page_markdown = html2text.html2text(
+                            str(main_section_html)
+                        )
+                        current_page_markdown = self.remove_markdown_index_links(
+                            current_page_markdown
+                        )
+
+                        page_title = ""
+                        title_tag = soup.find("title")
+                        if title_tag:
+                            page_title = title_tag.get_text().strip()
+
+                        page_dict = {
+                            "source": current_url,
+                            "title": page_title
+                            if page_title
+                            else current_url,  # Fallback to current_url so file name is not empty
+                            "markdown": current_page_markdown,
+                            "markdown_length": len(current_page_markdown),
+                        }
+                        scraped_pages.append(page_dict)
+                    else:
+                        logger.warning(f"No main content found for {current_url}")
+                        self.problematic_urls.add(current_url)
+
+                except Exception as e:
+                    current_url = (
+                        page.metadata.get("source", "unknown")
+                        if hasattr(page, "metadata")
+                        else "unknown"
+                    )
+                    logger.error(f"Error processing page {current_url}: {str(e)}")
+                    self.problematic_urls.add(current_url)
+
+        except Exception as e:
+            logger.error(f"Error in batch scraping: {str(e)}")
+            # Add all URLs in batch to problematic_urls if batch fails
+            self.problematic_urls.update(url_list)
+
+        return scraped_pages
+
+    async def extract_main_content(
+        self, soup: BeautifulSoup
+    ) -> Optional[BeautifulSoup]:
+        """Extract the main content from the BeautifulSoup object.
+        Args:
+            soup (BeautifulSoup): BeautifulSoup object of the page.
+        Returns:
+            Optional[BeautifulSoup]: Main content section or None if not found.
+        """
+        # Try to find content by div IDs first
+        for div_id in self.div_ids:
+            main_section = soup.find("div", id=div_id)
+            if main_section:
+                return main_section
+
+        # Then try div classes
+        for div_class in self.div_classes:
+            main_section = soup.find("div", class_=div_class)
+            if main_section:
+                return main_section
+
+        # If no specific content div found, return the whole soup
+        # but log a warning
+        logger.warning("No specific main content div found, using entire page content")
+        return soup
+
+    def log_problematic_urls(self):
+        """Log problematic URLs encountered during scraping."""
+        if self.problematic_urls:
+            logger.warning(
+                f"The following {len(self.problematic_urls)} URLs were problematic and could not be scraped:"
+            )
+            for url in sorted(self.problematic_urls):
+                logger.warning(f"- {url}")
+        else:
+            logger.info("No problematic URLs encountered during scraping.")

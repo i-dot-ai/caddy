@@ -318,6 +318,33 @@ def create_resource(
         return resource
 
 
+@router.post(
+    "/collections/{collection_id}/resources/urls", status_code=201, tags=["resources"]
+)
+async def create_resource_from_url_list(
+    collection_id: UUID,
+    urls: list[str],
+    session: Annotated[Session, Depends(get_session)],
+    user: Annotated[User, Depends(get_current_user)],
+) -> list[Resource]:
+    """
+    Endpoint to upload a file to a specified collection.
+
+    Args:
+        session: DB session
+        user: The logged-in user from auth JWT or None
+        collection_id (str): The collection to upload the file to.
+        urls (list[str]): The urls being uploaded.
+
+    Returns:
+        Resources
+    """
+    __check_user_is_member_of_collection(user, collection_id, session)
+
+    # await scrape_urls(urls)
+    return {}
+
+
 @router.get(
     "/collections/{collection_id}/resources/{resource_id}/documents",
     status_code=200,
