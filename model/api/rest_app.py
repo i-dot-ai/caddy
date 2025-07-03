@@ -179,7 +179,7 @@ def create_collection(
     results = session.exec(stmt).all()
     if results:
         raise HTTPException(
-            status_code=404, detail="An error occurred when creating this collection"
+            status_code=422, detail="A collection with this name already exists"
         )
     session.add(collection)
     session.commit()

@@ -388,7 +388,7 @@ def test_create_collection_same_name(client, collection_manager, example_collect
         json={"name": example_collection.name, "description": "a collection"},
         headers={"Authorization": collection_manager.user.token},
     )
-    assert response.status_code == 404
+    assert response.status_code == 422
 
 
 @pytest.mark.parametrize(
