@@ -1,7 +1,7 @@
 import os
 
 from dotenv import load_dotenv
-from sqlmodel import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
 if os.environ.get("ENVIRONMENT", "local") == "local":
     load_dotenv()
@@ -15,6 +15,6 @@ else:
     raise ValueError("ENVIRONMENT is miss-configured")
 
 
-def get_session():
-    with Session(config.get_database()) as session:
+async def get_session():
+    async with AsyncSession(config.get_database()) as session:
         yield session
