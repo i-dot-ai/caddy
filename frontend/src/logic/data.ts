@@ -6,13 +6,13 @@ if (!backendHost) {
 }
 
 
-const makeRequest = async (endPoint: string, keycloakToken: string | null, options?: {method?: 'GET' | 'POST' | 'DELETE' | 'PUT', body?: string | FormData, contentType?: string}) => {
-  
+const makeRequest = async (endPoint: string, keycloakToken: string | null, options?: { method?: 'GET' | 'POST' | 'DELETE' | 'PUT'; body?: string | FormData; contentType?: string }) => {
+
   let response;
   let error = '';
   const headers: { [key: string]: string } = {
     'x-external-access-token': process.env['BACKEND_TOKEN'] || '',
-    'Authorization': keycloakToken || process.env['KEYCLOAK_TOKEN'] || '',
+    Authorization: keycloakToken || process.env['KEYCLOAK_TOKEN'] || '',
   };
   if (options?.contentType) {
     headers['Content-Type'] = options?.contentType;
@@ -22,10 +22,10 @@ const makeRequest = async (endPoint: string, keycloakToken: string | null, optio
     response = await fetch(`${backendHost}${endPoint}`, {
       method: options?.method || 'GET',
       headers: headers,
-      body: options?.body
+      body: options?.body,
     });
     if (!response.ok) {
-      error = `Error connecting to the backend: `;
+      error = 'Error connecting to the backend: ';
       error += response.status === 403 ? 'You do not have sufficient permissions.' : `HTTP ${response.status}.`;
     }
   } catch (err) {
@@ -36,7 +36,7 @@ const makeRequest = async (endPoint: string, keycloakToken: string | null, optio
   if (response) {
     try {
       json = await response.json();
-    } catch(err) {
+    } catch (err) {
       console.log(error, err);
     }
   }
@@ -49,17 +49,17 @@ interface Collection {
   name: string,
   description: string,
   is_manager: boolean,
-  created_at: Date
+  created_at: Date,
 }
 
 interface Collections {
   collections: Collection[],
-  is_admin: boolean
+  is_admin: boolean,
 }
 
 export const getCollections = async (keycloakToken: string | null) => {
   const { json, error } = await makeRequest('/collections', keycloakToken);
-  const collectionsData = (json as unknown as Collections) || {collections: [], is_admin: false};
+  const collectionsData = (json as unknown as Collections) || { collections: [], is_admin: false };
 
   if (process.env['IS_ADMIN'] === 'true') {
     collectionsData.is_admin = true;
@@ -70,7 +70,7 @@ export const getCollections = async (keycloakToken: string | null) => {
 
 
 export const getCollection = async (collectionId: string, keycloakToken: string | null) => {
-  const { collectionsData, error } = (await getCollections(keycloakToken));
+  const { collectionsData, error } = await getCollections(keycloakToken);
   const collection = collectionsData.collections.find((item: Collection) => item.id === collectionId) as Collection;
   return { collection, error };
 };
@@ -90,7 +90,7 @@ export const updateCollection = async (collectionId: string, name: string, descr
 
 
 export const addCollection = async (name: string, description: string, keycloakToken: string | null) => {
-  const { json } = await makeRequest(`/collections`, keycloakToken, {
+  const { json } = await makeRequest('/collections', keycloakToken, {
     method: 'POST',
     body: JSON.stringify({
       name: name,
@@ -121,7 +121,7 @@ interface ResourceList {
   total: number,
   page_size: number,
   page: number,
-  resources: ResourceDetail[]
+  resources: ResourceDetail[],
 }
 export const getResources = async (collectionId: string, page: number, itemsPerPage: number, keycloakToken: string | null) => {
   const { json } = await makeRequest(`/collections/${collectionId}/resources?page=${page}&page_size=${itemsPerPage}`, keycloakToken);
@@ -138,7 +138,7 @@ export const getResourceDetails = async (collectionId: string, resourceId: strin
 interface ResourceFragment {
   documents?: {
     page_content: string,
-  }[]
+  }[],
 }
 export const getResourceFragments = async (collectionId: string, resourceId: string, keycloakToken: string | null) => {
   const { json } = await makeRequest(`/collections/${collectionId}/resources/${resourceId}/documents`, keycloakToken);

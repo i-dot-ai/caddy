@@ -2,8 +2,8 @@ import { uploadFile } from '@logic/data.ts';
 import type { EndpointParams } from './types';
 
 
-export async function POST({ request, redirect }: EndpointParams) {
-  
+export async function POST ({ request, redirect }: EndpointParams) {
+
   const data = await request.formData();
   const collectionId = data.get('collection')?.toString() || '';
   const files = data.getAll('fileUpload1') as File[];

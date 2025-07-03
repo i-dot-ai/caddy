@@ -4,17 +4,17 @@ import { LitElement, html } from 'lit';
 
 
 const IaiHeader = class extends LitElement {
-  
+
   static properties = {
-    productName: {type: String, attribute: 'product-name'},
+    productName: { type: String, attribute: 'product-name' },
   };
 
-  createRenderRoot() {
+  createRenderRoot () {
     this.innerHTML = '';
     return this;
   }
 
-  render() {
+  render () {
     return html`
       <header class="govuk-header govuk-header--full-width-border" data-module="govuk-header">
         <div class="govuk-header__container govuk-width-container">
@@ -31,4 +31,4 @@ const IaiHeader = class extends LitElement {
 
 };
 
-customElements.define("iai-header", IaiHeader);
+customElements.define('iai-header', IaiHeader);

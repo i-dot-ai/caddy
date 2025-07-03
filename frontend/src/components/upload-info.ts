@@ -1,8 +1,8 @@
 const UploadInfo = class extends HTMLElement {
 
   private form: HTMLFormElement | null = null;
-  
-  connectedCallback() {
+
+  connectedCallback () {
 
     this.form = document.querySelector('form');
     this.form?.addEventListener('submit', async (evt) => {
@@ -15,7 +15,7 @@ const UploadInfo = class extends HTMLElement {
   }
 
 
-  #render() {
+  #render () {
 
     this.innerHTML = `
       <div class="upload-info__ellipsis govuk-body govuk-!-font-weight-bold">
@@ -35,17 +35,17 @@ const UploadInfo = class extends HTMLElement {
   }
 
 
-  async #uploadFiles() {
+  async #uploadFiles () {
 
     // get files
     const fileInput = document.querySelector(`#${this.getAttribute('input-id')}`) as HTMLInputElement;
     const collectionId = this.getAttribute('collection') || '';
-    const files = [...(fileInput.files || [])];
+    const files = [...fileInput.files || []];
 
     this.#render();
 
     // send each file one at a time
-    for (let fileIndex = 0; fileIndex < files.length; fileIndex ++) {
+    for (let fileIndex = 0; fileIndex < files.length; fileIndex++) {
       (this.querySelector('#upload-info__count') as HTMLElement).textContent = `Uploading file ${fileIndex + 1} of ${files.length}`;
       const file = files[fileIndex];
       console.log(`Uploading: ${file.name}`);
@@ -54,7 +54,7 @@ const UploadInfo = class extends HTMLElement {
       formData.append(fileInput.name, file);
       const response = await fetch(this.form?.action || '', {
         method: 'POST',
-        body: formData
+        body: formData,
       });
       if (!response.ok) {
         console.error(`Upload failed for ${file.name}: ${response.statusText}`);
@@ -65,4 +65,4 @@ const UploadInfo = class extends HTMLElement {
 
 };
 
-customElements.define("upload-info", UploadInfo);
+customElements.define('upload-info', UploadInfo);
