@@ -402,7 +402,7 @@ def get_resource_documents(
     count_statement = select(func.count(TextChunk.id)).where(
         TextChunk.resource_id == resource_id
     )
-    total = total = session.exec(count_statement).one()
+    total = session.exec(count_statement).one()
 
     return Chunks(
         collection_id=collection_id,
@@ -566,7 +566,6 @@ def get_collections_user_roles(
 def create_collections_user_role(
     collection_id: UUID,
     user_role: UserRole,
-    # a_session: Annotated[AsyncSession, Depends(get_session)],
     session: Annotated[Session, Depends(get_session)],
     user: Annotated[User, Depends(get_current_user)],
 ) -> UserCollection:
