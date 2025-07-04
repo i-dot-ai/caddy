@@ -110,6 +110,43 @@ def test_upload_pdf_to_file_upload_endpoint(
     delete_resource(database_transaction, response.json()["id"])
 
 
+def test_upload_urls_to_upload_endpoint_422(client, example_collection, admin_user):
+    response = client.post(
+        f"/collections/{example_collection.id}/resources/urls",
+        json={"urls": ["fake_url"]},
+        headers={"Authorization": admin_user.token},
+    )
+    assert response.status_code == 422
+    assert response.json() == {"detail": "Unsupported URLs found in URL list"}
+
+
+def test_upload_urls_to_upload_endpoint_401(client, example_collection, admin_user):
+    response = client.post(
+        f"/collections/{example_collection.id}/resources/urls",
+        json={
+            "urls": [
+                "https://www.gov.uk/find-a-job",
+                "https://www.gov.uk/guidance/changes-to-govuk",
+            ]
+        },
+    )
+    assert response.status_code == 401
+
+
+def test_upload_urls_to_upload_endpoint(client, example_collection, admin_user):
+    response = client.post(
+        f"/collections/{example_collection.id}/resources/urls",
+        json={
+            "urls": [
+                "https://www.gov.uk/find-a-job",
+                "https://www.gov.uk/guidance/changes-to-govuk",
+            ]
+        },
+        headers={"Authorization": admin_user.token},
+    )
+    assert response.status_code == 201
+
+
 def test_get_resource_documents(client, collection_manager, many_documents, admin_user):
     # GIVEN 50 resources with 10 documents each, with consecutive ids
     # WHEN I query for the third resource

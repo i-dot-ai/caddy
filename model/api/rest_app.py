@@ -1,6 +1,7 @@
 from io import BytesIO
 from logging import getLogger
 from typing import Annotated
+from urllib.parse import urlparse
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
@@ -346,8 +347,15 @@ async def create_resource_from_url_list(
     """
     __check_user_is_member_of_collection(user, collection_id, session)
 
-    scraper = Scraper()
     urls = url_list.urls
+    for url in urls:
+        parsed = urlparse(url)
+        if not parsed.scheme or not parsed.netloc:
+            raise HTTPException(
+                status_code=422, detail="Unsupported URLs found in URL list"
+            )
+
+    scraper = Scraper()
     files = await scraper.download_urls(urls)
     resources = []
     try:
