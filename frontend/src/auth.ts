@@ -2,7 +2,7 @@ import 'dotenv/config';
 import { jwtVerify, decodeJwt, errors, importSPKI } from 'jose';
 
 
-export async function isAuthorisedUser (header: string): Promise<boolean> {
+export async function isAuthorisedUser(header: string): Promise<boolean> {
   if (!process.env.REPO) {
     console.error('REPO environment variable not set');
     return false;
@@ -23,7 +23,7 @@ export async function isAuthorisedUser (header: string): Promise<boolean> {
 
 }
 
-async function parseAuthToken (header: string) {
+async function parseAuthToken(header: string) {
   if (!header) {
     console.error('No auth token provided to parse');
     return null;
@@ -54,7 +54,7 @@ async function parseAuthToken (header: string) {
   };
 }
 
-async function getDecodedJwt (header: string, verifyJwtSource: boolean) {
+async function getDecodedJwt(header: string, verifyJwtSource: boolean) {
   let decodedToken = null;
 
   try {
@@ -71,7 +71,7 @@ async function getDecodedJwt (header: string, verifyJwtSource: boolean) {
         });
 
         decodedToken = payload;
-      } catch (error) {
+      } catch(error) {
         if (error instanceof errors.JWTExpired) {
           console.error('JWT has expired:', error.message);
           return null;
@@ -86,19 +86,19 @@ async function getDecodedJwt (header: string, verifyJwtSource: boolean) {
       // Decode without verification
       try {
         decodedToken = decodeJwt(header);
-      } catch (error) {
+      } catch(error) {
         console.error('Malformed JWT during decoding:', error);
         return null;
       }
     }
     return decodedToken;
-  } catch (error) {
+  } catch(error) {
     console.error('Unexpected error in getDecodedJwt:', error);
     return null;
   }
 }
 
-function convertToPemPublicKey (keyBase64: string): string {
+function convertToPemPublicKey(keyBase64: string): string {
   return `-----BEGIN PUBLIC KEY-----\n${keyBase64}\n-----END PUBLIC KEY-----`;
 }
 

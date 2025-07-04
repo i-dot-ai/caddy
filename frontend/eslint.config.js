@@ -29,6 +29,7 @@ export default defineConfig([
       '@stylistic/padded-blocks': ['off'],
       '@stylistic/quote-props': ['error', 'as-needed'],
       '@stylistic/quotes': ['error', 'single'],
+      '@stylistic/space-before-function-paren': ['error', 'never'],
     },
   },
 ]);
