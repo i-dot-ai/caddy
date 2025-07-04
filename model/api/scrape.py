@@ -2,7 +2,7 @@ import functools
 import logging
 import re
 import time
-from typing import Dict, List, Optional
+from typing import List, Optional
 
 import html2text
 from bs4 import BeautifulSoup
@@ -10,6 +10,22 @@ from langchain_community.document_loaders import AsyncHtmlLoader
 from tqdm import tqdm
 
 logger = logging.getLogger(__name__)
+
+
+class ScrapedPage:
+    def __init__(
+        self,
+        source: str,
+        title: str,
+        markdown: str,
+        markdown_length: int,
+        content_type: str,
+    ) -> None:
+        self.source = source
+        self.title = title
+        self.markdown = markdown
+        self.markdown_length = markdown_length
+        self.content_type = content_type
 
 
 def retry(num_retries=3, delay=1, backoff=2, exceptions=(Exception,)):
@@ -82,10 +98,10 @@ class Scraper:
         )  # Remove leading newlines
         return cleaned_text
 
-    async def download_urls(self, urls: List[str]):
+    async def download_urls(self, urls: List[str]) -> list[ScrapedPage]:
         """Split URLs into batches and scrape their content.
         Args:
-            url_data (List[Dict[str, str]]): URL data with metadata to scrape.
+            urls (List[str]): URL list to scrape
         """
         url_batches = [
             urls[i : i + self.batch_size] for i in range(0, len(urls), self.batch_size)
@@ -105,7 +121,7 @@ class Scraper:
         return pages
 
     @retry()
-    async def scrape_url_batch(self, url_list: List[str]) -> List[Dict[str, str]]:
+    async def scrape_url_batch(self, url_list: List[str]) -> List[ScrapedPage]:
         """Takes a batch of URLs, iteratively scrapes the content of each page.
         Args:
             url_list (List[str]): list of URLs in batch.
@@ -135,16 +151,19 @@ class Scraper:
                         title_tag = soup.find("title")
                         if title_tag:
                             page_title = title_tag.get_text().strip()
+                        content_type = ""
+                        content_type_tag = soup.meta.get("content")
+                        if content_type_tag:
+                            content_type = content_type_tag.split(";")[0]
 
-                        page_dict = {
-                            "source": current_url,
-                            "title": page_title
-                            if page_title
-                            else current_url,  # Fallback to current_url so file name is not empty
-                            "markdown": current_page_markdown,
-                            "markdown_length": len(current_page_markdown),
-                        }
-                        scraped_pages.append(page_dict)
+                        scraped_page = ScrapedPage(
+                            source=current_url,
+                            title=page_title if page_title else current_url,
+                            markdown=current_page_markdown,
+                            markdown_length=len(current_page_markdown),
+                            content_type=content_type,
+                        )
+                        scraped_pages.append(scraped_page)
                     else:
                         logger.warning(f"No main content found for {current_url}")
                         self.problematic_urls.add(current_url)

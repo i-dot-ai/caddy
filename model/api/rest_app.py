@@ -30,6 +30,7 @@ from api.types import (
     CollectionDto,
     CollectionsDto,
     Role,
+    UrlListBase,
     UserRole,
 )
 
@@ -127,10 +128,6 @@ def __process_resource(resource: Resource, session: Session):
         )
         session.add(text_chunk)
     session.commit()
-
-
-def __add_resource_to_db(resource: Resource):
-    pass
 
 
 @router.get(
@@ -331,7 +328,7 @@ def create_resource(
 )
 async def create_resource_from_url_list(
     collection_id: UUID,
-    urls: list[str],
+    url_list: UrlListBase,
     session: Annotated[Session, Depends(get_session)],
     user: Annotated[User, Depends(get_current_user)],
 ) -> list[Resource]:
@@ -342,7 +339,7 @@ async def create_resource_from_url_list(
         session: DB session
         user: The logged-in user from auth JWT or None
         collection_id (str): The collection to upload the file to.
-        urls (list[str]): The urls being uploaded.
+        url_list (UrlListBase): The urls being uploaded.
 
     Returns:
         Resources
@@ -350,8 +347,43 @@ async def create_resource_from_url_list(
     __check_user_is_member_of_collection(user, collection_id, session)
 
     scraper = Scraper()
-    _ = await scraper.download_urls(urls)
-    return {}
+    urls = url_list.urls
+    files = await scraper.download_urls(urls)
+    resources = []
+    try:
+        for file in files:
+            resource = Resource(
+                collection_id=collection_id,
+                filename=file.title,
+                content_type=file.content_type,
+                created_by=user,
+            )
+            session.add(resource)
+            session.commit()
+            session.refresh(resource)
+            resources.append(resource)
+
+            documents = _split_text(file.markdown)
+
+            embeddings = config.embedding_model.embed_documents(
+                [d.page_content for d in documents]
+            )
+
+            for order, (document, embedding) in enumerate(zip(documents, embeddings)):
+                text_chunk = TextChunk(
+                    text=document.page_content,
+                    order=order,
+                    resource=resource,
+                    embedding=embedding,
+                )
+                session.add(text_chunk)
+            session.commit()
+    except Exception as e:
+        logger.error(f"Error uploading urls: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to upload resources")
+    finally:
+        logger.info("Finished scraping from urls")
+        return resources
 
 
 @router.get(
