@@ -51,7 +51,7 @@ jobs:
         run: |
           # preprod env from main branch
           if [[ "${{ github.ref_name }}" == main ]]; then
-            export ENVIRONMENT=preprod
+            export ENVIRONMENT=prod
           elif [[ "${{ github.event_name }}" == workflow_dispatch ]]; then
             export ENVIRONMENT=dev
           else
