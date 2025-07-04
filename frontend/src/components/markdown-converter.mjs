@@ -15,7 +15,7 @@ const MarkdownConverter = class extends LitElement {
    * @param {string} markdown
    * @returns {string}
    */
-  convert (markdown) {
+  convert(markdown) {
     let converter = new Showdown.Converter({
       disableForced4SpacesIndentedSublists: true,
       headerLevelStart: 2,
@@ -24,12 +24,12 @@ const MarkdownConverter = class extends LitElement {
     return converter.makeHtml(markdown);
   }
 
-  createRenderRoot () {
+  createRenderRoot() {
     this.innerHTML = '';
     return this;
   }
 
-  render () {
+  render() {
     return html`
       <div>
         ${unsafeHTML(this.convert(this.content))}

@@ -2,10 +2,10 @@ const UploadInfo = class extends HTMLElement {
 
   private form: HTMLFormElement | null = null;
 
-  connectedCallback () {
+  connectedCallback() {
 
     this.form = document.querySelector('form');
-    this.form?.addEventListener('submit', async (evt) => {
+    this.form?.addEventListener('submit', async(evt) => {
       evt.preventDefault();
       this.form?.classList.add('form-submitted');
       await this.#uploadFiles();
@@ -15,7 +15,7 @@ const UploadInfo = class extends HTMLElement {
   }
 
 
-  #render () {
+  #render() {
 
     this.innerHTML = `
       <div class="upload-info__ellipsis govuk-body govuk-!-font-weight-bold">
@@ -35,7 +35,7 @@ const UploadInfo = class extends HTMLElement {
   }
 
 
-  async #uploadFiles () {
+  async #uploadFiles() {
 
     // get files
     const fileInput = document.querySelector(`#${this.getAttribute('input-id')}`) as HTMLInputElement;

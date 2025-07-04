@@ -9,12 +9,12 @@ const IaiHeader = class extends LitElement {
     productName: { type: String, attribute: 'product-name' },
   };
 
-  createRenderRoot () {
+  createRenderRoot() {
     this.innerHTML = '';
     return this;
   }
 
-  render () {
+  render() {
     return html`
       <header class="govuk-header govuk-header--full-width-border" data-module="govuk-header">
         <div class="govuk-header__container govuk-width-container">

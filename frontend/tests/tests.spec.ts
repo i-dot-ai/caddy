@@ -4,7 +4,7 @@ import { test, expect, type Page } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 
 
-const testAccessibility = async (page: Page) => {
+const testAccessibility = async(page: Page) => {
   const accessibilityScanResults = await new AxeBuilder({ page }).analyze();
   expect(accessibilityScanResults.violations).toEqual([]);
 };
@@ -13,7 +13,7 @@ const testAccessibility = async (page: Page) => {
 /**
  * Finds the row some specific text appears on (index starts from 1)
  */
-const getRowIndex = async (text: string, page: Page) => {
+const getRowIndex = async(text: string, page: Page) => {
   const index = await page.evaluate((text) => {
     let matchingIndex = -1;
     document.querySelectorAll('tbody tr').forEach((row, rowIndex) => {
@@ -27,7 +27,7 @@ const getRowIndex = async (text: string, page: Page) => {
 };
 
 
-test('Manage collections', async ({ page }) => {
+test('Manage collections', async({ page }) => {
 
   // Collections page (1)
   await page.goto('localhost:4322/');
@@ -78,7 +78,7 @@ test('Manage collections', async ({ page }) => {
 });
 
 
-test('Manage resources', async ({ page }) => {
+test('Manage resources', async({ page }) => {
 
   // Collections page
   await page.goto('localhost:4322/');
@@ -135,7 +135,7 @@ test('Manage resources', async ({ page }) => {
 });
 
 
-test('Manage users', async ({ page }) => {
+test('Manage users', async({ page }) => {
 
   // Collections page
   await page.goto('localhost:4322/');
