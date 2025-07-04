@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-from typing import Any, Awaitable, Union, overload
+from typing import Any, Self
 from uuid import UUID, uuid4
 
 import jwt
@@ -7,7 +7,6 @@ from pgvector.sqlalchemy import Vector
 from pydantic import BaseModel, EmailStr
 from pytz import utc
 from sqlalchemy import event
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import Field, Relationship, Session, SQLModel, select
 
 from api.config import EMBEDDING_DIMENSION
@@ -50,31 +49,9 @@ class User(SQLModel, table=True):
     is_admin: bool = Field(description="is this user an administrator", default=False)
 
     @classmethod
-    @overload
-    def get_by_email(cls, session: Session, email: EmailStr) -> "User | None": ...
-
-    @classmethod
-    @overload
-    def get_by_email(
-        cls, session: AsyncSession, email: EmailStr
-    ) -> Awaitable["User | None"]: ...
-
-    @classmethod
-    def get_by_email(cls, session: Union[Session, AsyncSession], email: EmailStr):
-        """Get user by email - works with both sync and async sessions."""
-        if isinstance(session, AsyncSession):
-            return cls._get_by_email_async(session, email)
-        else:
-            statement = select(cls).where(cls.email == email)
-            return session.exec(statement).one_or_none()
-
-    @classmethod
-    async def _get_by_email_async(
-        cls, session: AsyncSession, email: EmailStr
-    ) -> "User | None":
+    def get_by_email(cls, session: Session, email: EmailStr) -> Self | None:
         statement = select(cls).where(cls.email == email)
-        result = await session.execute(statement)
-        return result.scalars().one_or_none()
+        return session.exec(statement).one_or_none()
 
     @property
     def token(self):

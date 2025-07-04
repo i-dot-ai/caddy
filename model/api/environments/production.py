@@ -35,7 +35,7 @@ opensearch_kwargs = {
     "scheme": "https",
 }
 
-sqlalchemy_url = "postgresql+asyncpg://{POSTGRES_USER}:{POSTGRES_PASSWORD}@{POSTGRES_HOST}/{POSTGRES_DB}".format(
+sqlalchemy_url = "postgresql+psycopg2://{POSTGRES_USER}:{POSTGRES_PASSWORD}@{POSTGRES_HOST}/{POSTGRES_DB}".format(
     **os.environ
 )
 

@@ -1,6 +1,6 @@
 from langchain_community.vectorstores import OpenSearchVectorSearch
 from opensearchpy import NotFoundError, OpenSearch
-from sqlalchemy.ext.asyncio import create_async_engine
+from sqlmodel import create_engine
 
 EMBEDDING_DIMENSION = 1024
 
@@ -89,4 +89,4 @@ class CaddyConfig:
         return vector_store
 
     def get_database(self):
-        return create_async_engine(self.sqlalchemy_url)
+        return create_engine(self.sqlalchemy_url)

@@ -2,8 +2,7 @@ import logging
 from typing import Annotated
 
 from fastapi import Depends, Header, HTTPException
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlmodel import select
+from sqlmodel import Session, select
 
 from api.auth.token_auth import get_authorised_user
 from api.environment import get_session
@@ -13,8 +12,8 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-async def get_current_user(
-    session: Annotated[AsyncSession, Depends(get_session)],
+def get_current_user(
+    session: Annotated[Session, Depends(get_session)],
     authorization: Annotated[str, Header()] = None,
 ) -> User | None:  # noqa: RUF013, PLR0912, C901
     """
@@ -47,14 +46,14 @@ async def get_current_user(
         # We have decided not to check Keycloak roles (any role is allowed)
 
         statement = select(User).where(User.email == email)
-        if user := (await session.execute(statement)).scalars().one_or_none():
+        if user := session.exec(statement).one_or_none():
             return user
 
         logger.info("User not found with email %s, creating", email)
         user = User(email=email)
         session.add(user)
-        await session.commit()
-        await session.refresh(user)
+        session.commit()
+        session.refresh(user)
         # TODO: Update user roles if needed here
         return user
 
