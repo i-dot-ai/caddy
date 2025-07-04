@@ -4,7 +4,7 @@ const UploadInfo = class extends HTMLElement {
 
   connectedCallback() {
 
-    this.form = document.querySelector('form');
+    this.form = this.closest('form');
     this.form?.addEventListener('submit', async(evt) => {
       evt.preventDefault();
       this.form?.classList.add('form-submitted');
