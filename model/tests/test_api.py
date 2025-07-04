@@ -110,76 +110,6 @@ def test_upload_pdf_to_file_upload_endpoint(
     delete_resource(database_transaction, response.json()["id"])
 
 
-def test_upload_urls_to_upload_endpoint_422(client, example_collection, admin_user):
-    response = client.post(
-        f"/collections/{example_collection.id}/resources/urls",
-        json={"urls": ["fake_url"]},
-        headers={"Authorization": admin_user.token},
-    )
-    assert response.status_code == 422
-    assert response.json() == {"detail": "Unsupported URLs found in URL list"}
-
-
-def test_upload_urls_to_upload_endpoint_401(client, example_collection, admin_user):
-    response = client.post(
-        f"/collections/{example_collection.id}/resources/urls",
-        json={
-            "urls": [
-                "https://www.gov.uk/find-a-job",
-                "https://www.gov.uk/guidance/changes-to-govuk",
-            ]
-        },
-    )
-    assert response.status_code == 401
-
-
-@pytest.mark.parametrize(
-    ("url", "expected_results", "expected_status"),
-    [
-        (
-            "https://www.gov.uk/find-a-job",
-            {
-                "content_type": "text/html",
-                "filename": "Find a job - GOV.UK",
-                "is_processed": True,
-            },
-            201,
-        ),
-        (
-            "https://www.gov.uk/guidance/changes-to-govuk",
-            {
-                "content_type": "text/html",
-                "filename": "Changes to GOV.UK - GOV.UK",
-                "is_processed": True,
-            },
-            201,
-        ),
-    ],
-)
-def test_upload_urls_to_upload_endpoint(
-    client, example_collection, admin_user, url, expected_results, expected_status
-):
-    response = client.post(
-        f"/collections/{example_collection.id}/resources/urls",
-        json={
-            "urls": [
-                url,
-            ]
-        },
-        headers={"Authorization": admin_user.token},
-    )
-    assert response.status_code == 201
-    resources = [Resource.model_validate(resource) for resource in response.json()]
-    assert len(resources) == 1
-    actual_result = resources[0]
-    assert actual_result.url == url
-    assert actual_result.content_type == expected_results["content_type"]
-    assert actual_result.filename == expected_results["filename"]
-    assert actual_result.is_processed == expected_results["is_processed"]
-    assert actual_result.collection_id == example_collection.id
-    assert actual_result.created_by_id == admin_user.id
-
-
 def test_get_resource_documents(client, collection_manager, many_documents, admin_user):
     # GIVEN 50 resources with 10 documents each, with consecutive ids
     # WHEN I query for the third resource
@@ -672,3 +602,73 @@ def test_get_collection_non_admin_user_is_attached_to(
 def test_healthcheck(client):
     response = client.get("/healthcheck")
     assert response.json()["sha"] == "test"
+
+
+def test_upload_urls_to_upload_endpoint_422(client, example_collection, admin_user):
+    response = client.post(
+        f"/collections/{example_collection.id}/resources/urls",
+        json={"urls": ["fake_url"]},
+        headers={"Authorization": admin_user.token},
+    )
+    assert response.status_code == 422
+    assert response.json() == {"detail": "Unsupported URLs found in URL list"}
+
+
+def test_upload_urls_to_upload_endpoint_401(client, example_collection, admin_user):
+    response = client.post(
+        f"/collections/{example_collection.id}/resources/urls",
+        json={
+            "urls": [
+                "https://www.gov.uk/find-a-job",
+                "https://www.gov.uk/guidance/changes-to-govuk",
+            ]
+        },
+    )
+    assert response.status_code == 401
+
+
+@pytest.mark.parametrize(
+    ("url", "expected_results", "expected_status"),
+    [
+        (
+            "https://www.gov.uk/find-a-job",
+            {
+                "content_type": "text/html",
+                "filename": "Find a job - GOV.UK",
+                "is_processed": True,
+            },
+            201,
+        ),
+        (
+            "https://www.gov.uk/guidance/changes-to-govuk",
+            {
+                "content_type": "text/html",
+                "filename": "Changes to GOV.UK - GOV.UK",
+                "is_processed": True,
+            },
+            201,
+        ),
+    ],
+)
+def test_upload_urls_to_upload_endpoint(
+    client, example_collection, admin_user, url, expected_results, expected_status
+):
+    response = client.post(
+        f"/collections/{example_collection.id}/resources/urls",
+        json={
+            "urls": [
+                url,
+            ]
+        },
+        headers={"Authorization": admin_user.token},
+    )
+    assert response.status_code == 201
+    resources = [Resource.model_validate(resource) for resource in response.json()]
+    assert len(resources) == 1
+    actual_result = resources[0]
+    assert actual_result.url == url
+    assert actual_result.content_type == expected_results["content_type"]
+    assert actual_result.filename == expected_results["filename"]
+    assert actual_result.is_processed == expected_results["is_processed"]
+    assert actual_result.collection_id == example_collection.id
+    assert actual_result.created_by_id == admin_user.id
