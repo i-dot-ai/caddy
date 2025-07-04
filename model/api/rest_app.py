@@ -357,19 +357,21 @@ async def create_resource_from_url_list(
 
     scraper = Scraper()
     files = await scraper.download_urls(urls)
-    resources = []
     try:
+        resources = []
         for file in files:
             resource = Resource(
                 collection_id=collection_id,
                 filename=file.title,
                 content_type=file.content_type,
+                url=file.url,
                 created_by=user,
             )
             session.add(resource)
             session.commit()
             session.refresh(resource)
             resources.append(resource)
+            process_time_start = utc_now()
 
             documents = _split_text(file.markdown)
 
@@ -385,13 +387,17 @@ async def create_resource_from_url_list(
                     embedding=embedding,
                 )
                 session.add(text_chunk)
+            resource.process_time = utc_now() - process_time_start
+            resource.is_processed = True
+            session.add(resource)
             session.commit()
+        logger.info("Finished scraping from urls")
+        for resource in resources:
+            session.refresh(resource)
+        return resources
     except Exception as e:
         logger.error(f"Error uploading urls: {str(e)}")
         raise HTTPException(status_code=500, detail="Failed to upload resources")
-    finally:
-        logger.info("Finished scraping from urls")
-        return resources
 
 
 @router.get(

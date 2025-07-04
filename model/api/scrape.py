@@ -20,12 +20,14 @@ class ScrapedPage:
         markdown: str,
         markdown_length: int,
         content_type: str,
+        url: str,
     ) -> None:
         self.source = source
         self.title = title
         self.markdown = markdown
         self.markdown_length = markdown_length
         self.content_type = content_type
+        self.url = url
 
 
 def retry(num_retries=3, delay=1, backoff=2, exceptions=(Exception,)):
@@ -162,6 +164,7 @@ class Scraper:
                             markdown=current_page_markdown,
                             markdown_length=len(current_page_markdown),
                             content_type=content_type,
+                            url=current_url,
                         )
                         scraped_pages.append(scraped_page)
                     else:
