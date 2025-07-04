@@ -159,7 +159,7 @@ export const addUrls = async(collectionId: string, urls: string[], keycloakToken
   const { json } = await makeRequest(`/collections/${collectionId}/resources/urls`, keycloakToken, {
     method: 'POST',
     body: JSON.stringify({
-      urls: urls
+      urls: urls,
     }),
     contentType: 'application/json',
   });
