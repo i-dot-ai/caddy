@@ -1,4 +1,5 @@
 ---
+import 'dotenv/config';
 import Footer from '@components/footer.astro';
 import '../../node_modules/i.ai-design-system/dist/iai-design-system.css';
 import LitWrapper from '@components/lit-wrapper.astro';
@@ -16,6 +17,8 @@ const generator = `caddy-${ version }`;
 		<meta name="generator" content={ generator } />
 		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 		<title>{ title } - Caddy Admin</title>
+		<script is:inline defer data-domain={ process.env['DOMAIN'] } src="https://plausible.io/js/script.file-downloads.hash.outbound-links.pageview-props.tagged-events.js"></script>
+		<script>window.plausible = window.plausible || function() { (window.plausible.q = window.plausible.q || []).push(arguments) }</script>
 	</head>
 	<body class="govuk-template__body govuk-frontend-supported">
 

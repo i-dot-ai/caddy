@@ -45,7 +45,7 @@ const { collection, error } = await getCollection(collectionId || '', Astro.requ
             <option value="manager">Manager</option>
           </select>
         </div>
-        <button class="govuk-button">Add user</button>
+        <button class={ 'govuk-button plausible-event-name=Add+User plausible-event-collection=' + collection.name }>Add user</button>
       </form>
 
     </div>
