@@ -46,7 +46,8 @@ const { collection, error } = await getCollection(collectionId || '', Astro.requ
             <input class="govuk-file-upload" id="file-upload-1" name="fileUpload1" type="file" required multiple>
           </div>
         </div>
-        <button class="govuk-button">Add file(s)</button>
+        <button class={ 'govuk-button plausible-event-name=Add+Files plausible-event-collection=' + collection.name }>Add file(s)</button>
+
         <upload-info input-id="file-upload-1-input" collection={ collectionId } resources-page="../resources"></upload-info>
       </form>
 
