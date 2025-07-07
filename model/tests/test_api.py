@@ -300,6 +300,7 @@ def test_get_collection_resources(client, collection_manager, many_documents):
         "process_error": None,
         "process_time": None,
         "created_by_id": None,
+        "url": None,
     }
 
     expected_result = [
