@@ -21,7 +21,7 @@ export default defineConfig({
 
   integrations: [
     sentry({
-      dsn: process.env.SENTRY_DSN,
+      dsn: process.env.SENTRY_DSN?.replaceAll('"', ''),
       tracesSampleRate: 0,
       replaysSessionSampleRate: 0,
       replaysOnErrorSampleRate: 0,
@@ -33,7 +33,7 @@ export default defineConfig({
       sendDefaultPii: true,
       sourceMapsUploadOptions: {
         project: 'caddy',
-        authToken: process.env.SENTRY_AUTH_TOKEN,
+        authToken: process.env.SENTRY_AUTH_TOKEN?.replaceAll('"', ''),
       },
     }),
   ],
