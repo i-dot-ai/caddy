@@ -1,6 +1,7 @@
 from io import BytesIO
 from logging import getLogger
 from typing import Annotated
+from urllib.parse import urlparse
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
@@ -23,12 +24,14 @@ from api.models import (
     UserRoleList,
     utc_now,
 )
+from api.scrape import Scraper
 from api.types import (
     Chunks,
     CollectionBase,
     CollectionDto,
     CollectionsDto,
     Role,
+    UrlListBase,
     UserRole,
 )
 
@@ -57,7 +60,10 @@ def _split_text(text: str) -> list[Document]:
 
 
 def __check_user_is_member_of_collection(
-    user: User | None, collection_id: UUID, session: Session, is_manager: bool = True
+    user: User | None,
+    collection_id: UUID,
+    session: Session,
+    is_manager: bool = True,
 ):
     if user is None:
         logger.info("Anonymous access request for collection % denied", collection_id)
@@ -318,6 +324,82 @@ def create_resource(
         return resource
 
 
+@router.post(
+    "/collections/{collection_id}/resources/urls", status_code=201, tags=["resources"]
+)
+async def create_resource_from_url_list(
+    collection_id: UUID,
+    url_list: UrlListBase,
+    session: Annotated[Session, Depends(get_session)],
+    user: Annotated[User, Depends(get_current_user)],
+) -> list[Resource]:
+    """
+    Endpoint to upload a file to a specified collection.
+
+    Args:
+        session: DB session
+        user: The logged-in user from auth JWT or None
+        collection_id (str): The collection to upload the file to.
+        url_list (UrlListBase): The urls being uploaded.
+
+    Returns:
+        Resources
+    """
+    __check_user_is_member_of_collection(user, collection_id, session)
+
+    urls = url_list.urls
+    for url in urls:
+        parsed = urlparse(url)
+        if not parsed.scheme or not parsed.netloc:
+            raise HTTPException(
+                status_code=422, detail="Unsupported URLs found in URL list"
+            )
+
+    scraper = Scraper()
+    files = await scraper.download_urls(urls)
+    try:
+        resources = []
+        for file in files:
+            resource = Resource(
+                collection_id=collection_id,
+                filename=file.title,
+                content_type=file.content_type,
+                url=file.url,
+                created_by=user,
+            )
+            session.add(resource)
+            session.commit()
+            session.refresh(resource)
+            resources.append(resource)
+            process_time_start = utc_now()
+
+            documents = _split_text(file.markdown)
+
+            embeddings = config.embedding_model.embed_documents(
+                [d.page_content for d in documents]
+            )
+
+            for order, (document, embedding) in enumerate(zip(documents, embeddings)):
+                text_chunk = TextChunk(
+                    text=document.page_content,
+                    order=order,
+                    resource=resource,
+                    embedding=embedding,
+                )
+                session.add(text_chunk)
+            resource.process_time = utc_now() - process_time_start
+            resource.is_processed = True
+            session.add(resource)
+            session.commit()
+        logger.info("Finished scraping from urls")
+        for resource in resources:
+            session.refresh(resource)
+        return resources
+    except Exception as e:
+        logger.error(f"Error uploading urls: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to upload resources")
+
+
 @router.get(
     "/collections/{collection_id}/resources/{resource_id}/documents",
     status_code=200,
@@ -441,7 +523,7 @@ def get_collections(
     Raises:
         HTTPException: 500 status code if collection retrieval fails
     """
-    logger.info("Getting collections for user: %".format())
+    logger.info("Getting collections for user: {user}".format(user=user.email))
     try:
         where_clauses = (
             [UserCollection.user_id == user.id] if user and not user.is_admin else []

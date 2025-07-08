@@ -98,6 +98,7 @@ class Resource(SQLModel, table=True):
 
     filename: str | None = Field(description="name of original file")
     content_type: str | None = Field(description="type of content")
+    url: str | None = Field(description="url of the uploaded resource", default=None)
     is_processed: bool = Field(
         description="has this file been processed", default=False
     )

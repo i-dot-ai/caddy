@@ -28,7 +28,7 @@ def get_current_user(
         User: The user matching the username in the token
     """
 
-    logger.info(f"Authorization header {authorization}")
+    logger.debug(f"Authorization header {authorization}")
 
     if not authorization:
         logger.info("No token header found in get_current_user")
