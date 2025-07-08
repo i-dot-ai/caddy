@@ -523,7 +523,7 @@ def get_collections(
     Raises:
         HTTPException: 500 status code if collection retrieval fails
     """
-    logger.info("Getting collections for user: %".format())
+    logger.info("Getting collections for user: {user}".format(user=user.email))
     try:
         where_clauses = (
             [UserCollection.user_id == user.id] if user and not user.is_admin else []
