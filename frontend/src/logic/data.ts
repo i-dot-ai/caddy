@@ -70,8 +70,11 @@ export const getCollections = async(keycloakToken: string | null) => {
 
 
 export const getCollection = async(collectionId: string, keycloakToken: string | null) => {
-  const { collectionsData, error } = await getCollections(keycloakToken);
+  let { collectionsData, error } = await getCollections(keycloakToken); /* eslint prefer-const: "off" */
   const collection = collectionsData.collections.find((item: Collection) => item.id === collectionId) as Collection;
+  if (typeof collection === 'undefined') {
+    error = 'Collection not found';
+  }
   return { collection, error };
 };
 
