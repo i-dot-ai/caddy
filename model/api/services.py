@@ -1,17 +1,14 @@
-from enum import Enum
-from functools import lru_cache
 from logging import getLogger
 
 from sqlalchemy import func
 from sqlmodel import Session, select
 
-from api.environment import config
 from api.models import (
     Collection,
-    Resource,
     User,
     UserCollection,
 )
+from api.permissions import get_collection_permissions_for_user
 from api.types import (
     CollectionDto,
     CollectionsDto,
@@ -19,12 +16,6 @@ from api.types import (
 )
 
 logger = getLogger(__name__)
-
-
-@lru_cache
-def get_session() -> Session:
-    with Session(config.get_database()) as session:
-        yield session
 
 
 class NoPermissionException(Exception):
@@ -39,95 +30,11 @@ class NoPermissionException(Exception):
         return f"{self.message} (Error Code: {self.error_code})"
 
 
-class CollectionPermissionEnum(Enum):
-    NONE = 0
-    READ = 1
-    WRITE = 2
-    MANAGE_USERS = 3
-    MANAGE_RESOURCES = 4
-    ALL = 5
-
-
-class ResourcePermissionEnum(Enum):
-    NONE = 0
-    READ = 1
-    WRITE = 2
-    DELETE = 3
-    ALL = 4
-
-
-class UserPermissions:
-    def __init__(
-        self,
-        resource_permission: ResourcePermissionEnum,
-        collection_permission: CollectionPermissionEnum,
-    ):
-        self.resource_permission = resource_permission
-        self.collection_permission = collection_permission
-
-
-def __is_user_super_admin(user: User):
-    return user.email in config.SUPER_ADMINS
-
-
-def __get_user_system_permissions(user: User) -> UserPermissions:
-    if __is_user_super_admin(user) or user.is_admin:
-        return UserPermissions(ResourcePermissionEnum.ALL, CollectionPermissionEnum.ALL)
-    else:
-        return UserPermissions(
-            ResourcePermissionEnum.NONE, CollectionPermissionEnum.READ
-        )
-
-
-def __get_user_collection_permissions(
-    user: User, collection: Collection, session: Session | None
-) -> CollectionPermissionEnum:
-    if user.is_admin or __is_user_super_admin(user):
-        return CollectionPermissionEnum.ALL
-    else:
-        if not session:
-            session = get_session()
-        stmt = select(UserCollection).where(
-            UserCollection.user_id == user.id
-            and UserCollection.collection_id == collection.id
-        )
-        results = session.exec(stmt).first()
-        if not results:
-            return CollectionPermissionEnum.NONE
-        if results.role == Role.MANAGER:
-            return CollectionPermissionEnum.ALL
-        if results.role == Role.MEMBER:
-            return CollectionPermissionEnum.READ
-    return CollectionPermissionEnum.NONE
-
-
-def __get_user_resource_permissions(
-    user: User, resource: Resource, session: Session | None
-) -> ResourcePermissionEnum:
-    if user.is_admin or __is_user_super_admin(user):
-        return ResourcePermissionEnum.ALL
-    else:
-        if not session:
-            session = get_session()
-        stmt = select(UserCollection).where(
-            UserCollection.user_id == user.id
-            and UserCollection.collection_id == resource.collection_id
-        )
-        results = session.exec(stmt).first()
-        if not results:
-            return ResourcePermissionEnum.NONE
-        if results.role == Role.MANAGER:
-            return ResourcePermissionEnum.ALL
-        if results.role == Role.MEMBER:
-            return ResourcePermissionEnum.READ
-
-
 def get_user_collections(
     user: User, session: Session, page: int, page_size: int
 ) -> CollectionsDto:
     #  TODO: Update this function to use the above
     try:
-        _ = __get_user_system_permissions(user)
         where_clauses = (
             [UserCollection.user_id == user.id] if user and not user.is_admin else []
         )
@@ -159,6 +66,9 @@ def get_user_collections(
                 description=collection.description,
                 created_at=collection.created_at,
                 is_manager=bool(is_manager),
+                permission=get_collection_permissions_for_user(
+                    user, collection, session
+                ),
             )
             for collection, is_manager in query_results
         ]
