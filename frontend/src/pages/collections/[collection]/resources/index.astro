@@ -16,56 +16,66 @@ const resourcesData = await getResources(collectionId || '', 1, PAGE_SIZE, token
 
 ---
 
-<Layout title={ 'Resources - ' + collection.name } error={ error }>
+<Layout title={ 'Resources - ' + (collection?.name || error) } error={ error }>
 
-  <nav class="govuk-breadcrumbs govuk-!-margin-bottom-6" aria-label="Breadcrumb">
-    <ol class="govuk-breadcrumbs__list">
-      <li class="govuk-breadcrumbs__list-item">
-        <a class="govuk-breadcrumbs__link" href="/">Collections</a>
-      </li>
-      <li class="govuk-breadcrumbs__list-item">
-        Resources
-      </li>
-    </ol>
-  </nav>
+  { !error &&
+    <>
 
-  <div class="govuk-grid-row">
-    <div class="govuk-grid-column-full">
+      <nav class="govuk-breadcrumbs govuk-!-margin-bottom-6" aria-label="Breadcrumb">
+        <ol class="govuk-breadcrumbs__list">
+          <li class="govuk-breadcrumbs__list-item">
+            <a class="govuk-breadcrumbs__link" href="/">Collections</a>
+          </li>
+          <li class="govuk-breadcrumbs__list-item">
+            Resources
+          </li>
+        </ol>
+      </nav>
 
-      <h1 class="govuk-heading-l">Resources</h1>
+      <div class="govuk-grid-row">
+        <div class="govuk-grid-column-full">
 
-      <p><strong>Collection:</strong> { collection.name }</p>
+          <h1 class="govuk-heading-l">Resources</h1>
 
-      { (collection.is_manager || collectionsData.is_admin) &&
-        <a class="govuk-button govuk-!-margin-top-2" href="resources/add">Add file(s)</a>
-      }
+          <p><strong>Collection:</strong> { collection.name }</p>
 
-      <p class="govuk-body-l govuk-!-margin-top-5">Showing { resourcesData.total } resources</p>
+          { (collection.is_manager || collectionsData.is_admin) &&
+            <a class="govuk-button govuk-!-margin-top-2" href="resources/add">Add file(s)</a>
+          }
 
-      <div style="overflow-x: auto; width: 100%;">
-        <table class="govuk-table">
-          <caption class="govuk-visually-hidden">Files</caption>
-          <thead class="govuk-table__head">
-            <tr class="govuk-table__row">
-              <th scope="col" class="govuk-table__header">Filename</th>
-              <th scope="col" class="govuk-table__header">Type</th>
-              <th scope="col" class="govuk-table__header">Created</th>
-              { (collection.is_manager || collectionsData.is_admin) &&
-                <th scope="col" class="govuk-table__header">Actions</th>
-              }
-            </tr>
-          </thead>
-          <tbody class="govuk-table__body">
-            {/* The 1st page of Resources are ready on page load. Additional pages are added via HTML Streaming */}
-            <Resources resources={ resourcesData.resources } isManager={ collection.is_manager || collectionsData.is_admin } />
-            { Array.from({ length: Math.ceil(resourcesData.total / PAGE_SIZE) - 1 }).map((_, index) => (
-              <Resources collection={ collectionId } page={ index + 2 } count={ PAGE_SIZE } token={ token } isManager={ collection.is_manager || collectionsData.is_admin } />
-            )) }
-          </tbody>
-        </table>
+          <p class="govuk-body-l govuk-!-margin-top-5">Showing { resourcesData.total } resources</p>
+
+          <div style="overflow-x: auto; width: 100%;">
+            <table class="govuk-table">
+              <caption class="govuk-visually-hidden">Files</caption>
+              <thead class="govuk-table__head">
+                <tr class="govuk-table__row">
+                  <th scope="col" class="govuk-table__header">Filename</th>
+                  <th scope="col" class="govuk-table__header">Type</th>
+                  <th scope="col" class="govuk-table__header">Created</th>
+                  { (collection.is_manager || collectionsData.is_admin) &&
+                    <th scope="col" class="govuk-table__header">Actions</th>
+                  }
+                </tr>
+              </thead>
+              <tbody class="govuk-table__body">
+                {/* The 1st page of Resources are ready on page load. Additional pages are added via HTML Streaming */}
+                <Resources resources={ resourcesData.resources } isManager={ collection.is_manager || collectionsData.is_admin } />
+                { Array.from({ length: Math.ceil(resourcesData.total / PAGE_SIZE) - 1 }).map((_, index) => (
+                  <Resources collection={ collectionId } page={ index + 2 } count={ PAGE_SIZE } token={ token } isManager={ collection.is_manager || collectionsData.is_admin } />
+                )) }
+              </tbody>
+            </table>
+          </div>
+
+        </div>
       </div>
 
-    </div>
-  </div>
+    </>
+  }
+
+  { error &&
+    <p>Return to <a href="/">All Collections</a> page.</p>
+  }
 
 </Layout>
