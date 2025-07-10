@@ -176,17 +176,11 @@ class Scraper:
                         metric_writer.put_metric(
                             metric_name="resource_url_scraped",
                             value=1,
-                            dimensions={
-                                "url": current_url,
-                            },
                         )
                         metric_writer.put_metric(
                             metric_name="resource_url_scraped_duration_ms",
                             value=(utc_now() - processing_start_time).total_seconds()
                             * 1000,
-                            dimensions={
-                                "url": current_url,
-                            },
                         )
                     else:
                         logger.warning(f"No main content found for {current_url}")

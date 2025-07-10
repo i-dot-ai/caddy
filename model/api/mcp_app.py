@@ -6,7 +6,6 @@ from logging import getLogger
 from typing import Iterator
 
 from fastapi import HTTPException
-from i_dot_ai_utilities.metrics.cloudwatch import CloudwatchEmbeddedMetricsWriter
 from langchain_core.documents import Document
 from mcp import types
 from mcp.server.lowlevel import Server
@@ -25,7 +24,7 @@ logger = getLogger(__file__)
 
 mcp_server = Server("Caddy MCP server")
 
-metric_writer: CloudwatchEmbeddedMetricsWriter = config.get_metrics_writer()
+metric_writer = config.get_metrics_writer()
 
 KEYCLOAK_ALLOWED_ROLES = config.keycloak_allowed_roles
 
@@ -85,7 +84,7 @@ async def call_tool(
         metric_name="Tool call",
         value=1,
         dimensions={
-            "Tool": name,
+            "Tool name": name,
         },
     )
 
@@ -120,7 +119,7 @@ async def call_tool(
         metric_name="tool_call_duration_ms",
         value=timer_result_ms,
         dimensions={
-            "Tool": name,
+            "Tool name": name,
         },
     )
     return [

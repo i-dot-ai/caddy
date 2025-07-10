@@ -328,7 +328,6 @@ def create_resource(
             value=1,
             dimensions={
                 "file_type": resource.content_type,
-                "created_by": user.email,
             },
         )
         metric_writer.put_metric(
@@ -336,7 +335,6 @@ def create_resource(
             value=(utc_now() - process_time_start).total_seconds() * 1000,
             dimensions={
                 "file_type": resource.content_type,
-                "created_by": user.email,
             },
         )
         metric_writer.put_metric(
@@ -344,7 +342,6 @@ def create_resource(
             value=file.size,
             dimensions={
                 "file_type": resource.content_type,
-                "created_by": user.email,
             },
         )
 
