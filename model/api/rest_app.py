@@ -12,6 +12,7 @@ from sqlmodel import Session, select
 
 from api.auth import get_current_user
 from api.environment import config, get_session
+from api.exceptions import NoPermissionException
 from api.models import (
     Collection,
     CollectionResources,
@@ -430,7 +431,7 @@ def get_collections(
     user: Annotated[User, Depends(get_current_user)],
     page: int = Query(1, ge=1),
     page_size: int = Query(10, ge=1),
-) -> CollectionsDto:
+) -> CollectionsDto | HTTPException:
     """Get a list of all available collections.
     Args:
         session: DB session
@@ -445,8 +446,13 @@ def get_collections(
     logger.info("Getting collections for user: %".format())
     try:
         return get_user_collections(user, session, page, page_size)
-    except Exception as e:
-        logger.error(f"Error retrieving available indexes: {str(e)}")
+    except NoPermissionException:
+        logger.exception("Error retrieving available collections")
+        return HTTPException(
+            status_code=401, detail="Not enough permissions to view collections"
+        )
+    except Exception:
+        logger.exception("Error retrieving available collections")
         raise HTTPException(
             status_code=500, detail="Failed to retrieve available collections"
         )
