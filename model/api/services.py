@@ -8,7 +8,7 @@ from api.models import (
     User,
     UserCollection,
 )
-from api.permissions import get_collection_permissions_for_user
+from api.permissions import get_collection_permissions_for_user, is_user_super_admin
 from api.types import (
     CollectionDto,
     CollectionsDto,
@@ -62,8 +62,10 @@ def get_user_collections(
         collections = [
             CollectionDto(
                 id=collection.id,
-                name=collection.name,
-                description=collection.description,
+                name=collection.id if is_user_super_admin(user) else collection.name,
+                description=collection.id
+                if is_user_super_admin(user)
+                else collection.description,
                 created_at=collection.created_at,
                 is_manager=bool(is_manager),
                 permission=get_collection_permissions_for_user(
