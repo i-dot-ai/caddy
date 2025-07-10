@@ -419,19 +419,12 @@ async def create_resource_from_url_list(
         for resource in resources:
             session.refresh(resource)
         metric_writer.put_metric(
-            metric_name="resource_created_from_url_batch",
+            metric_name="resource_created_from_url_call_count",
             value=1,
-            dimensions={
-                "url_count": len(urls),
-                "created_by": user.email,
-            },
         )
         metric_writer.put_metric(
-            metric_name="resource_from_urls_created_duration_ms_batch",
+            metric_name="resource_from_urls_created_duration_ms_total",
             value=(utc_now() - process_time_start).total_seconds() * 1000,
-            dimensions={
-                "created_by": user.email,
-            },
         )
         return resources
     except Exception as e:
