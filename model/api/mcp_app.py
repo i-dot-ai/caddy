@@ -25,14 +25,14 @@ logger = getLogger(__file__)
 
 mcp_server = Server("Caddy MCP server")
 
+metric_writer: CloudwatchEmbeddedMetricsWriter = config.get_metrics_writer()
+
 KEYCLOAK_ALLOWED_ROLES = config.keycloak_allowed_roles
 
 # Context variable to store current user email
 _current_user_email: contextvars.ContextVar[str | None] = contextvars.ContextVar(
     "current_user_email", default=None
 )
-
-metric_writer: CloudwatchEmbeddedMetricsWriter = config.metric_writer()
 
 
 @contextlib.asynccontextmanager
