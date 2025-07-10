@@ -81,10 +81,10 @@ async def call_tool(
     call_tool_start = datetime.now(UTC)
     logger.info(f"Calling tool {name} with args {arguments}")
     metric_writer.put_metric(
-        metric_name="Tool call",
+        metric_name="tool_call_count",
         value=1,
         dimensions={
-            "Tool name": name,
+            "tool_name": name,
         },
     )
 
@@ -119,7 +119,7 @@ async def call_tool(
         metric_name="tool_call_duration_ms",
         value=timer_result_ms,
         dimensions={
-            "Tool name": name,
+            "tool_name": name,
         },
     )
     return [
