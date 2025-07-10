@@ -513,7 +513,7 @@ def get_collections(
     user: Annotated[User, Depends(get_current_user)],
     page: int = Query(1, ge=1),
     page_size: int = Query(10, ge=1),
-) -> CollectionsDto | HTTPException:
+) -> CollectionsDto:
     """Get a list of all available collections.
     Args:
         session: DB session
@@ -530,7 +530,7 @@ def get_collections(
         return get_user_collections(user, session, page, page_size)
     except NoPermissionException:
         logger.exception("Error retrieving available collections")
-        return HTTPException(
+        raise HTTPException(
             status_code=401, detail="Not enough permissions to view collections"
         )
     except Exception:
