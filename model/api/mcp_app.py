@@ -151,6 +151,7 @@ async def list_tools() -> list[types.Tool]:
                     },
                 },
             },
+            annotations={"title": f"Search {collection.name}"},
         )
         for collection in collections
     ]
