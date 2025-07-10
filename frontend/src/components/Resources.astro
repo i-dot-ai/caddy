@@ -1,7 +1,7 @@
 ---
 import { getResources, type ResourceDetail } from '@logic/data.ts';
 
-let { collection: collectionId, page, count, token, resources } = Astro.props;
+let { collection: collectionId, page, count, token, resources, isManager } = Astro.props;
 
 if (!resources) {
   const resourcesData = await getResources(collectionId, page, count, token);
@@ -33,12 +33,14 @@ const dateOptions: Intl.DateTimeFormatOptions = {
       <span class="govuk-!-display-inline-block">{ resource.created_at ? `${new Date(resource.created_at).toLocaleDateString('en-GB', dateOptions) }, ` : '-' }</span>
       <span class="govuk-!-display-inline-block">{ resource.created_at ? new Date(resource.created_at).toLocaleTimeString() : '' }</span>
     </td>
-    <td class="govuk-table__cell">
-      <a class="govuk-body-s" href={ `resources/${resource.id}/delete` }>
-        Delete
-        <span class="govuk-visually-hidden"> { resource.filename || resource.id }</span>
-      </a>
-    </td>
+    { isManager &&
+      <td class="govuk-table__cell">
+        <a class="govuk-body-s" href={ `resources/${resource.id}/delete` }>
+          Delete
+          <span class="govuk-visually-hidden"> { resource.filename || resource.id }</span>
+        </a>
+      </td>
+    }
   </tr>
 )}
 

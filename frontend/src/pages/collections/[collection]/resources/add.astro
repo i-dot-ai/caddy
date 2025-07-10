@@ -1,6 +1,8 @@
 ---
 import Layout from '@layouts/Layout.astro';
-import { getCollection } from '@logic/data.ts';
+import { getCollections, getCollection } from '@logic/data.ts';
+
+let { collectionsData } = await getCollections(Astro.request.headers.get('x-amzn-oidc-accesstoken'));
 
 const { collection: collectionId } = Astro.params;
 
@@ -28,27 +30,40 @@ const { collection, error } = await getCollection(collectionId || '', Astro.requ
   <div class="govuk-grid-row">
     <div class="govuk-grid-column-full">
 
-      <h1 class="govuk-heading-l">Upload file(s)</h1>
+      <h1 class="govuk-heading-l">Upload</h1>
 
       <p><strong>Collection:</strong> { collection.name }</p>
 
-      <form class="govuk-!-margin-top-7" method="post" action="/api/upload/" enctype="multipart/form-data">
+      <form method="post" action="/api/upload/" enctype="multipart/form-data">
         <input type="hidden" value={ collectionId } name="collection"/>
         <div class="govuk-form-group">
-          <label class="govuk-label" for="file-upload-1">
-            Upload file(s)
-          </label>
+          <h2 class="govuk-label-wrapper govuk-!-margin-top-8">
+             <label class="govuk-label govuk-label--m" for="file-upload-1">Add file(s)</label>
+          </h2>
           <div
             class="govuk-drop-zone"
             data-module="govuk-file-upload">
             <input class="govuk-file-upload" id="file-upload-1" name="fileUpload1" type="file" required multiple>
           </div>
         </div>
-        <button class={ 'govuk-button plausible-event-name=Add+Files plausible-event-collection=' + collection.name }>Send file(s)</button>
+        <button class={ 'govuk-button plausible-event-name=Add+Files plausible-event-collection=' + collection.name }>Add file(s)</button>
 
         <upload-info input-id="file-upload-1-input" collection={ collectionId } resources-page="../resources"></upload-info>
-
       </form>
+
+      { collectionsData.is_admin &&
+        <form method="post" action="/api/add-urls/" enctype="multipart/form-data">
+          <input type="hidden" value={ collectionId } name="collection"/>
+          <div class="govuk-form-group">
+            <h2 class="govuk-label-wrapper govuk-!-margin-top-7">
+              <label class="govuk-label govuk-label--m" for="add-urls">Add URL(s)</label>
+            </h2>
+            <div id="add-urls-hint" class="govuk-hint">Add one URL per line</div>
+            <textarea class="govuk-textarea" id="add-urls" name="addUrls" rows="5" aria-describedby="add-urls-hint"></textarea>
+          </div>
+          <button class="govuk-button">Add URL(s)</button>
+        </form>
+      }
 
     </div>
   </div>
