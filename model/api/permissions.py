@@ -22,7 +22,7 @@ def get_session() -> Session:
 
 
 def is_user_super_admin(user: User):
-    return user.email in config.SUPER_ADMINS
+    return user.email in config.super_admins
 
 
 def get_collection_permissions_for_user(

@@ -18,7 +18,7 @@ class CollectionBase(BaseModel):
         description="collection name",
         pattern=r"^[\w-]+$",
         min_length=3,
-        max_length=30,
+        max_length=36,
         examples=["my-collection"],
     )
     description: str = Field(description="used by LLM to choose tool suitability")

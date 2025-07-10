@@ -397,7 +397,10 @@ def test_create_collection_same_name(client, collection_manager, example_collect
     [
         ("my collection", "String should match pattern '^[\\w-]+$'"),
         ("AB", "String should have at least 3 characters"),
-        ("my-far-too-long-collection-name", "String should have at most 30 characters"),
+        (
+            "my-far-far-far-too-long-collection-name",
+            "String should have at most 36 characters",
+        ),
     ],
 )
 def test_create_collection_invalid_name(

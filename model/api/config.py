@@ -23,6 +23,7 @@ class CaddyConfig:
         s3_prefix="app_data",
         keycloak_allowed_roles=None,
         git_sha=None,
+        super_admins=None,
     ):
         self.opensearch_kwargs = opensearch_kwargs
         self.opensearch_url_pipeline = opensearch_url_pipeline
@@ -39,6 +40,7 @@ class CaddyConfig:
         self.s3_prefix = s3_prefix
         self.resource_url_template = resource_url_template
         self.git_sha = git_sha
+        self.super_admins = super_admins or []
 
         self.os_index_name = (
             "caddy_text_chunks_test" if self.env == "TEST" else "caddy_text_chunks"

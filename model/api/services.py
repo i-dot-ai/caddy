@@ -60,11 +60,13 @@ def get_user_collections(
         collections.append(
             CollectionDto(
                 id=collection.id,
-                name=collection.id if user_is_admin else collection.name,
-                description=collection.id if user_is_admin else collection.description,
+                name=str(collection.id) if user_is_admin else collection.name,
+                description=str(collection.id)
+                if user_is_admin
+                else collection.description,
                 created_at=collection.created_at,
                 is_manager=bool(is_manager),
-                # permission=,
+                permission=permissions,
             )
         )
 
