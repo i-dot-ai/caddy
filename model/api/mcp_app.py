@@ -1,10 +1,12 @@
 import contextlib
 import contextvars
 import os
+from datetime import UTC, datetime
 from logging import getLogger
 from typing import Iterator
 
 from fastapi import HTTPException
+from i_dot_ai_utilities.metrics.cloudwatch import CloudwatchEmbeddedMetricsWriter
 from langchain_core.documents import Document
 from mcp import types
 from mcp.server.lowlevel import Server
@@ -29,6 +31,8 @@ KEYCLOAK_ALLOWED_ROLES = config.keycloak_allowed_roles
 _current_user_email: contextvars.ContextVar[str | None] = contextvars.ContextVar(
     "current_user_email", default=None
 )
+
+metric_writer: CloudwatchEmbeddedMetricsWriter = config.metric_writer()
 
 
 @contextlib.asynccontextmanager
@@ -75,7 +79,15 @@ def get_current_user() -> EmailStr:
 async def call_tool(
     name: str, arguments: dict
 ) -> list[types.TextContent | types.ImageContent | types.EmbeddedResource]:
+    call_tool_start = datetime.now(UTC)
     logger.info(f"Calling tool {name} with args {arguments}")
+    metric_writer.put_metric(
+        metric_name="Tool call",
+        value=1,
+        dimensions={
+            "Tool": name,
+        },
+    )
 
     user_email = get_current_user()
     logger.info(f"Tool called by user: {user_email}")
@@ -102,7 +114,15 @@ async def call_tool(
             arguments.get("query"),
             arguments.get("keywords", []),
         )
-
+    tool_call_end = datetime.now(UTC)
+    timer_result_ms = (call_tool_start - tool_call_end).total_seconds() * 1000
+    metric_writer.put_metric(
+        metric_name="tool_call_duration_ms",
+        value=timer_result_ms,
+        dimensions={
+            "Tool": name,
+        },
+    )
     return [
         types.TextContent(
             type="text",

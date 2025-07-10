@@ -9,7 +9,12 @@ from bs4 import BeautifulSoup
 from langchain_community.document_loaders import AsyncHtmlLoader
 from tqdm import tqdm
 
+from api.environment import config
+from api.models import utc_now
+
 logger = logging.getLogger(__name__)
+
+metric_writer = config.get_metrics_writer()
 
 
 class ScrapedPage:
@@ -136,6 +141,7 @@ class Scraper:
         try:
             docs = await loader.aload()
             for page in tqdm(docs, desc="Processing pages"):
+                processing_start_time = utc_now()
                 try:
                     current_url = page.metadata["source"]
                     soup = BeautifulSoup(page.page_content, "html.parser")
@@ -167,6 +173,21 @@ class Scraper:
                             url=current_url,
                         )
                         scraped_pages.append(scraped_page)
+                        metric_writer.put_metric(
+                            metric_name="resource_url_scraped",
+                            value=1,
+                            dimensions={
+                                "url": current_url,
+                            },
+                        )
+                        metric_writer.put_metric(
+                            metric_name="resource_url_scraped_duration_ms",
+                            value=(utc_now() - processing_start_time).total_seconds()
+                            * 1000,
+                            dimensions={
+                                "url": current_url,
+                            },
+                        )
                     else:
                         logger.warning(f"No main content found for {current_url}")
                         self.problematic_urls.add(current_url)
