@@ -121,5 +121,5 @@ class CaddyConfig:
         return CloudwatchEmbeddedMetricsWriter(
             namespace=self.app_name,
             environment=self.env,
-            logger=self.get_logger(),
+            logger=self.get_logger(__name__),
         )
