@@ -1,18 +1,16 @@
 import functools
-import logging
 import re
 import time
 from typing import List, Optional
 
 import html2text
 from bs4 import BeautifulSoup
+from i_dot_ai_utilities.logging.structured_logger import StructuredLogger
 from langchain_community.document_loaders import AsyncHtmlLoader
 from tqdm import tqdm
 
 from api.environment import config
 from api.models import utc_now
-
-logger = logging.getLogger(__name__)
 
 metric_writer = config.get_metrics_writer()
 
@@ -35,45 +33,50 @@ class ScrapedPage:
         self.url = url
 
 
-def retry(num_retries=3, delay=1, backoff=2, exceptions=(Exception,)):
-    """
-    Retry decorator
-
-    Parameters:
-    num_retries (int): Number of times to retry before giving up
-    delay (int): Initial delay between retries in seconds
-    backoff (int): Factor by which the delay should be multiplied each retry
-    exceptions (tuple): Exceptions to trigger a retry
-    """
-
-    def decorator_retry(func):
-        @functools.wraps(func)
-        def wrapper_retry(*args, **kwargs):
-            _num_retries, _delay = num_retries, delay
-            while _num_retries > 0:
-                try:
-                    return func(*args, **kwargs)
-                except exceptions as e:
-                    _num_retries -= 1
-                    if _num_retries == 0:
-                        raise
-                    time.sleep(_delay)
-                    _delay *= backoff
-                    logger.warning(
-                        f"Retrying {_num_retries} more times after exception: {e}"
-                    )
-
-        return wrapper_retry
-
-    return decorator_retry
-
-
 class Scraper:
-    def __init__(self, batch_size=100):
+    def __init__(
+        self,
+        logger: StructuredLogger,
+        batch_size=100,
+    ):
         self.batch_size = batch_size
         self.problematic_urls = set()
         self.div_classes: Optional[List] = ["main-content", "cads-main-content"]
         self.div_ids: Optional[List] = ["main-content", "cads-main-content"]
+        self.logger = logger
+
+    def retry(self, num_retries=3, delay=1, backoff=2, exceptions=(Exception,)):
+        """
+        Retry decorator
+
+        Parameters:
+        num_retries (int): Number of times to retry before giving up
+        delay (int): Initial delay between retries in seconds
+        backoff (int): Factor by which the delay should be multiplied each retry
+        exceptions (tuple): Exceptions to trigger a retry
+        """
+
+        def decorator_retry(func):
+            @functools.wraps(func)
+            def wrapper_retry(*args, **kwargs):
+                _num_retries, _delay = num_retries, delay
+                while _num_retries > 0:
+                    try:
+                        return func(*args, **kwargs)
+                    except exceptions:
+                        _num_retries -= 1
+                        if _num_retries == 0:
+                            raise
+                        time.sleep(_delay)
+                        _delay *= backoff
+                        self.logger.exception(
+                            "Retrying {num_retries} more times after exception",
+                            num_retries=_num_retries,
+                        )
+
+            return wrapper_retry
+
+        return decorator_retry
 
     def remove_markdown_index_links(self, markdown_text: str) -> str:
         """Clean markdown text by removing index links.
@@ -116,13 +119,18 @@ class Scraper:
         pages = []
 
         for ind, url_batch in enumerate(url_batches):
-            logger.info(
-                f"Processing batch {ind + 1}/{len(url_batches)} ({len(url_batch)} URLs)"
+            self.logger.info(
+                "Processing batch {current_batch}/{total_batches} ({batch_length} URLs)",
+                current_batch=(ind + 1),
+                total_batches=len(url_batches),
+                batch_length=len(url_batch),
             )
             results = await self.scrape_url_batch(url_batch)
             pages.extend(results)
-            logger.info(
-                f"Batch {ind + 1} completed. {len(results)} pages scraped successfully."
+            self.logger.info(
+                "Batch {current_batch} completed. {completed_count} pages scraped successfully.",
+                current_batch=(ind + 1),
+                completed_count=len(results),
             )
         self.log_problematic_urls()
         return pages
@@ -183,20 +191,25 @@ class Scraper:
                             * 1000,
                         )
                     else:
-                        logger.warning(f"No main content found for {current_url}")
+                        self.logger.warning(
+                            "No main content found for {current_url}",
+                            current_url=current_url,
+                        )
                         self.problematic_urls.add(current_url)
 
-                except Exception as e:
+                except Exception:
                     current_url = (
                         page.metadata.get("source", "unknown")
                         if hasattr(page, "metadata")
                         else "unknown"
                     )
-                    logger.error(f"Error processing page {current_url}: {str(e)}")
+                    self.logger.exception(
+                        "Error processing page {current_url}", current_url=current_url
+                    )
                     self.problematic_urls.add(current_url)
 
-        except Exception as e:
-            logger.error(f"Error in batch scraping: {str(e)}")
+        except Exception:
+            self.logger.exception("Error in batch scraping")
             # Add all URLs in batch to problematic_urls if batch fails
             self.problematic_urls.update(url_list)
 
@@ -225,16 +238,19 @@ class Scraper:
 
         # If no specific content div found, return the whole soup
         # but log a warning
-        logger.warning("No specific main content div found, using entire page content")
+        self.logger.warning(
+            "No specific main content div found, using entire page content"
+        )
         return soup
 
     def log_problematic_urls(self):
         """Log problematic URLs encountered during scraping."""
         if self.problematic_urls:
-            logger.warning(
-                f"The following {len(self.problematic_urls)} URLs were problematic and could not be scraped:"
+            self.logger.warning(
+                "The following {problematic_url_count} URLs were problematic and could not be scraped:",
+                problematic_url_count=len(self.problematic_urls),
             )
             for url in sorted(self.problematic_urls):
-                logger.warning(f"- {url}")
+                self.logger.warning("- {url}", url=url)
         else:
-            logger.info("No problematic URLs encountered during scraping.")
+            self.logger.info("No problematic URLs encountered during scraping.")

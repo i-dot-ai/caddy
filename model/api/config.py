@@ -95,10 +95,10 @@ class CaddyConfig:
     def get_database(self):
         return create_engine(self.sqlalchemy_url)
 
-    def get_logger(self) -> StructuredLogger:
+    def get_logger(self, name: str) -> StructuredLogger:
         logger_environment = (
             ExecutionEnvironmentType.LOCAL
-            if self.env.upper() == ["LOCAL", "TEST"]
+            if self.env.upper() in ["LOCAL", "TEST"]
             else ExecutionEnvironmentType.FARGATE
         )
         logger_format = (
@@ -112,6 +112,7 @@ class CaddyConfig:
             options={
                 "execution_environment": logger_environment,
                 "log_format": logger_format,
+                "logger_name": name,
             },
         )
         return logger
