@@ -455,7 +455,7 @@ async def create_resource_from_url_list(
             )
 
     scraper = Scraper(logger)
-    files = await scraper.download_urls(urls, logger)
+    files = await scraper.download_urls(urls)
     try:
         resources = []
         for file in files:
