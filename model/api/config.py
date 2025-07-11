@@ -1,3 +1,7 @@
+from i_dot_ai_utilities.logging.structured_logger import StructuredLogger
+from i_dot_ai_utilities.logging.types.enrichment_types import ExecutionEnvironmentType
+from i_dot_ai_utilities.logging.types.log_output_format import LogOutputFormat
+from i_dot_ai_utilities.metrics.cloudwatch import CloudwatchEmbeddedMetricsWriter
 from langchain_community.vectorstores import OpenSearchVectorSearch
 from opensearchpy import NotFoundError, OpenSearch
 from sqlmodel import create_engine
@@ -90,3 +94,31 @@ class CaddyConfig:
 
     def get_database(self):
         return create_engine(self.sqlalchemy_url)
+
+    def get_logger(self) -> StructuredLogger:
+        logger_environment = (
+            ExecutionEnvironmentType.LOCAL
+            if self.env.upper() == ["LOCAL", "TEST"]
+            else ExecutionEnvironmentType.FARGATE
+        )
+        logger_format = (
+            LogOutputFormat.TEXT
+            if self.env.upper() in ["LOCAL", "TEST"]
+            else LogOutputFormat.JSON
+        )
+
+        logger = StructuredLogger(
+            level="info",
+            options={
+                "execution_environment": logger_environment,
+                "log_format": logger_format,
+            },
+        )
+        return logger
+
+    def get_metrics_writer(self) -> CloudwatchEmbeddedMetricsWriter:
+        return CloudwatchEmbeddedMetricsWriter(
+            namespace=self.app_name,
+            environment=self.env,
+            logger=self.get_logger(),
+        )
