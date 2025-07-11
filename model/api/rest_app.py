@@ -12,7 +12,7 @@ from sqlalchemy import func
 from sqlmodel import Session, select
 
 from api.auth import get_current_user
-from api.decorators import with_logger
+from api.depends import get_logger
 from api.environment import config, get_session
 from api.models import (
     Collection,
@@ -152,12 +152,11 @@ def __process_resource(resource: Resource, session: Session):
 @router.get(
     "/collections/{collection_id}/resources", status_code=200, tags=["collections"]
 )
-@with_logger(__name__)
 def get_collection_resources(
     collection_id: UUID,
-    logger: StructuredLogger,
     session: Annotated[Session, Depends(get_session)],
     user: Annotated[User, Depends(get_current_user)],
+    logger: StructuredLogger = Depends(get_logger(__name__)),
     page: int = Query(1, ge=1),
     page_size: int = Query(10, ge=1),
 ) -> CollectionResources:
@@ -200,12 +199,11 @@ def get_collection_resources(
 
 
 @router.post("/collections", status_code=201, tags=["collections"])
-@with_logger(__name__)
 def create_collection(
     new_collection: CollectionBase,
-    logger: StructuredLogger,
     user: Annotated[User, Depends(get_current_user)],
     session: Annotated[Session, Depends(get_session)],
+    logger: StructuredLogger = Depends(get_logger(__name__)),
 ) -> Collection:
     """create a collection"""
     if not user.is_admin:
@@ -250,13 +248,12 @@ def create_collection(
 
 
 @router.put("/collections/{collection_id}", status_code=200, tags=["collections"])
-@with_logger(__name__)
 def update_collection(
     collection_id: UUID,
     collection_details: CollectionBase,
-    logger: StructuredLogger,
     session: Annotated[Session, Depends(get_session)],
     user: Annotated[User, Depends(get_current_user)],
+    logger: StructuredLogger = Depends(get_logger(__name__)),
 ) -> CollectionDto:
     """update a collection"""
     if collection := session.get(Collection, collection_id):
@@ -296,12 +293,11 @@ def update_collection(
 
 
 @router.delete("/collections/{collection_id}", status_code=200, tags=["collections"])
-@with_logger(__name__)
 def delete_collection(
     collection_id: UUID,
-    logger: StructuredLogger,
     user: Annotated[User, Depends(get_current_user)],
     session: Annotated[Session, Depends(get_session)],
+    logger: StructuredLogger = Depends(get_logger(__name__)),
 ) -> UUID:
     """delete a collection"""
     __check_user_is_member_of_collection(
@@ -334,18 +330,18 @@ def delete_collection(
 @router.post(
     "/collections/{collection_id}/resources", status_code=201, tags=["resources"]
 )
-@with_logger(__name__)
 def create_resource(
     collection_id: UUID,
-    logger: StructuredLogger,
     file: Annotated[UploadFile, File(...)],
     session: Annotated[Session, Depends(get_session)],
     user: Annotated[User, Depends(get_current_user)],
+    logger: StructuredLogger = Depends(get_logger(__name__)),
 ) -> Resource:
     """
     Endpoint to upload a file to a specified collection.
 
     Args:
+        logger: The logger to use
         session: DB session
         user: The logged-in user from auth JWT or None
         collection_id (str): The collection to upload the file to.
@@ -426,18 +422,18 @@ def create_resource(
 @router.post(
     "/collections/{collection_id}/resources/urls", status_code=201, tags=["resources"]
 )
-@with_logger(__name__)
 async def create_resource_from_url_list(
     collection_id: UUID,
     url_list: UrlListBase,
-    logger: StructuredLogger,
     session: Annotated[Session, Depends(get_session)],
     user: Annotated[User, Depends(get_current_user)],
+    logger: StructuredLogger = Depends(get_logger(__name__)),
 ) -> list[Resource]:
     """
     Endpoint to upload a file to a specified collection.
 
     Args:
+        logger: The logger to use
         session: DB session
         user: The logged-in user from auth JWT or None
         collection_id (str): The collection to upload the file to.
@@ -523,13 +519,12 @@ async def create_resource_from_url_list(
     status_code=200,
     tags=["resources"],
 )
-@with_logger(__name__)
 def get_resource_documents(
     collection_id: UUID,
     resource_id: UUID,
-    logger: StructuredLogger,
     session: Annotated[Session, Depends(get_session)],
     user: Annotated[User, Depends(get_current_user)],
+    logger: StructuredLogger = Depends(get_logger(__name__)),
     page: int = Query(1, ge=1),
     page_size: int = Query(10, ge=1),
 ) -> Chunks:
@@ -595,13 +590,12 @@ def get_resource_documents(
     status_code=200,
     tags=["resources"],
 )
-@with_logger(__name__)
 def delete_resource(
     collection_id: UUID,
     resource_id: UUID,
-    logger: StructuredLogger,
     session: Annotated[Session, Depends(get_session)],
     user: Annotated[User, Depends(get_current_user)],
+    logger: StructuredLogger = Depends(get_logger(__name__)),
 ) -> UUID:
     """delete a resource"""
     __check_user_is_member_of_collection(
@@ -628,13 +622,12 @@ def delete_resource(
     status_code=200,
     tags=["resources"],
 )
-@with_logger(__name__)
 def get_resource(
     collection_id: UUID,
     resource_id: UUID,
-    logger: StructuredLogger,
     session: Annotated[Session, Depends(get_session)],
     user: Annotated[User, Depends(get_current_user)],
+    logger: StructuredLogger = Depends(get_logger(__name__)),
 ) -> Resource:
     """get a resource"""
     __check_user_is_member_of_collection(
@@ -649,16 +642,16 @@ def get_resource(
 
 
 @router.get("/collections", status_code=200, tags=["collections"])
-@with_logger(__name__)
 def get_collections(
     session: Annotated[Session, Depends(get_session)],
     user: Annotated[User, Depends(get_current_user)],
-    logger: StructuredLogger,
+    logger: StructuredLogger = Depends(get_logger(__name__)),
     page: int = Query(1, ge=1),
     page_size: int = Query(10, ge=1),
 ) -> CollectionsDto:
     """Get a list of all available collections.
     Args:
+        logger: The logger to use
         session: DB session
         user: Logged-in user or none from JWT
         page: Page number
@@ -730,12 +723,11 @@ def get_collections(
 
 
 @router.get("/collections/{collection_id}/users", status_code=200, tags=["user-roles"])
-@with_logger(__name__)
 def get_collections_user_roles(
     collection_id: UUID,
     session: Annotated[Session, Depends(get_session)],
     user: Annotated[User, Depends(get_current_user)],
-    logger: StructuredLogger,
+    logger: StructuredLogger = Depends(get_logger(__name__)),
     page: int = Query(1, ge=1),
     page_size: int = Query(10, ge=1),
 ) -> UserRoleList:
@@ -772,13 +764,12 @@ def get_collections_user_roles(
 
 
 @router.post("/collections/{collection_id}/users", status_code=201, tags=["user-roles"])
-@with_logger(__name__)
 def create_collections_user_role(
     collection_id: UUID,
     user_role: UserRole,
     session: Annotated[Session, Depends(get_session)],
     user: Annotated[User, Depends(get_current_user)],
-    logger: StructuredLogger,
+    logger: StructuredLogger = Depends(get_logger(__name__)),
 ) -> UserCollection:
     __check_user_is_member_of_collection(
         user, collection_id, session, struct_logger=logger
@@ -826,13 +817,12 @@ def create_collections_user_role(
     status_code=200,
     tags=["user-roles"],
 )
-@with_logger(__name__)
 def delete_collections_user_role(
     collection_id: UUID,
     user_id: UUID,
     session: Annotated[Session, Depends(get_session)],
     user: Annotated[User, Depends(get_current_user)],
-    logger: StructuredLogger,
+    logger: StructuredLogger = Depends(get_logger(__name__)),
 ) -> UUID:
     __check_user_is_member_of_collection(
         user, collection_id, session, struct_logger=logger

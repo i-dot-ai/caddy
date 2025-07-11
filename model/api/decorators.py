@@ -1,58 +1,46 @@
 import functools
-from inspect import signature
-from typing import Callable, Optional
-
-from fastapi.requests import Request
-from i_dot_ai_utilities.logging.types.enrichment_types import ContextEnrichmentType
-
-from api.environment import config
-from api.models import User
+import time
 
 
-def with_logger(logger_name: Optional[str] = None):
+def retry(
+    logger_attr="logger",
+    num_retries=3,
+    delay=1,
+    backoff=2,
+    exceptions=(Exception,),
+):
     """
-    Decorator that injects a logger into sync route functions and refreshes context before handing back.
+    Retry decorator
 
-    Args:
-        logger_name: Optional name for the logger. If not provided, uses the function name.
-
-    Usage:
-        @router.get("/example")
-        @with_logger("my_route")
-        def my_route(logger, other_params...):
-            logger.info("Route called")
-            return {"message": "success"}
+    Parameters:
+    logger_attr (str): Name of the logger attribute on the instance
+    num_retries (int): Number of times to retry before giving up
+    delay (int): Initial delay between retries in seconds
+    backoff (int): Factor by which the delay should be multiplied each retry
+    exceptions (tuple): Exceptions to trigger a retry
     """
 
-    def decorator(func: Callable) -> Callable:
+    def decorator_retry(func):
         @functools.wraps(func)
-        def wrapper(*args, **kwargs):
-            log_name = logger_name or func.__name__
-            logger = config.get_logger(log_name)
-            request: Request | None = kwargs.get("request", None)
-            user: User | None = kwargs.get("user", None)
-            user_id = user.id if user else "Unknown"
-            user_email = user.email if user else "Unknown"
-            logger.refresh_context(
-                context_enrichers=[
-                    {
-                        "type": ContextEnrichmentType.FASTAPI,
-                        "object": request,
-                        "user_id": user_id,
-                        "user_email": user_email,
-                    }
-                ]
-            )
-            logger.info(
-                "Request to {url_path} by user {user}",
-                url_path=request.url.path,
-                user=user_id,
-            )
-            sig = signature(func)
-            if "logger" in sig.parameters:
-                kwargs["logger"] = logger
-            return func(*args, **kwargs)
+        def wrapper_retry(*args, **kwargs):
+            _num_retries, _delay = num_retries, delay
+            instance = args[0] if args else None
+            struct_logger = getattr(instance, logger_attr, None) if instance else None
+            while _num_retries > 0:
+                try:
+                    return func(*args, **kwargs)
+                except exceptions:
+                    _num_retries -= 1
+                    if _num_retries == 0:
+                        raise
+                    time.sleep(_delay)
+                    _delay *= backoff
+                    if struct_logger:
+                        struct_logger.exception(
+                            "Retrying {num_retries} more times after exception",
+                            num_retries=_num_retries,
+                        )
 
-        return wrapper
+        return wrapper_retry
 
-    return decorator
+    return decorator_retry
