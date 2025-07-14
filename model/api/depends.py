@@ -19,11 +19,11 @@ def get_logger(logger_name: str = None):
                 {
                     "type": ContextEnrichmentType.FASTAPI,
                     "object": request,
-                    "user_id": user_id,
-                    "user_email": user_email,
                 }
             ]
         )
+        logger.set_context_field("user_email", user_email)
+        logger.set_context_field("user_id", user_id)
         logger.info(
             "Request to {url_path} by user {user}",
             url_path=request.url.path,

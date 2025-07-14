@@ -217,6 +217,8 @@ class Scraper:
                 problematic_url_count=len(self.problematic_urls),
             )
             for url in sorted(self.problematic_urls):
-                self.logger.warning("- {url}", url=url)
+                self.logger.warning(
+                    "Problematic URL during scrape processing - {url}", url=url
+                )
         else:
             self.logger.info("No problematic URLs encountered during scraping.")
