@@ -31,7 +31,6 @@ from api.types import (
     CollectionDto,
     CollectionsDto,
     Role,
-    UrlListBase,
     UserRole,
 )
 
@@ -351,9 +350,9 @@ def create_resource(
 @router.post(
     "/collections/{collection_id}/resources/urls", status_code=201, tags=["resources"]
 )
-async def create_resource_from_url_list(
+async def create_resources_from_url_list(
     collection_id: UUID,
-    url_list: UrlListBase,
+    urls: list[str],
     session: Annotated[Session, Depends(get_session)],
     user: Annotated[User, Depends(get_current_user)],
 ) -> list[Resource]:
@@ -364,19 +363,19 @@ async def create_resource_from_url_list(
         session: DB session
         user: The logged-in user from auth JWT or None
         collection_id (str): The collection to upload the file to.
-        url_list (UrlListBase): The urls being uploaded.
+        urls (list[str]): The urls being uploaded.
 
     Returns:
         Resources
     """
     __check_user_is_member_of_collection(user, collection_id, session)
     process_time_start = utc_now()
-    urls = url_list.urls
+    # urls = url_list.urls
     for url in urls:
         parsed = urlparse(url)
         if not parsed.scheme or not parsed.netloc:
             raise HTTPException(
-                status_code=422, detail="Unsupported URLs found in URL list"
+                status_code=422, detail=f"Unsupported URL ({url}) found in URL list"
             )
 
     scraper = Scraper()

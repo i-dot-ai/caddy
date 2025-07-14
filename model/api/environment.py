@@ -3,10 +3,10 @@ import os
 from dotenv import load_dotenv
 from sqlmodel import Session
 
-if os.environ.get("ENVIRONMENT", "local") == "local":
+if os.environ.get("ENVIRONMENT", "local").upper() == "LOCAL":
     load_dotenv()
     from api.environments.local import config
-elif os.environ["ENVIRONMENT"] == "test":
+elif os.environ["ENVIRONMENT"].upper() == "TEST":
     load_dotenv("../.env.test", override=True)
     from api.environments.test import config
 elif os.environ["ENVIRONMENT"].upper() in ("DEV", "PREPROD", "PROD"):
