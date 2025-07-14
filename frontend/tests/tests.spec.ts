@@ -90,7 +90,7 @@ test('Manage resources', async({ page }) => {
   await expect(page.locator('h1')).toContainText('Resources');
   await expect(page.locator(`p:has-text("${collectionName}")`)).toBeVisible();
   const resourceCount = await page.locator('tbody tr').count();
-  await page.locator('a:has-text("Add file")').click();
+  await page.locator('a:has-text("Upload file")').click();
 
   // Upload page
   await expect(page.locator('h1')).toContainText('Upload');
