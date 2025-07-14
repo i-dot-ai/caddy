@@ -182,13 +182,14 @@ def test_delete_resource(
     collection_manager,
     example_document,
 ):
+    document_id = example_document.resource_id
     response = client.delete(
         f"/collections/{collection_manager.collection_id}/resources/{example_document.resource_id}",
         headers={"Authorization": collection_manager.user.token},
     )
 
     assert response.status_code == 200
-    assert not response.json()
+    assert response.json() == str(document_id)
 
 
 def test_delete_resource_404(client, collection_manager, admin_user):

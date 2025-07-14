@@ -611,7 +611,7 @@ def delete_resource(
         session.delete(resource)
         session.commit()
         logger.info("Resource {resource_id} deleted", resource_id=resource_id)
-        return resource.id
+        return resource_id
     else:
         logger.info("Resource {resource_id} not found", resource_id=resource_id)
         raise HTTPException(status_code=404)
@@ -823,7 +823,7 @@ def delete_collections_user_role(
     session: Annotated[Session, Depends(get_session)],
     user: Annotated[User, Depends(get_current_user)],
     logger: StructuredLogger = Depends(get_logger(__name__)),
-) -> UUID:
+) -> bool:
     __check_user_is_member_of_collection(
         user, collection_id, session, struct_logger=logger
     )
@@ -838,7 +838,7 @@ def delete_collections_user_role(
             collection_id=collection_id,
             user=user.email,
         )
-        return user_role.id
+        return True
     logger.info(
         "Failed to delete user role for user {user} from collection {collection_id}",
         user=user.email,
