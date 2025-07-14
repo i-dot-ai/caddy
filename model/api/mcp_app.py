@@ -6,6 +6,7 @@ from typing import Iterator
 
 from fastapi import HTTPException
 from i_dot_ai_utilities.logging.structured_logger import StructuredLogger
+from i_dot_ai_utilities.logging.types.enrichment_types import ContextEnrichmentType
 from langchain_core.documents import Document
 from mcp import types
 from mcp.server.lowlevel import Server
@@ -198,6 +199,7 @@ async def handle_streamable_http(scope: Scope, receive: Receive, send: Send) -> 
     logger.refresh_context(
         context_enrichers=[
             {
+                "type": ContextEnrichmentType.FASTAPI,
                 "object": request,
             }
         ]
