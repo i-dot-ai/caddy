@@ -606,13 +606,16 @@ def test_healthcheck(client):
 
 
 def test_upload_urls_to_upload_endpoint_422(client, example_collection, admin_user):
+    fake_url = "fake_url"
     response = client.post(
         f"/collections/{example_collection.id}/resources/urls",
-        json={"urls": ["fake_url"]},
+        json=[fake_url],
         headers={"Authorization": admin_user.token},
     )
     assert response.status_code == 422
-    assert response.json() == {"detail": "Unsupported URLs found in URL list"}
+    assert response.json() == {
+        "detail": f"Unsupported URL ({fake_url}) found in URL list"
+    }
 
 
 def test_upload_urls_to_upload_endpoint_401(client, example_collection, admin_user):
@@ -656,11 +659,9 @@ def test_upload_urls_to_upload_endpoint(
 ):
     response = client.post(
         f"/collections/{example_collection.id}/resources/urls",
-        json={
-            "urls": [
-                url,
-            ]
-        },
+        json=[
+            url,
+        ],
         headers={"Authorization": admin_user.token},
     )
     assert response.status_code == 201
