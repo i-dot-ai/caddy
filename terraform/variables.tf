@@ -27,6 +27,12 @@ variable "deployed_via" {
   description = "Mechanism for how the Infra was deployed."
 }
 
+variable "developer_ips" {
+  type        = list(string)
+  default     = []
+  description = "The developer IPs allowed RDS access"
+}
+
 variable "domain_name" {
   type        = string
   description = "The base domain name for the project"
