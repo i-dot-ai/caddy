@@ -1,6 +1,6 @@
 ---
 import Layout from '@layouts/Layout.astro';
-import { getCollections, getCollection, getUsers } from '@logic/data.ts';
+import { getCollections, getCollection, getUsers, CollectionPermission } from '@logic/data.ts';
 
 let { collectionsData } = await getCollections(Astro.request.headers.get('x-amzn-oidc-accesstoken'));
 
@@ -30,7 +30,7 @@ const users = await getUsers(collectionId || '', Astro.request.headers.get('x-am
 
       <p><strong>Collection:</strong> { collection.name }</p>
 
-      { (collection.is_manager || collectionsData.is_admin) &&
+      { (collection.permissions.includes(CollectionPermission.MANAGE_USERS) || collectionsData.is_admin) &&
         <a class="govuk-button" href="users/add">Add user</a>
       }
 
@@ -41,7 +41,7 @@ const users = await getUsers(collectionId || '', Astro.request.headers.get('x-am
             <tr class="govuk-table__row">
               <th scope="col" class="govuk-table__header">Email address</th>
               <th scope="col" class="govuk-table__header">Role</th>
-              { (collection.is_manager || collectionsData.is_admin) &&
+              { (collection.permissions.includes(CollectionPermission.MANAGE_USERS) || collectionsData.is_admin) &&
                 <th scope="col" class="govuk-table__header">Actions</th>
               }
             </tr>
@@ -51,7 +51,7 @@ const users = await getUsers(collectionId || '', Astro.request.headers.get('x-am
               <tr class="govuk-table__row">
                 <td class="govuk-table__cell">{ user.user_email }</td>
                 <td class="govuk-table__cell">{ user.role }</td>
-                { (collection.is_manager || collectionsData.is_admin) &&
+                { (collection.permissions.includes(CollectionPermission.MANAGE_USERS) || collectionsData.is_admin) &&
                   <td class="govuk-table__cell">
                     <span class="govuk-!-display-flex" style="gap: 10px 20px;">
                       <a class="govuk-body-s govuk-!-margin-bottom-0" href={ `users/${user.user_id}/edit` }>
