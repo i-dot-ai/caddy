@@ -63,7 +63,7 @@ def test_upload_txt_to_file_upload_endpoint(
 @pytest.mark.parametrize(
     ("file_data", "expected_status"),
     [
-        (("test.pdf", b"\x01\x02\x03\xff"), 201),
+        (("test.pdf", b"\x01\x02\x03\xff"), 422),
     ],
 )
 def test_upload_txt_to_file_upload_endpoint_invalid_file(
@@ -84,12 +84,7 @@ def test_upload_txt_to_file_upload_endpoint_invalid_file(
     )
 
     assert response.status_code == expected_status
-    assert (
-        response.json()["process_error"]
-        == "MarkItDownException: Could not convert stream to Markdown. No converter attempted a conversion, suggesting that the filetype is simply not supported."
-    )
-
-    delete_resource(database_transaction, response.json()["id"])
+    assert response.json()["detail"] == "An issue occurred processing this file"
 
 
 def test_upload_pdf_to_file_upload_endpoint(
