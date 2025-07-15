@@ -43,7 +43,7 @@ const makeRequest = async(endPoint: string, keycloakToken: string | null, option
   return { json, error };
 };
 
-enum CollectionPermission {
+export enum CollectionPermission {
   VIEW = 'VIEW',
   EDIT = 'EDIT',
   DELETE = 'DELETE',
