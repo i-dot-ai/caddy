@@ -36,7 +36,8 @@ const { collection, error } = await getCollection(collectionId || '', Astro.requ
       </div>
 
       <form method="post" action="/api/delete-collection/" enctype="multipart/form-data">
-        <input type="hidden" value={ collectionId } name="collection"/>
+        <input type="hidden" value={ collectionId } name="collectionId"/>
+        <input type="hidden" value={ collection.name } name="collectionName"/>
         <div class="govuk-button-group">
           <button class={ 'govuk-button plausible-event-name=Delete+Collection plausible-event-collection=' + collection.name }>Confirm delete</button>
           <a class="govuk-button govuk-button--secondary" href="/">Cancel</a>

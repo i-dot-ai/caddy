@@ -15,6 +15,8 @@ export async function POST({ request, redirect }: EndpointParams) {
 
   await addUrls(collectionId, urls, request.headers.get('x-amzn-oidc-accesstoken'));
 
-  return redirect(`/collections/${collectionId}/resources`, 303);
+  const notification = `<strong>${urls.length}</strong> URL${urls.length === 1 ? '' : 's'} added to collection`;
+
+  return redirect(`/collections/${collectionId}/resources?notification=${encodeURI(notification)}`, 303);
 
 }

@@ -40,6 +40,7 @@ const userData = await (async () => {
       <form method="post" action="/api/remove-user/" enctype="multipart/form-data">
         <input type="hidden" value={ collectionId } name="collection"/>
         <input type="hidden" value={ userData?.user_id } name="user"/>
+        <input type="hidden" value={ userData?.user_email } name="emailAddress"/>
         <div class="govuk-button-group">
           <button class={ 'govuk-button plausible-event-name=Remove+User plausible-event-collection=' + collection.name }>Confirm remove</button>
           <a class="govuk-button govuk-button--secondary" href="../../users">Cancel</a>

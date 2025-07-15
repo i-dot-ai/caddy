@@ -7,6 +7,7 @@ import LitWrapper from '@components/lit-wrapper.astro';
 const { title, error } = Astro.props;
 const version = process.env.GIT_SHA;
 const generator = `caddy-${ version }`;
+const notification = Astro.url.searchParams.get('notification');
 ---
 
 <!doctype html>
@@ -42,6 +43,12 @@ const generator = `caddy-${ version }`;
 					</div>
 				}
 
+				{ notification &&
+					<div class="govuk-panel govuk-panel--confirmation govuk-!-margin-bottom-6">
+						<div class="govuk-panel__body" set:html={ notification }></div>
+					</div>
+				}
+
 				<slot />
 			</main>
 		</div>
@@ -55,6 +62,13 @@ const generator = `caddy-${ version }`;
 		<style is:global>
 			body:has(.iai-footer) .govuk-main-wrapper {
 				min-height: calc(100vh - 235px);
+			}
+
+			.govuk-panel--confirmation {
+				background-color: var(--iai-pink);
+			}
+			.govuk-panel__body {
+				text-wrap: balance;
 			}
 		</style>
 

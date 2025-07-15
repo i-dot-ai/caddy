@@ -33,7 +33,8 @@ const resource = await getResourceDetails(collectionId || '', resourceId || '', 
 
       <form method="post" action="/api/delete-resource/" enctype="multipart/form-data">
         <input type="hidden" value={ collectionId } name="collection"/>
-        <input type="hidden" value={ resourceId } name="resource"/>
+        <input type="hidden" value={ resourceId } name="resourceId"/>
+        <input type="hidden" value={ resource.filename || resource.id } name="resourceName"/>
         <div class="govuk-button-group">
           <button class={ 'govuk-button plausible-event-name=Delete-Resource plausible-event-collection=' + collectionId + ' plausible-event-resource=' + resource.filename }>Confirm delete</button>
           <a class="govuk-button govuk-button--secondary" href="../../resources">Cancel</a>
