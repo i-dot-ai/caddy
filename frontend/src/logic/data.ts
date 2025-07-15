@@ -56,7 +56,6 @@ interface Collection {
   id: string,
   name: string,
   description: string,
-  is_manager: boolean,
   created_at: Date,
   permissions: CollectionPermission[],
 }
