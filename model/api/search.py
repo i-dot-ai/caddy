@@ -1,9 +1,18 @@
+from functools import partial
 from uuid import UUID
 
 from langchain_community.vectorstores.opensearch_vector_search import HYBRID_SEARCH
 from langchain_core.documents import Document
 
 from api.environment import config
+
+
+def build_document(document: Document, collection_id):
+    url = config.resource_url_template.format(
+        collection_id=collection_id, resource_id=document.metadata["resource_id"]
+    )
+    document.metadata["url"] = url
+    return document
 
 
 async def search_collection(
@@ -38,11 +47,6 @@ async def search_collection(
         post_filter=pre_filter,
     )
 
-    def build_document(document: Document):
-        url = config.resource_url_template.format(
-            collection_id=collection_id, resource_id=document.metadata["resource_id"]
-        )
-        document.metadata["url"] = url
-        return document
+    build_document_for_collection = partial(build_document, collection_id=collection_id)
 
-    return list(map(build_document, results))
+    return list(map(build_document_for_collection, results))
