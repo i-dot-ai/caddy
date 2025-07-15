@@ -45,6 +45,7 @@ test('Manage collections', async({ page }) => {
 
   // Collections page (2)
   await expect(page.locator('h2').last()).toContainText('Collections');
+  await expect(page.locator('.govuk-panel__body')).toContainText(`Collection ${collectionName} created`);
   await expect(page.locator(`span:has-text("${collectionName}")`).first()).toBeVisible();
   let newCollectionIndex = await getRowIndex(collectionName, page);
   await page.locator(`tbody tr:nth-child(${newCollectionIndex}) a:has-text("Edit")`).click();
@@ -60,6 +61,7 @@ test('Manage collections', async({ page }) => {
 
   // Collections page (3)
   await expect(page.locator('h2').last()).toContainText('Collections');
+  await expect(page.locator('.govuk-panel__body')).toContainText(`Collection ${collectionName} updated`);
   await expect(page.locator(`span:has-text("${collectionName}")`).first()).toBeVisible();
   await expect(page.locator(`span:has-text("${testDescription}")`)).toBeVisible();
   newCollectionIndex = await getRowIndex(collectionName, page);
@@ -73,6 +75,7 @@ test('Manage collections', async({ page }) => {
 
   // Collections page (4)
   await expect(page.locator('h2').last()).toContainText('Collections');
+  await expect(page.locator('.govuk-panel__body')).toContainText(`Collection ${collectionName} deleted`);
   expect(await page.locator(`span:has-text("${collectionName}")`).count()).toEqual(0);
 
 });
@@ -106,6 +109,7 @@ test('Manage resources', async({ page }) => {
 
   // Resources page (2)
   await expect(page.locator('h1')).toContainText('Resources');
+  await expect(page.locator('.govuk-panel__body')).toContainText('File README.md uploaded');
   await testAccessibility(page);
   expect(await page.locator('tbody tr').count()).toEqual(resourceCount + 1);
   const rowIndex = await getRowIndex('README.md', page);
@@ -118,6 +122,7 @@ test('Manage resources', async({ page }) => {
 
   // Resources page (3)
   await expect(page.locator('h1')).toContainText('Resources');
+  await expect(page.locator('.govuk-panel__body')).toContainText('Resource README.md deleted');
   expect(await page.locator('tbody tr').count()).toEqual(resourceCount);
   const resourceLink = page.locator('td a').first();
   const resourceName = await resourceLink.innerText();
@@ -156,6 +161,7 @@ test('Manage users', async({ page }) => {
 
   // Users page (2)
   await expect(page.locator('h1')).toContainText('Users');
+  await expect(page.locator('.govuk-panel__body')).toContainText(`User ${emailAddress} added to collection`);
   const userCount2 = await page.locator('tbody tr').count();
   expect(userCount2).toEqual(userCount1 + 1);
   await expect(page.locator(`td:has-text("${emailAddress}")`).first()).toBeVisible();
@@ -171,6 +177,7 @@ test('Manage users', async({ page }) => {
 
   // Users page (3)
   await expect(page.locator('h1')).toContainText('Users');
+  await expect(page.locator('.govuk-panel__body')).toContainText(`User ${emailAddress} updated`);
   index = await getRowIndex(emailAddress, page);
   expect(await page.locator(`tbody tr:nth-child(${index}) td:nth-child(2)`).innerText()).toEqual('manager');
   await page.locator('a:has-text("Remove")').last().click();
@@ -182,6 +189,7 @@ test('Manage users', async({ page }) => {
 
   // Users page (4)
   await expect(page.locator('h1')).toContainText('Users');
+  await expect(page.locator('.govuk-panel__body')).toContainText(`User ${emailAddress} removed from collection`);
   const userCount3 = await page.locator('tbody tr').count();
   expect(userCount3).toEqual(userCount1);
 
