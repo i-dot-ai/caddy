@@ -437,7 +437,7 @@ async def create_resources_from_url_list(
         return resources
     except Exception as e:
         logger.error(f"Error uploading urls: {str(e)}")
-        raise HTTPException(status_code=500, detail="Failed to upload resources")
+        raise HTTPException(status_code=422, detail="Failed to upload resources")
 
 
 @router.get(
