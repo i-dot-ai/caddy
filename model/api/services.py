@@ -65,8 +65,7 @@ def get_user_collections(
                 if user_is_admin
                 else collection.description,
                 created_at=collection.created_at,
-                is_manager=bool(is_manager),
-                permission=permissions,
+                permissions=permissions,
             )
         )
 

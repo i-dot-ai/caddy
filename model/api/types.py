@@ -67,7 +67,7 @@ class CollectionDto(CollectionBase):
     is_manager: bool = Field(
         description="is manager of this collection or not", default=False
     )
-    permission: list[CollectionPermissionEnum] = Field(
+    permissions: list[CollectionPermissionEnum] = Field(
         description="Collection permission enum(s)", default_factory=list
     )
 
