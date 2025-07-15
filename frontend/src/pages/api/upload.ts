@@ -14,6 +14,8 @@ export async function POST({ request, redirect }: EndpointParams) {
     await uploadFile(collectionId, formData, request.headers.get('x-amzn-oidc-accesstoken'));
   }
 
-  return redirect(`/collections/${collectionId}/resources`, 303);
+  const notification = files.length === 1 ? `File <strong>${files[0].name}</strong> uploaded` : `<strong>${files.length}</strong> files uploaded`;
+
+  return redirect(`/collections/${collectionId}/resources?notification=${encodeURI(notification)}`, 303);
 
 }

@@ -8,8 +8,9 @@ const UploadInfo = class extends HTMLElement {
     this.form?.addEventListener('submit', async(evt) => {
       evt.preventDefault();
       this.form?.classList.add('form-submitted');
-      await this.#uploadFiles();
-      window.location.href = this.getAttribute('resources-page') || window.location.href;
+      const files = await this.#uploadFiles();
+      const notification = files.length === 1 ? `File <strong>${files[0].name}</strong> uploaded` : `<strong>${files.length}</strong> files uploaded`;
+      window.location.href = `${this.getAttribute('resources-page') || window.location.href}?notification=${encodeURI(notification)}`;
     });
 
   }
@@ -60,6 +61,8 @@ const UploadInfo = class extends HTMLElement {
         console.error(`Upload failed for ${file.name}: ${response.statusText}`);
       }
     }
+
+    return files;
 
   }
 

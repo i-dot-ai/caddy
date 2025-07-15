@@ -9,14 +9,18 @@ export async function POST({ request, redirect }: EndpointParams) {
   const name = data.get('name')?.toString().replaceAll(' ', '-');
   const description = data.get('description')?.toString() || '';
 
+  let notification = '';
   if (name) {
+    notification = `Collection <strong>${name}</strong> `;
     if (id) {
       await updateCollection(id, name, description, request.headers.get('x-amzn-oidc-accesstoken'));
+      notification += 'updated';
     } else {
       await addCollection(name, description, request.headers.get('x-amzn-oidc-accesstoken'));
+      notification += 'created';
     }
   }
 
-  return redirect('/', 303);
+  return redirect(`/?notification=${encodeURI(notification)}`, 303);
 
 }
