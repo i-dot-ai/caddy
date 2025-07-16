@@ -1,3 +1,4 @@
+from datetime import timedelta
 from io import BytesIO
 from logging import getLogger
 from typing import Annotated
@@ -33,7 +34,6 @@ from api.types import (
     CollectionDto,
     CollectionsDto,
     Role,
-    UrlListBase,
     UserRole,
 )
 
@@ -108,16 +108,44 @@ def __check_user_is_member_of_collection(
     )
 
 
-def __process_resource(resource: Resource, session: Session):
-    s3_object = config.s3_client.get_object(
-        Bucket=config.data_s3_bucket,
-        Key=f"{config.s3_prefix}/{resource.collection_id}/{resource.id}/{resource.filename}",
+def __process_resource(
+    resource_name: str,
+    collection_id: UUID,
+    content_type: str,
+    content: str | bytes,
+    session: Session,
+    user: User,
+    url: str | None = None,
+) -> tuple[Resource, timedelta]:
+    process_time_start = utc_now()
+    resource = Resource(
+        collection_id=collection_id,
+        filename=resource_name,
+        content_type=content_type,
+        url=url,
+        created_by=user,
     )
+    session.add(resource)
+    session.commit()
+    session.refresh(resource)
 
-    s3_content = BytesIO(s3_object["Body"].read())
-    text_content = md.convert(s3_content).text_content
+    if not url and type(content) is bytes:
+        # Assume the file is a File, not URL, so it can be uploaded to S3
+        # Take advantage of S3 upload and download to handle file conversion and to get back string body
+        config.s3_client.put_object(
+            Bucket=config.data_s3_bucket,
+            Key=f"{config.s3_prefix}/{collection_id}/{resource.id}/{resource_name}",
+            Body=content,
+        )
+        s3_object = config.s3_client.get_object(
+            Bucket=config.data_s3_bucket,
+            Key=f"{config.s3_prefix}/{resource.collection_id}/{resource.id}/{resource.filename}",
+        )
 
-    documents = _split_text(text_content)
+        s3_content = BytesIO(s3_object["Body"].read())
+        content = md.convert(s3_content).text_content
+
+    documents = _split_text(content)
 
     embeddings = config.embedding_model.embed_documents(
         [d.page_content for d in documents]
@@ -131,7 +159,12 @@ def __process_resource(resource: Resource, session: Session):
             embedding=embedding,
         )
         session.add(text_chunk)
+    resource.is_processed = True
+    resource.process_time = utc_now() - process_time_start
+    session.add(resource)
     session.commit()
+
+    return resource, (utc_now() - process_time_start)
 
 
 @router.get(
@@ -294,34 +327,25 @@ def create_resource(
     """
     __check_user_is_member_of_collection(user, collection_id, session)
 
-    resource = Resource(
-        collection_id=collection_id,
-        filename=file.filename,
-        content_type=file.content_type,
-        created_by=user,
-    )
-    session.add(resource)
-    session.commit()
-    session.refresh(resource)
-
-    config.s3_client.put_object(
-        Bucket=config.data_s3_bucket,
-        Key=f"{config.s3_prefix}/{collection_id}/{resource.id}/{file.filename}",
-        Body=file.file.read(),
-    )
-
-    process_time_start = utc_now()
-
     try:
-        __process_resource(resource, session)
-    except MarkItDownException as e:
-        resource.process_error = f"MarkItDownException: {e.args[0]}"
-    except Exception as e:
-        resource.process_error = f"Exception: {e.args[0]}"
-
-    finally:
-        resource.process_time = utc_now() - process_time_start
-        resource.is_processed = True
+        resource, processing_time = __process_resource(
+            resource_name=file.filename,
+            collection_id=collection_id,
+            content_type=file.content_type,
+            content=file.file.read(),
+            session=session,
+            user=user,
+            url=None,
+        )
+    except MarkItDownException:
+        raise HTTPException(
+            status_code=422, detail="An issue occurred processing this file"
+        )
+    except Exception:
+        raise HTTPException(
+            status_code=422, detail="An issue occurred processing this file"
+        )
+    else:
         session.commit()
         session.refresh(resource)
 
@@ -334,7 +358,7 @@ def create_resource(
         )
         metric_writer.put_metric(
             metric_name="resource_created_duration_ms",
-            value=(utc_now() - process_time_start).total_seconds() * 1000,
+            value=(processing_time).total_seconds() * 1000,
             dimensions={
                 "file_type": resource.content_type,
             },
@@ -353,9 +377,9 @@ def create_resource(
 @router.post(
     "/collections/{collection_id}/resources/urls", status_code=201, tags=["resources"]
 )
-async def create_resource_from_url_list(
+async def create_resources_from_url_list(
     collection_id: UUID,
-    url_list: UrlListBase,
+    urls: list[str],
     session: Annotated[Session, Depends(get_session)],
     user: Annotated[User, Depends(get_current_user)],
 ) -> list[Resource]:
@@ -366,57 +390,41 @@ async def create_resource_from_url_list(
         session: DB session
         user: The logged-in user from auth JWT or None
         collection_id (str): The collection to upload the file to.
-        url_list (UrlListBase): The urls being uploaded.
+        urls (list[str]): The urls being uploaded.
 
     Returns:
         Resources
     """
     __check_user_is_member_of_collection(user, collection_id, session)
-    process_time_start = utc_now()
-    urls = url_list.urls
+    scrape_time_start = utc_now()
+    # urls = url_list.urls
     for url in urls:
         parsed = urlparse(url)
         if not parsed.scheme or not parsed.netloc:
             raise HTTPException(
-                status_code=422, detail="Unsupported URLs found in URL list"
+                status_code=422, detail=f"Unsupported URL ({url}) found in URL list"
             )
 
     scraper = Scraper()
     files = await scraper.download_urls(urls)
+    scrape_processing_time = utc_now() - scrape_time_start
     try:
         resources = []
+        processing_total = timedelta()
         for file in files:
-            resource = Resource(
-                collection_id=collection_id,
-                filename=file.title,
-                content_type=file.content_type,
+            resource, resource_processing_time = __process_resource(
                 url=file.url,
-                created_by=user,
+                resource_name=file.title,
+                collection_id=collection_id,
+                content_type=file.content_type,
+                content=file.markdown,
+                session=session,
+                user=user,
             )
             session.add(resource)
             session.commit()
-            session.refresh(resource)
             resources.append(resource)
-            process_time_start = utc_now()
-
-            documents = _split_text(file.markdown)
-
-            embeddings = config.embedding_model.embed_documents(
-                [d.page_content for d in documents]
-            )
-
-            for order, (document, embedding) in enumerate(zip(documents, embeddings)):
-                text_chunk = TextChunk(
-                    text=document.page_content,
-                    order=order,
-                    resource=resource,
-                    embedding=embedding,
-                )
-                session.add(text_chunk)
-            resource.process_time = utc_now() - process_time_start
-            resource.is_processed = True
-            session.add(resource)
-            session.commit()
+            processing_total += resource_processing_time
         logger.info("Finished scraping from urls")
         for resource in resources:
             session.refresh(resource)
@@ -426,12 +434,12 @@ async def create_resource_from_url_list(
         )
         metric_writer.put_metric(
             metric_name="resource_from_urls_created_duration_ms_total",
-            value=(utc_now() - process_time_start).total_seconds() * 1000,
+            value=(scrape_processing_time + processing_total).total_seconds() * 1000,
         )
         return resources
     except Exception as e:
         logger.error(f"Error uploading urls: {str(e)}")
-        raise HTTPException(status_code=500, detail="Failed to upload resources")
+        raise HTTPException(status_code=422, detail="Failed to upload resources")
 
 
 @router.get(

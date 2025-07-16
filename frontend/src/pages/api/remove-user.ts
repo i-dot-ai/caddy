@@ -10,6 +10,6 @@ export async function POST({ request, redirect }: EndpointParams) {
 
   await removeUser(collectionId, userId, request.headers.get('x-amzn-oidc-accesstoken'));
 
-  return redirect(`/collections/${collectionId}/users`, 307);
+  return redirect(`/collections/${collectionId}/users`, 303);
 
 }

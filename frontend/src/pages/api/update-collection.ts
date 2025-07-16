@@ -17,6 +17,6 @@ export async function POST({ request, redirect }: EndpointParams) {
     }
   }
 
-  return redirect('/', 307);
+  return redirect('/', 303);
 
 }

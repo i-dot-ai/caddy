@@ -15,6 +15,6 @@ export async function POST({ request, redirect }: EndpointParams) {
 
   await addUrls(collectionId, urls, request.headers.get('x-amzn-oidc-accesstoken'));
 
-  return redirect(`/collections/${collectionId}/resources`, 307);
+  return redirect(`/collections/${collectionId}/resources`, 303);
 
 }

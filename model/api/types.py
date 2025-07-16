@@ -24,10 +24,6 @@ class CollectionBase(BaseModel):
     description: str = Field(description="used by LLM to choose tool suitability")
 
 
-class UrlListBase(BaseModel):
-    urls: list[str]
-
-
 class PaginatedResponse(BaseModel):
     page: int = 1
     page_size: int = 10

@@ -165,9 +165,7 @@ export const uploadFile = async(collectionId: string, body: FormData, keycloakTo
 export const addUrls = async(collectionId: string, urls: string[], keycloakToken: string | null) => {
   const { json } = await makeRequest(`/collections/${collectionId}/resources/urls`, keycloakToken, {
     method: 'POST',
-    body: JSON.stringify({
-      urls: urls,
-    }),
+    body: JSON.stringify(urls),
     contentType: 'application/json',
   });
   return json;
