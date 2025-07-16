@@ -305,7 +305,7 @@ def delete_collection(
 @router.post(
     "/collections/{collection_id}/resources", status_code=201, tags=["resources"]
 )
-async def create_resource(
+def create_resource(
     collection_id: UUID,
     file: Annotated[UploadFile, File(...)],
     session: Annotated[Session, Depends(get_session)],
