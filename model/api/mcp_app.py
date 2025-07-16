@@ -1,6 +1,5 @@
 import contextlib
 import contextvars
-import os
 from logging import getLogger
 from typing import Iterator
 
@@ -47,8 +46,8 @@ class ToolResponse(BaseModel):
 
 def __validate_user_access(request: Request) -> EmailStr | None:
     if config.env == "LOCAL":
-        if admin := os.environ.get("ADMIN_USERS", "").split(",")[0]:
-            return admin.strip()
+        if config.super_admins:
+            return config.super_admins[0]
         raise ValueError("local env selected but no ADMIN_USERS set")
 
     auth_header = request.headers.get("Authorization")

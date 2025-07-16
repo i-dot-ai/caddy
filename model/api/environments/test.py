@@ -41,7 +41,7 @@ s3_client = boto3.client(
 data_s3_bucket = "test-bucket"
 
 keycloak_allowed_roles = json.loads(os.environ["KEYCLOAK_ALLOWED_ROLES"])
-super_admins = json.loads(os.environ["SUPER_ADMINS"])
+admin_users = json.loads(os.environ["ADMIN_USERS"])
 
 resource_url_template = "http://localhost:8000/collections/{collection_id}/resources/{resource_id}/documents"
 
@@ -59,5 +59,5 @@ config = CaddyConfig(
     auth_provider_public_key=auth_provider_public_key,
     keycloak_allowed_roles=keycloak_allowed_roles,
     git_sha=os.getenv("GIT_SHA", "test"),  # tests can override if they want
-    super_admins=super_admins,
+    super_admins=admin_users,
 )
