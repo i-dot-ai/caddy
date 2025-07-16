@@ -16,31 +16,34 @@ const resourcesData = await getResources(collectionId || '', 1, PAGE_SIZE, token
 
 ---
 
-<Layout title={ 'Resources - ' + collection.name } error={ error }>
+<Layout title={ 'Resources - ' + (collection?.name || error) } error={ error }>
 
-  <nav class="govuk-breadcrumbs govuk-!-margin-bottom-6" aria-label="Breadcrumb">
-    <ol class="govuk-breadcrumbs__list">
-      <li class="govuk-breadcrumbs__list-item">
-        <a class="govuk-breadcrumbs__link" href="/">Collections</a>
-      </li>
-      <li class="govuk-breadcrumbs__list-item">
-        Resources
-      </li>
-    </ol>
-  </nav>
+  { !error &&
+    <>
 
-  <div class="govuk-grid-row">
-    <div class="govuk-grid-column-full">
+      <nav class="govuk-breadcrumbs govuk-!-margin-bottom-6" aria-label="Breadcrumb">
+        <ol class="govuk-breadcrumbs__list">
+          <li class="govuk-breadcrumbs__list-item">
+            <a class="govuk-breadcrumbs__link" href="/">Collections</a>
+          </li>
+          <li class="govuk-breadcrumbs__list-item">
+            Resources
+          </li>
+        </ol>
+      </nav>
 
-      <h1 class="govuk-heading-l">Resources</h1>
+      <div class="govuk-grid-row">
+        <div class="govuk-grid-column-full">
 
-      <p><strong>Collection:</strong> { collection.name }</p>
+          <h1 class="govuk-heading-l">Resources</h1>
+
+          <p><strong>Collection:</strong> { collection.name }</p>
 
       { (collection.permissions.includes(CollectionPermission.MANAGE_RESOURCES) || collectionsData.is_admin) &&
         <a class="govuk-button govuk-!-margin-top-2" href="resources/add">Add file(s)</a>
       }
 
-      <p class="govuk-body-l govuk-!-margin-top-5">Showing { resourcesData.total } resources</p>
+          <p class="govuk-body-l govuk-!-margin-top-5">Showing { resourcesData.total } resources</p>
 
       <div style="overflow-x: auto; width: 100%;">
         <table class="govuk-table">
@@ -65,7 +68,14 @@ const resourcesData = await getResources(collectionId || '', 1, PAGE_SIZE, token
         </table>
       </div>
 
-    </div>
-  </div>
+        </div>
+      </div>
+
+    </>
+  }
+
+  { error &&
+    <p>Return to <a href="/">All Collections</a> page.</p>
+  }
 
 </Layout>

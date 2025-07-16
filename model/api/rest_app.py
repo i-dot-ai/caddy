@@ -40,6 +40,7 @@ from api.types import (
 router = APIRouter()  # Create an APIRouter instance
 md = MarkItDown()
 logger = getLogger(__file__)
+metric_writer = config.get_metrics_writer()
 
 
 def _split_text(text: str) -> list[Document]:
@@ -323,6 +324,29 @@ def create_resource(
         resource.is_processed = True
         session.commit()
         session.refresh(resource)
+
+        metric_writer.put_metric(
+            metric_name="resource_created",
+            value=1,
+            dimensions={
+                "file_type": resource.content_type,
+            },
+        )
+        metric_writer.put_metric(
+            metric_name="resource_created_duration_ms",
+            value=(utc_now() - process_time_start).total_seconds() * 1000,
+            dimensions={
+                "file_type": resource.content_type,
+            },
+        )
+        metric_writer.put_metric(
+            metric_name="resource_created_size_bytes",
+            value=file.size,
+            dimensions={
+                "file_type": resource.content_type,
+            },
+        )
+
         return resource
 
 
@@ -348,7 +372,7 @@ async def create_resource_from_url_list(
         Resources
     """
     __check_user_is_member_of_collection(user, collection_id, session)
-
+    process_time_start = utc_now()
     urls = url_list.urls
     for url in urls:
         parsed = urlparse(url)
@@ -396,6 +420,14 @@ async def create_resource_from_url_list(
         logger.info("Finished scraping from urls")
         for resource in resources:
             session.refresh(resource)
+        metric_writer.put_metric(
+            metric_name="resource_created_from_url_call_count",
+            value=1,
+        )
+        metric_writer.put_metric(
+            metric_name="resource_from_urls_created_duration_ms_total",
+            value=(utc_now() - process_time_start).total_seconds() * 1000,
+        )
         return resources
     except Exception as e:
         logger.error(f"Error uploading urls: {str(e)}")

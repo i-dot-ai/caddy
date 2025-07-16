@@ -1,5 +1,6 @@
 import contextlib
 import contextvars
+from datetime import UTC, datetime
 from logging import getLogger
 from typing import Iterator
 
@@ -21,6 +22,8 @@ from api.search import search_collection
 logger = getLogger(__file__)
 
 mcp_server = Server("Caddy MCP server")
+
+metric_writer = config.get_metrics_writer()
 
 KEYCLOAK_ALLOWED_ROLES = config.keycloak_allowed_roles
 
@@ -74,7 +77,15 @@ def get_current_user() -> EmailStr:
 async def call_tool(
     name: str, arguments: dict
 ) -> list[types.TextContent | types.ImageContent | types.EmbeddedResource]:
+    call_tool_start = datetime.now(UTC)
     logger.info(f"Calling tool {name} with args {arguments}")
+    metric_writer.put_metric(
+        metric_name="tool_call_count",
+        value=1,
+        dimensions={
+            "tool_name": name,
+        },
+    )
 
     user_email = get_current_user()
     logger.info(f"Tool called by user: {user_email}")
@@ -101,7 +112,15 @@ async def call_tool(
             arguments.get("query"),
             arguments.get("keywords", []),
         )
-
+    tool_call_end = datetime.now(UTC)
+    timer_result_ms = (call_tool_start - tool_call_end).total_seconds() * 1000
+    metric_writer.put_metric(
+        metric_name="tool_call_duration_ms",
+        value=timer_result_ms,
+        dimensions={
+            "tool_name": name,
+        },
+    )
     return [
         types.TextContent(
             type="text",
@@ -150,6 +169,7 @@ async def list_tools() -> list[types.Tool]:
                     },
                 },
             },
+            annotations={"title": f"Search {collection.name}"},
         )
         for collection in collections
     ]
