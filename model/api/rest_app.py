@@ -14,6 +14,7 @@ from sqlmodel import Session, select
 
 from api.auth import get_current_user
 from api.environment import config, get_session
+from api.exceptions import NoPermissionException
 from api.models import (
     Collection,
     CollectionResources,
@@ -26,6 +27,7 @@ from api.models import (
     utc_now,
 )
 from api.scrape import Scraper
+from api.services import get_user_collections
 from api.types import (
     Chunks,
     CollectionBase,
@@ -565,52 +567,14 @@ def get_collections(
     """
     logger.info("Getting collections for user: {user}".format(user=user.email))
     try:
-        where_clauses = (
-            [UserCollection.user_id == user.id] if user and not user.is_admin else []
+        return get_user_collections(user, session, page, page_size)
+    except NoPermissionException:
+        logger.exception("Error retrieving available collections")
+        raise HTTPException(
+            status_code=401, detail="Not enough permissions to view collections"
         )
-
-        is_manager = func.coalesce(
-            func.bool_or(UserCollection.role == Role.MANAGER).over(
-                partition_by=Collection.id
-            ),
-            False,
-        ).label("is_manager")
-
-        statement = (
-            select(Collection, is_manager)
-            .join(UserCollection, isouter=True)
-            .where(*where_clauses)
-            .distinct()
-            .order_by(Collection.id)
-            .offset(page_size * (page - 1))
-            .limit(page_size)
-        )
-        count_statement = select(func.count(Collection.id))
-        query_results = session.exec(statement).all()
-
-        # Build collections based on previous statements
-        collections = [
-            CollectionDto(
-                id=collection.id,
-                name=collection.name,
-                description=collection.description,
-                created_at=collection.created_at,
-                is_manager=bool(is_manager),
-            )
-            for collection, is_manager in query_results
-        ]
-
-        total = session.exec(count_statement).one()
-
-        return CollectionsDto(
-            total=total,
-            page=page,
-            page_size=page_size,
-            collections=collections,
-            is_admin=user.is_admin if user else False,
-        )
-    except Exception as e:
-        logger.error(f"Error retrieving available indexes: {str(e)}")
+    except Exception:
+        logger.exception("Error retrieving available collections")
         raise HTTPException(
             status_code=500, detail="Failed to retrieve available collections"
         )

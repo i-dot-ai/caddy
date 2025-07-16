@@ -5,6 +5,8 @@ from uuid import UUID
 from langchain_core.documents import Document
 from pydantic import BaseModel, EmailStr, Field
 
+from api.enums import CollectionPermissionEnum
+
 
 class QueryRequest(BaseModel):
     query: str
@@ -16,7 +18,7 @@ class CollectionBase(BaseModel):
         description="collection name",
         pattern=r"^[\w-]+$",
         min_length=3,
-        max_length=30,
+        max_length=36,
         examples=["my-collection"],
     )
     description: str = Field(description="used by LLM to choose tool suitability")
@@ -60,6 +62,9 @@ class CollectionDto(CollectionBase):
     )
     is_manager: bool = Field(
         description="is manager of this collection or not", default=False
+    )
+    permissions: list[CollectionPermissionEnum] = Field(
+        description="Collection permission enum(s)", default_factory=list
     )
 
 
