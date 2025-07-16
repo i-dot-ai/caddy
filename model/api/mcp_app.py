@@ -49,8 +49,8 @@ class ToolResponse(BaseModel):
 
 def __validate_user_access(request: Request) -> EmailStr | None:
     if config.env == "LOCAL":
-        if config.super_admins:
-            return config.super_admins[0]
+        if config.admin_users:
+            return config.admin_users[0]
         raise ValueError("local env selected but no ADMIN_USERS set")
 
     auth_header = request.headers.get("Authorization")

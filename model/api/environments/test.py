@@ -59,5 +59,5 @@ config = CaddyConfig(
     auth_provider_public_key=auth_provider_public_key,
     keycloak_allowed_roles=keycloak_allowed_roles,
     git_sha=os.getenv("GIT_SHA", "test"),  # tests can override if they want
-    super_admins=admin_users,
+    admin_users=admin_users,
 )

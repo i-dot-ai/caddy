@@ -10,7 +10,7 @@ from api.models import (
     User,
     UserCollection,
 )
-from api.permissions import get_collection_permissions_for_user, is_user_super_admin
+from api.permissions import get_collection_permissions_for_user, is_user_admin_user
 from api.types import (
     CollectionDto,
     CollectionsDto,
@@ -23,7 +23,7 @@ logger = getLogger(__name__)
 def get_user_collections(
     user: User, session: Session, page: int, page_size: int
 ) -> CollectionsDto:
-    user_is_admin = is_user_super_admin(user) or user.is_admin
+    user_is_admin = is_user_admin_user(user) or user.is_admin
     where_clauses = (
         [UserCollection.user_id == user.id] if user and not user.is_admin else []
     )

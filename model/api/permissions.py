@@ -21,14 +21,14 @@ def get_session() -> Session:
         yield session
 
 
-def is_user_super_admin(user: User):
-    return user.email in config.super_admins
+def is_user_admin_user(user: User):
+    return user.email in config.admin_users
 
 
 def get_collection_permissions_for_user(
     user: User, collection: Collection, session: Session | None
 ) -> list[CollectionPermissionEnum]:
-    if user.is_admin or is_user_super_admin(user):
+    if user.is_admin or is_user_admin_user(user):
         return [
             CollectionPermissionEnum.VIEW,
             CollectionPermissionEnum.EDIT,
@@ -62,7 +62,7 @@ def get_collection_permissions_for_user(
 def get_resource_permissions_for_user(
     user: User, resource: Resource, session: Session | None
 ) -> list[ResourcePermissionEnum]:
-    if user.is_admin or is_user_super_admin(user):
+    if user.is_admin or is_user_admin_user(user):
         return [ResourcePermissionEnum.VIEW, ResourcePermissionEnum.DELETE]
     else:
         if not session:
