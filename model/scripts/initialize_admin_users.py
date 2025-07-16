@@ -1,4 +1,3 @@
-import os
 from logging import getLogger
 
 import click
@@ -10,11 +9,14 @@ from api.models import User
 logger = getLogger(__file__)
 
 
+logger.info("running admin user script")
+
+
 @click.command()
 def initialize_admin_users():
     """initialize admin users from environment variable"""
     with Session(config.get_database()) as session:
-        for admin_user in os.environ.get("ADMIN_USERS", "").split(","):
+        for admin_user in config.admin_users:
             email = admin_user.strip()
             if user := session.exec(
                 select(User).where(User.email == email)
