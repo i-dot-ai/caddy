@@ -514,11 +514,12 @@ async def create_resources_from_url_list(
             "Resource created from url scrape. URl count: {url_count}. User: {user}. Processing time (ms): {processing_time}.",
             url_count=len(urls),
             user=user,
-            processing_time=(scrape_processing_time + processing_total).total_seconds() * 1000,
+            processing_time=(scrape_processing_time + processing_total).total_seconds()
+            * 1000,
         )
         return resources
-    except Exception as e:
-        logger.exception(f"Error uploading urls")
+    except Exception:
+        logger.exception("Error uploading urls")
         raise HTTPException(status_code=422, detail="Failed to upload resources")
 
 
