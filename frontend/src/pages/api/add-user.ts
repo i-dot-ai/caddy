@@ -11,6 +11,6 @@ export async function POST({ request, redirect }: EndpointParams) {
 
   await addUser(collectionId, { email: emailAddress, role: role }, request.headers.get('x-amzn-oidc-accesstoken'));
 
-  return redirect(`/collections/${collectionId}/users`, 307);
+  return redirect(`/collections/${collectionId}/users`, 303);
 
 }
