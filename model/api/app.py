@@ -7,6 +7,8 @@ import sentry_sdk
 from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
+from fastapi.responses import JSONResponse
+from i_dot_ai_utilities.logging.types.enrichment_types import ContextEnrichmentType
 from langchain.schema import Document
 from sqlmodel import Session, select
 from starlette.applications import Starlette
@@ -23,7 +25,7 @@ from api.types import QueryRequest
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+logger = config.get_logger(__name__)
 
 if config.sentry_dsn:
     sentry_sdk.init(config.sentry_dsn, environment=config.env)
@@ -70,15 +72,37 @@ app.add_middleware(
 )  # Configure with your domains
 
 
+@app.exception_handler(404)
+async def not_found_handler(request: Request, _):
+    logger.refresh_context(
+        context_enrichers=[
+            {
+                "type": ContextEnrichmentType.FASTAPI,
+                "object": request,
+            }
+        ]
+    )
+
+    logger.warning("Page not found")
+    return JSONResponse(
+        status_code=404,
+        content={"message": "Not found"},
+    )
+
+
 @app.middleware("http")
 async def log_requests(request: Request, call_next: Callable):
+    logger.refresh_context()
     if request.url.path == "/healthcheck":
         return await call_next(request)
     start_time = time.time()
     response = await call_next(request)
     duration = time.time() - start_time
     logger.info(
-        f"Method: {request.method} Path: {request.url.path} Duration: {duration:.2f}s"
+        "Method: {request_method} Path: {url_path} Duration: {duration}s",
+        request_method=request.method,
+        url_path=request.url.path,
+        duration=round(duration, 2),
     )
     return response
 
@@ -103,6 +127,7 @@ async def query_endpoint(
     Returns:
         dict: OpenSearch response containing search results
     """
+    logger.refresh_context()
     statement = (
         select(Collection)
         .where(Collection.name == request.collection_name)
@@ -121,6 +146,9 @@ async def query_endpoint(
             request.query,
         )
 
-    except Exception as e:
-        logger.error(e)
+    except Exception:
+        logger.exception(
+            "An error occurred when searching collection {collection_name}",
+            collection_name=collection.name,
+        )
         raise HTTPException(status_code=500)

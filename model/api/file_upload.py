@@ -3,13 +3,14 @@ import json
 import mimetypes
 import os
 import tempfile
-from logging import getLogger
 from uuid import UUID
 
 import requests
 import tqdm
 
-logger = getLogger(__file__)
+from api.environment import config
+
+logger = config.get_logger(__name__)
 
 
 class FileUpload:
@@ -159,6 +160,7 @@ class FileUpload:
 
     def run(self) -> UUID:
         """Upload documents to caddy collection"""
+        logger.refresh_context()
         logger.info("Running document upload")
         headers = {"x-external-access-token": self.token, "accept": "application/json"}
         if self.jwt:
@@ -167,7 +169,10 @@ class FileUpload:
         response = requests.get(f"{self.url}/collections", headers=headers)
 
         # Output initial request here so we can diagnose connection issues
-        logger.info(f"Initial upload file response is {response.json()}")
+        logger.info(
+            "Initial upload file response is {upload_response}",
+            upload_response=response.json(),
+        )
 
         try:
             collection_id = next(

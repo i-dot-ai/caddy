@@ -1,10 +1,11 @@
 import contextlib
 import contextvars
 from datetime import UTC, datetime
-from logging import getLogger
 from typing import Iterator
 
 from fastapi import HTTPException
+from i_dot_ai_utilities.logging.structured_logger import StructuredLogger
+from i_dot_ai_utilities.logging.types.enrichment_types import ContextEnrichmentType
 from langchain_core.documents import Document
 from mcp import types
 from mcp.server.lowlevel import Server
@@ -19,7 +20,7 @@ from api.environment import config
 from api.models import Collection, User, UserCollection
 from api.search import search_collection
 
-logger = getLogger(__file__)
+logger = config.get_logger(__name__)
 
 mcp_server = Server("Caddy MCP server")
 
@@ -47,7 +48,9 @@ class ToolResponse(BaseModel):
     documents: list[Document]
 
 
-def __validate_user_access(request: Request) -> EmailStr | None:
+def __validate_user_access(
+    request: Request, struct_logger: StructuredLogger
+) -> EmailStr | None:
     if config.env == "LOCAL":
         if config.admin_users:
             return config.admin_users[0]
@@ -55,13 +58,15 @@ def __validate_user_access(request: Request) -> EmailStr | None:
 
     auth_header = request.headers.get("Authorization")
     if not auth_header:
-        logger.info("auth_header not found")
+        struct_logger.info("auth_header not found")
         return None
 
     token = auth_header.removeprefix("Bearer ")
     authorised_user = get_authorised_user(token)
     if not authorised_user:
-        logger.info("user not authorised for roles: %s", KEYCLOAK_ALLOWED_ROLES)
+        struct_logger.info(
+            "user not authorised for roles: {roles}", roles=KEYCLOAK_ALLOWED_ROLES
+        )
         return None
     return authorised_user
 
@@ -77,8 +82,8 @@ def get_current_user() -> EmailStr:
 async def call_tool(
     name: str, arguments: dict
 ) -> list[types.TextContent | types.ImageContent | types.EmbeddedResource]:
+    logger.refresh_context()
     call_tool_start = datetime.now(UTC)
-    logger.info(f"Calling tool {name} with args {arguments}")
     metric_writer.put_metric(
         metric_name="tool_call_count",
         value=1,
@@ -88,7 +93,12 @@ async def call_tool(
     )
 
     user_email = get_current_user()
-    logger.info(f"Tool called by user: {user_email}")
+    logger.info(
+        "Calling tool {name} with args {arguments} by user {user_email}",
+        name=name,
+        arguments=arguments,
+        user_email=user_email,
+    )
 
     with Session(config.get_database()) as session:
         # Check if user is a member of this collection
@@ -131,11 +141,10 @@ async def call_tool(
 
 @mcp_server.list_tools()
 async def list_tools() -> list[types.Tool]:
-    logger.info("Listing tools")
-
     user_email = get_current_user()
 
-    logger.info(f"Listing tools for user: {user_email}")
+    logger.refresh_context()
+    logger.info("Listing tools for user: {user_email}", user_email=user_email)
 
     with Session(config.get_database()) as session:
         expression = (
@@ -186,9 +195,17 @@ session_manager = StreamableHTTPSessionManager(
 
 async def handle_streamable_http(scope: Scope, receive: Receive, send: Send) -> None:
     request = Request(scope, receive)
-    user_email = __validate_user_access(request)
+    logger.refresh_context(
+        context_enrichers=[
+            {
+                "type": ContextEnrichmentType.FASTAPI,
+                "object": request,
+            }
+        ]
+    )
+    user_email = __validate_user_access(request, logger)
     if not user_email:
-        logger.info("user not authorized")
+        logger.info("User not authorized")
         await send(
             {
                 "type": "http.response.start",

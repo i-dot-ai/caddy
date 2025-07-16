@@ -1,11 +1,11 @@
 from datetime import timedelta
 from io import BytesIO
-from logging import getLogger
 from typing import Annotated
 from urllib.parse import urlparse
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
+from i_dot_ai_utilities.logging.structured_logger import StructuredLogger
 from langchain_core.documents import Document
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from markitdown import MarkItDown, MarkItDownException
@@ -13,6 +13,7 @@ from sqlalchemy import func
 from sqlmodel import Session, select
 
 from api.auth import get_current_user
+from api.depends import get_logger
 from api.environment import config, get_session
 from api.exceptions import NoPermissionException
 from api.models import (
@@ -39,7 +40,6 @@ from api.types import (
 
 router = APIRouter()  # Create an APIRouter instance
 md = MarkItDown()
-logger = getLogger(__file__)
 metric_writer = config.get_metrics_writer()
 
 
@@ -66,19 +66,29 @@ def __check_user_is_member_of_collection(
     user: User | None,
     collection_id: UUID,
     session: Session,
+    struct_logger: StructuredLogger,
     is_manager: bool = True,
 ):
     if user is None:
-        logger.info("Anonymous access request for collection % denied", collection_id)
+        struct_logger.info(
+            "Anonymous access request for collection {collection_id} denied",
+            collection_id=collection_id,
+        )
         raise HTTPException(status_code=401, detail="Unauthorised")
 
     if not session.get(Collection, collection_id):
-        logger.info("Collection not found for route request for user %".format())
+        struct_logger.info(
+            "Collection {collection_id} not found for route request for user {user}",
+            collection_id=collection_id,
+            user=user,
+        )
         raise HTTPException(status_code=404, detail="Collection Not Found")
 
     if user.is_admin:
-        logger.info(
-            "user % has access to %s as they are an admin", user.email, collection_id
+        struct_logger.info(
+            "user {user} has access to {collection_id} as they are an admin",
+            user=user.email,
+            collection_id=collection_id,
         )
         return
 
@@ -87,24 +97,30 @@ def __check_user_is_member_of_collection(
     )
 
     if not user_collection:
-        logger.info("User % not allowed to see collection %s".format())
+        struct_logger.info(
+            "User {user} not allowed to see collection {collection_id}",
+            user=user.email,
+            collection_id=collection_id,
+        )
         raise HTTPException(
             status_code=403, detail="User is not a member of this collection"
         )
 
     if is_manager and user_collection.role != Role.MANAGER:
-        logger.info(
-            "User % must be a manager for this request to see collection %s".format()
+        struct_logger.info(
+            "User {user} must be a manager for this request to see collection {collection_id}",
+            user=user.email,
+            collection_id=collection_id,
         )
         raise HTTPException(
             status_code=403, detail="User is not a manger of this collection"
         )
 
-    logger.info(
-        "user % has access to %s as they are a %s",
-        user.email,
-        collection_id,
-        user_collection.role,
+    struct_logger.info(
+        "user {user} has access to {collection_id} as they are a {role}",
+        user=user.email,
+        collection_id=collection_id,
+        role=user_collection.role,
     )
 
 
@@ -174,11 +190,14 @@ def get_collection_resources(
     collection_id: UUID,
     session: Annotated[Session, Depends(get_session)],
     user: Annotated[User, Depends(get_current_user)],
+    logger: StructuredLogger = Depends(get_logger(__name__)),
     page: int = Query(1, ge=1),
     page_size: int = Query(10, ge=1),
 ) -> CollectionResources:
     """returns a list of resources belonging to this collection"""
-    __check_user_is_member_of_collection(user, collection_id, session, is_manager=False)
+    __check_user_is_member_of_collection(
+        user, collection_id, session, is_manager=False, struct_logger=logger
+    )
 
     if not session.get(Collection, collection_id):
         raise HTTPException(status_code=404)
@@ -197,6 +216,13 @@ def get_collection_resources(
     )
     total = session.scalar(count_statement)
 
+    logger.info(
+        "Retrieved collection {collection_id} resources ({resource_count}) for user {user_id}",
+        collection_id=collection_id,
+        resource_count=total,
+        user_id=user.id,
+    )
+
     return CollectionResources(
         collection_id=collection_id,
         page=page,
@@ -211,15 +237,25 @@ def create_collection(
     new_collection: CollectionBase,
     user: Annotated[User, Depends(get_current_user)],
     session: Annotated[Session, Depends(get_session)],
+    logger: StructuredLogger = Depends(get_logger(__name__)),
 ) -> Collection:
     """create a collection"""
     if not user.is_admin:
+        logger.info(
+            "User {user} tried to create a collection {collection_name} without being an admin",
+            user=user.email,
+            collection_name=new_collection.collection_name,
+        )
         raise HTTPException(status_code=403, detail="User needs to be an admin")
 
     collection = Collection(**new_collection.model_dump())
     stmt = select(Collection).where(Collection.name == collection.name)
     results = session.exec(stmt).all()
     if results:
+        logger.info(
+            "A collection with name {collection_name} already exists",
+            collection_name=collection.name,
+        )
         raise HTTPException(
             status_code=422, detail="A collection with this name already exists"
         )
@@ -236,6 +272,12 @@ def create_collection(
     session.commit()
     session.refresh(collection)
 
+    logger.info(
+        "Collection {collection_name} created by user {user}",
+        collection_name=collection.name,
+        user=user.email,
+    )
+
     return collection
 
 
@@ -245,6 +287,7 @@ def update_collection(
     collection_details: CollectionBase,
     session: Annotated[Session, Depends(get_session)],
     user: Annotated[User, Depends(get_current_user)],
+    logger: StructuredLogger = Depends(get_logger(__name__)),
 ) -> CollectionDto:
     """update a collection"""
     if collection := session.get(Collection, collection_id):
@@ -267,6 +310,11 @@ def update_collection(
                 > 0
             )
 
+        logger.info(
+            "Collection {collection_name} updated by user {user}",
+            collection_name=collection.name,
+            user=user.email,
+        )
         return CollectionDto(
             id=collection.id,
             name=collection.name,
@@ -274,7 +322,7 @@ def update_collection(
             created_at=collection.created_at,
             is_manager=is_manager,
         )
-
+    logger.info("Collection {collection_id} not found", collection_id=collection_id)
     raise HTTPException(status_code=404)
 
 
@@ -283,9 +331,12 @@ def delete_collection(
     collection_id: UUID,
     user: Annotated[User, Depends(get_current_user)],
     session: Annotated[Session, Depends(get_session)],
+    logger: StructuredLogger = Depends(get_logger(__name__)),
 ) -> UUID:
     """delete a collection"""
-    __check_user_is_member_of_collection(user, collection_id, session)
+    __check_user_is_member_of_collection(
+        user, collection_id, session, struct_logger=logger
+    )
 
     objects = config.s3_client.list_objects_v2(
         Bucket=config.data_s3_bucket, Prefix=f"{config.s3_prefix}/{collection_id}"
@@ -299,8 +350,14 @@ def delete_collection(
     if collection := session.get(Collection, collection_id):
         session.delete(collection)
         session.commit()
+        logger.info(
+            "Collection {collection_id}:{collection_name} deleted",
+            collection_id=collection_id,
+            collection_name=collection.name,
+        )
         return collection_id
 
+    logger.info("Collection {collection_id} not found", collection_id=collection_id)
     raise HTTPException(status_code=404)
 
 
@@ -312,11 +369,13 @@ def create_resource(
     file: Annotated[UploadFile, File(...)],
     session: Annotated[Session, Depends(get_session)],
     user: Annotated[User, Depends(get_current_user)],
+    logger: StructuredLogger = Depends(get_logger(__name__)),
 ) -> Resource:
     """
     Endpoint to upload a file to a specified collection.
 
     Args:
+        logger: The logger to use
         session: DB session
         user: The logged-in user from auth JWT or None
         collection_id (str): The collection to upload the file to.
@@ -325,7 +384,9 @@ def create_resource(
     Returns:
         Resource
     """
-    __check_user_is_member_of_collection(user, collection_id, session)
+    __check_user_is_member_of_collection(
+        user, collection_id, session, struct_logger=logger
+    )
 
     try:
         resource, processing_time = __process_resource(
@@ -358,7 +419,7 @@ def create_resource(
         )
         metric_writer.put_metric(
             metric_name="resource_created_duration_ms",
-            value=(processing_time).total_seconds() * 1000,
+            value=processing_time.total_seconds() * 1000,
             dimensions={
                 "file_type": resource.content_type,
             },
@@ -369,6 +430,15 @@ def create_resource(
             dimensions={
                 "file_type": resource.content_type,
             },
+        )
+
+        logger.info(
+            "Resource created from file upload. File name: {file_name}. File type: {file_type}. File size (bytes): {file_size}. User: {user}. Processing time (ms): {processing_time}.",
+            file_name=file.filename,
+            file_type=file.content_type,
+            file_size=file.size,
+            user=user,
+            processing_time=processing_time,
         )
 
         return resource
@@ -382,11 +452,13 @@ async def create_resources_from_url_list(
     urls: list[str],
     session: Annotated[Session, Depends(get_session)],
     user: Annotated[User, Depends(get_current_user)],
+    logger: StructuredLogger = Depends(get_logger(__name__)),
 ) -> list[Resource]:
     """
     Endpoint to upload a file to a specified collection.
 
     Args:
+        logger: The logger to use
         session: DB session
         user: The logged-in user from auth JWT or None
         collection_id (str): The collection to upload the file to.
@@ -395,9 +467,10 @@ async def create_resources_from_url_list(
     Returns:
         Resources
     """
-    __check_user_is_member_of_collection(user, collection_id, session)
+    __check_user_is_member_of_collection(
+        user, collection_id, session, struct_logger=logger
+    )
     scrape_time_start = utc_now()
-    # urls = url_list.urls
     for url in urls:
         parsed = urlparse(url)
         if not parsed.scheme or not parsed.netloc:
@@ -405,7 +478,7 @@ async def create_resources_from_url_list(
                 status_code=422, detail=f"Unsupported URL ({url}) found in URL list"
             )
 
-    scraper = Scraper()
+    scraper = Scraper(logger)
     files = await scraper.download_urls(urls)
     scrape_processing_time = utc_now() - scrape_time_start
     try:
@@ -423,6 +496,7 @@ async def create_resources_from_url_list(
             )
             session.add(resource)
             session.commit()
+            session.refresh(resource)
             resources.append(resource)
             processing_total += resource_processing_time
         logger.info("Finished scraping from urls")
@@ -436,9 +510,16 @@ async def create_resources_from_url_list(
             metric_name="resource_from_urls_created_duration_ms_total",
             value=(scrape_processing_time + processing_total).total_seconds() * 1000,
         )
+        logger.info(
+            "Resource created from url scrape. URl count: {url_count}. User: {user}. Processing time (ms): {processing_time}.",
+            url_count=len(urls),
+            user=user,
+            processing_time=(scrape_processing_time + processing_total).total_seconds()
+            * 1000,
+        )
         return resources
-    except Exception as e:
-        logger.error(f"Error uploading urls: {str(e)}")
+    except Exception:
+        logger.exception("Error uploading urls")
         raise HTTPException(status_code=422, detail="Failed to upload resources")
 
 
@@ -452,14 +533,18 @@ def get_resource_documents(
     resource_id: UUID,
     session: Annotated[Session, Depends(get_session)],
     user: Annotated[User, Depends(get_current_user)],
+    logger: StructuredLogger = Depends(get_logger(__name__)),
     page: int = Query(1, ge=1),
     page_size: int = Query(10, ge=1),
 ) -> Chunks:
     """get a documents belonging to a resource"""
 
-    __check_user_is_member_of_collection(user, collection_id, session, is_manager=False)
+    __check_user_is_member_of_collection(
+        user, collection_id, session, is_manager=False, struct_logger=logger
+    )
 
     if not session.get(Resource, resource_id):
+        logger.info("Resource with id {resource_id} not found", resource_id=resource_id)
         raise HTTPException(status_code=404)
 
     statement = (
@@ -492,6 +577,13 @@ def get_resource_documents(
     )
     total = session.exec(count_statement).one()
 
+    logger.info(
+        "{total} document(s) for resource {resource_id} retrieved by user {user}",
+        total=total,
+        resource_id=resource_id,
+        user=user,
+    )
+
     return Chunks(
         collection_id=collection_id,
         resource_id=resource_id,
@@ -512,9 +604,12 @@ def delete_resource(
     resource_id: UUID,
     session: Annotated[Session, Depends(get_session)],
     user: Annotated[User, Depends(get_current_user)],
-) -> None:
+    logger: StructuredLogger = Depends(get_logger(__name__)),
+) -> UUID:
     """delete a resource"""
-    __check_user_is_member_of_collection(user, collection_id, session)
+    __check_user_is_member_of_collection(
+        user, collection_id, session, struct_logger=logger
+    )
 
     config.s3_client.delete_object(
         Bucket=config.data_s3_bucket,
@@ -524,7 +619,10 @@ def delete_resource(
     if resource := session.get(Resource, resource_id):
         session.delete(resource)
         session.commit()
+        logger.info("Resource {resource_id} deleted", resource_id=resource_id)
+        return resource_id
     else:
+        logger.info("Resource {resource_id} not found", resource_id=resource_id)
         raise HTTPException(status_code=404)
 
 
@@ -538,12 +636,17 @@ def get_resource(
     resource_id: UUID,
     session: Annotated[Session, Depends(get_session)],
     user: Annotated[User, Depends(get_current_user)],
+    logger: StructuredLogger = Depends(get_logger(__name__)),
 ) -> Resource:
     """get a resource"""
-    __check_user_is_member_of_collection(user, collection_id, session, is_manager=False)
+    __check_user_is_member_of_collection(
+        user, collection_id, session, is_manager=False, struct_logger=logger
+    )
 
     if resource := session.get(Resource, resource_id):
+        logger.info("Resource {resource_id} found", resource_id=resource_id)
         return resource
+    logger.info("Resource {resource_id} not found", resource_id=resource_id)
     raise HTTPException(status_code=404)
 
 
@@ -551,11 +654,13 @@ def get_resource(
 def get_collections(
     session: Annotated[Session, Depends(get_session)],
     user: Annotated[User, Depends(get_current_user)],
+    logger: StructuredLogger = Depends(get_logger(__name__)),
     page: int = Query(1, ge=1),
     page_size: int = Query(10, ge=1),
 ) -> CollectionsDto:
     """Get a list of all available collections.
     Args:
+        logger: The logger to use
         session: DB session
         user: Logged-in user or none from JWT
         page: Page number
@@ -574,7 +679,9 @@ def get_collections(
             status_code=401, detail="Not enough permissions to view collections"
         )
     except Exception:
-        logger.exception("Error retrieving available collections")
+        logger.exception(
+            "Error retrieving available collections for user {user}", user=user.email
+        )
         raise HTTPException(
             status_code=500, detail="Failed to retrieve available collections"
         )
@@ -585,10 +692,13 @@ def get_collections_user_roles(
     collection_id: UUID,
     session: Annotated[Session, Depends(get_session)],
     user: Annotated[User, Depends(get_current_user)],
+    logger: StructuredLogger = Depends(get_logger(__name__)),
     page: int = Query(1, ge=1),
     page_size: int = Query(10, ge=1),
 ) -> UserRoleList:
-    __check_user_is_member_of_collection(user, collection_id, session)
+    __check_user_is_member_of_collection(
+        user, collection_id, session, struct_logger=logger
+    )
 
     statement = (
         select(UserCollection, User.email.label("user_email"))
@@ -607,6 +717,12 @@ def get_collections_user_roles(
 
     count_statement = func.count(UserCollection.user_id)
     total = session.exec(count_statement).scalar()
+    logger.info(
+        "Retrieved user roles for collection {collection_id} for user {user}. {total} user(s) retrieved",
+        collection_id=collection_id,
+        user=user.email,
+        total=total,
+    )
     return UserRoleList(
         page=page, page_size=page_size, total=total, user_roles=user_roles_with_emails
     )
@@ -618,8 +734,11 @@ def create_collections_user_role(
     user_role: UserRole,
     session: Annotated[Session, Depends(get_session)],
     user: Annotated[User, Depends(get_current_user)],
+    logger: StructuredLogger = Depends(get_logger(__name__)),
 ) -> UserCollection:
-    __check_user_is_member_of_collection(user, collection_id, session)
+    __check_user_is_member_of_collection(
+        user, collection_id, session, struct_logger=logger
+    )
 
     user = User.get_by_email(session, user_role.email)
 
@@ -630,7 +749,10 @@ def create_collections_user_role(
         session.refresh(user)
 
     if not session.get(Collection, collection_id):
-        raise HTTPException(status_code=404, detail="Collection Not Found")
+        logger.info(
+            "Failed to find collection {collection_id}", collection_id=collection_id
+        )
+        raise HTTPException(status_code=404, detail="Collection not found")
 
     if user_collection := session.get(
         UserCollection, {"collection_id": collection_id, "user_id": user.id}
@@ -646,6 +768,12 @@ def create_collections_user_role(
     session.add(user_collection)
     session.commit()
     session.refresh(user_collection)
+    logger.info(
+        "Role {role} for user {user} created on collection {collection_id}",
+        role=user_role.role,
+        user=user.email,
+        collection_id=collection_id,
+    )
     return user_collection
 
 
@@ -659,13 +787,26 @@ def delete_collections_user_role(
     user_id: UUID,
     session: Annotated[Session, Depends(get_session)],
     user: Annotated[User, Depends(get_current_user)],
+    logger: StructuredLogger = Depends(get_logger(__name__)),
 ) -> bool:
-    __check_user_is_member_of_collection(user, collection_id, session)
+    __check_user_is_member_of_collection(
+        user, collection_id, session, struct_logger=logger
+    )
 
     if user_role := session.get(
         UserCollection, {"collection_id": collection_id, "user_id": user_id}
     ):
         session.delete(user_role)
         session.commit()
+        logger.info(
+            "User role for collection {collection_id} deleted for user {user}",
+            collection_id=collection_id,
+            user=user.email,
+        )
         return True
+    logger.info(
+        "Failed to delete user role for user {user} from collection {collection_id}",
+        user=user.email,
+        collection_id=collection_id,
+    )
     raise HTTPException(status_code=404)

@@ -97,7 +97,7 @@ class CaddyConfig:
     def get_database(self):
         return create_engine(self.sqlalchemy_url)
 
-    def get_logger(self) -> StructuredLogger:
+    def get_logger(self, name: str) -> StructuredLogger:
         logger_environment = (
             ExecutionEnvironmentType.LOCAL
             if self.env.upper() in ["LOCAL", "TEST"]
@@ -114,6 +114,7 @@ class CaddyConfig:
             options={
                 "execution_environment": logger_environment,
                 "log_format": logger_format,
+                "logger_name": name,
             },
         )
         return logger
@@ -122,5 +123,5 @@ class CaddyConfig:
         return CloudwatchEmbeddedMetricsWriter(
             namespace=self.app_name,
             environment=self.env,
-            logger=self.get_logger(),
+            logger=self.get_logger(__name__),
         )

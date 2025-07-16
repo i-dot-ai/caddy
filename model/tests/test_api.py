@@ -161,7 +161,7 @@ def test_get_resource_documents_404(
     )
 
     assert response.status_code == 404
-    assert response.json() == {"detail": "Not Found"}
+    assert response.json() == {"message": "Not found"}
 
 
 def test_get_resource_documents_401(client, collection_manager, many_documents):
@@ -177,13 +177,14 @@ def test_delete_resource(
     collection_manager,
     example_document,
 ):
+    document_id = example_document.resource_id
     response = client.delete(
         f"/collections/{collection_manager.collection_id}/resources/{example_document.resource_id}",
         headers={"Authorization": collection_manager.user.token},
     )
 
     assert response.status_code == 200
-    assert not response.json()
+    assert response.json() == str(document_id)
 
 
 def test_delete_resource_404(client, collection_manager, admin_user):
@@ -193,7 +194,7 @@ def test_delete_resource_404(client, collection_manager, admin_user):
     )
 
     assert response.status_code == 404
-    assert response.json() == {"detail": "Not Found"}
+    assert response.json() == {"message": "Not found"}
 
 
 def test_delete_resource_401(
@@ -227,7 +228,7 @@ def test_get_resource_404(client, collection_manager):
     )
 
     assert response.status_code == 404
-    assert response.json() == {"detail": "Not Found"}
+    assert response.json() == {"message": "Not found"}
 
 
 def test_get_resource_401(client, collection_manager):
@@ -313,7 +314,7 @@ def test_get_collection_resources_404(client, admin_user):
         headers={"Authorization": admin_user.token},
     )
     assert response.status_code == 404
-    assert response.json() == {"detail": "Collection Not Found"}
+    assert response.json() == {"message": "Not found"}
 
 
 def test_get_collection_resources_401(client):
@@ -339,7 +340,7 @@ def test_delete_collection_404(client, collection_manager):
         headers={"Authorization": collection_manager.user.token},
     )
     assert response.status_code == 404
-    assert response.json() == {"detail": "Collection Not Found"}
+    assert response.json() == {"message": "Not found"}
 
 
 def test_delete_collection_401(client):
@@ -428,7 +429,7 @@ def test_update_collection_404(client, admin_user):
         headers={"Authorization": admin_user.token},
     )
     assert response.status_code == 404
-    assert response.json() == {"detail": "Not Found"}
+    assert response.json() == {"message": "Not found"}
 
 
 def test_update_collection_401(client):
@@ -536,7 +537,7 @@ def test_create_collection_user_404_collection_not_found(client, admin_user):
         headers={"Authorization": admin_user.token},
     )
     assert response.status_code == 404
-    assert response.json() == {"detail": "Collection Not Found"}
+    assert response.json() == {"message": "Not found"}
 
 
 def test_delete_collection_user(client, collection_manager, database_transaction):
@@ -562,7 +563,7 @@ def test_delete_collection_user_404(client, admin_user):
         headers={"Authorization": admin_user.token},
     )
     assert response.status_code == 404
-    assert response.json() == {"detail": "Collection Not Found"}
+    assert response.json() == {"message": "Not found"}
 
 
 def test_delete_collection_user_401(client, admin_user):
