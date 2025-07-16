@@ -100,7 +100,7 @@ class CaddyConfig:
     def get_logger(self) -> StructuredLogger:
         logger_environment = (
             ExecutionEnvironmentType.LOCAL
-            if self.env.upper() == ["LOCAL", "TEST"]
+            if self.env.upper() in ["LOCAL", "TEST"]
             else ExecutionEnvironmentType.FARGATE
         )
         logger_format = (
