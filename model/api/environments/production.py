@@ -44,6 +44,7 @@ s3_client = boto3.client("s3")
 data_s3_bucket = os.environ["DATA_S3_BUCKET"]
 
 keycloak_allowed_roles = json.loads(os.environ["KEYCLOAK_ALLOWED_ROLES"])
+admin_users = json.loads(os.environ["ADMIN_USERS"])
 
 environment = os.environ["ENVIRONMENT"]
 
@@ -63,4 +64,5 @@ config = CaddyConfig(
     sentry_dsn=sentry_dsn,
     keycloak_allowed_roles=keycloak_allowed_roles,
     git_sha=os.getenv("GIT_SHA"),
+    admin_users=admin_users,
 )

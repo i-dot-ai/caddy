@@ -43,13 +43,21 @@ const makeRequest = async(endPoint: string, keycloakToken: string | null, option
   return { json, error };
 };
 
+export enum CollectionPermission {
+  VIEW = 'VIEW',
+  EDIT = 'EDIT',
+  DELETE = 'DELETE',
+  MANAGE_USERS = 'MANAGE_USERS',
+  MANAGE_RESOURCES = 'MANAGE_RESOURCES',
+}
+
 
 interface Collection {
   id: string,
   name: string,
   description: string,
-  is_manager: boolean,
   created_at: Date,
+  permissions: CollectionPermission[],
 }
 
 interface Collections {
@@ -60,10 +68,6 @@ interface Collections {
 export const getCollections = async(keycloakToken: string | null) => {
   const { json, error } = await makeRequest('/collections', keycloakToken);
   const collectionsData = (json as unknown as Collections) || { collections: [], is_admin: false };
-
-  if (process.env['IS_ADMIN'] === 'true') {
-    collectionsData.is_admin = true;
-  }
 
   return { collectionsData, error };
 };
@@ -161,9 +165,7 @@ export const uploadFile = async(collectionId: string, body: FormData, keycloakTo
 export const addUrls = async(collectionId: string, urls: string[], keycloakToken: string | null) => {
   const { json } = await makeRequest(`/collections/${collectionId}/resources/urls`, keycloakToken, {
     method: 'POST',
-    body: JSON.stringify({
-      urls: urls,
-    }),
+    body: JSON.stringify(urls),
     contentType: 'application/json',
   });
   return json;

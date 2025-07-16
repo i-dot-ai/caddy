@@ -1,7 +1,7 @@
 ---
 import 'dotenv/config';
 import Layout from '@layouts/Layout.astro';
-import { getCollections } from '@logic/data.ts';
+import {CollectionPermission, getCollections } from '@logic/data.ts';
 
 let { collectionsData, error } = await getCollections(Astro.request.headers.get('x-amzn-oidc-accesstoken'));
 
@@ -69,10 +69,12 @@ const chatLink = (() => {
                       <a class="govuk-body-s govuk-!-margin-bottom-0" href={ `/collections/${collection.id}/users` }>
                         Users<span class="govuk-visually-hidden"> for { collection.name }</span>
                       </a>
-                      { collectionsData.is_admin &&
+                      { collection.permissions.includes(CollectionPermission.EDIT) &&
                         <a class="govuk-body-s govuk-!-margin-bottom-0" href={ `/collections/${collection.id}/edit/` }>
                           Edit<span class="govuk-visually-hidden"> { collection.name }</span>
                         </a>
+                      }
+                      { collection.permissions.includes(CollectionPermission.DELETE) &&
                         <a class="govuk-body-s govuk-!-margin-bottom-0" href={ `/collections/${collection.id}/delete` }>
                           Delete<span class="govuk-visually-hidden"> { collection.name }</span>
                         </a>

@@ -63,7 +63,7 @@ def test_upload_txt_to_file_upload_endpoint(
 @pytest.mark.parametrize(
     ("file_data", "expected_status"),
     [
-        (("test.pdf", b"\x01\x02\x03\xff"), 201),
+        (("test.pdf", b"\x01\x02\x03\xff"), 422),
     ],
 )
 def test_upload_txt_to_file_upload_endpoint_invalid_file(
@@ -84,12 +84,7 @@ def test_upload_txt_to_file_upload_endpoint_invalid_file(
     )
 
     assert response.status_code == expected_status
-    assert (
-        response.json()["process_error"]
-        == "MarkItDownException: Could not convert stream to Markdown. No converter attempted a conversion, suggesting that the filetype is simply not supported."
-    )
-
-    delete_resource(database_transaction, response.json()["id"])
+    assert response.json()["detail"] == "An issue occurred processing this file"
 
 
 def test_upload_pdf_to_file_upload_endpoint(
@@ -398,7 +393,10 @@ def test_create_collection_same_name(client, collection_manager, example_collect
     [
         ("my collection", "String should match pattern '^[\\w-]+$'"),
         ("AB", "String should have at least 3 characters"),
-        ("my-far-too-long-collection-name", "String should have at most 30 characters"),
+        (
+            "my-far-far-far-too-long-collection-name",
+            "String should have at most 36 characters",
+        ),
     ],
 )
 def test_create_collection_invalid_name(
@@ -607,13 +605,16 @@ def test_healthcheck(client):
 
 
 def test_upload_urls_to_upload_endpoint_422(client, example_collection, admin_user):
+    fake_url = "fake_url"
     response = client.post(
         f"/collections/{example_collection.id}/resources/urls",
-        json={"urls": ["fake_url"]},
+        json=[fake_url],
         headers={"Authorization": admin_user.token},
     )
     assert response.status_code == 422
-    assert response.json() == {"detail": "Unsupported URLs found in URL list"}
+    assert response.json() == {
+        "detail": f"Unsupported URL ({fake_url}) found in URL list"
+    }
 
 
 def test_upload_urls_to_upload_endpoint_401(client, example_collection, admin_user):
@@ -657,11 +658,9 @@ def test_upload_urls_to_upload_endpoint(
 ):
     response = client.post(
         f"/collections/{example_collection.id}/resources/urls",
-        json={
-            "urls": [
-                url,
-            ]
-        },
+        json=[
+            url,
+        ],
         headers={"Authorization": admin_user.token},
     )
     assert response.status_code == 201

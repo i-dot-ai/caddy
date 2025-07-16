@@ -9,6 +9,6 @@ export async function POST({ request, redirect }: EndpointParams) {
 
   await deleteCollection(collectionId, request.headers.get('x-amzn-oidc-accesstoken'));
 
-  return redirect('/', 307);
+  return redirect('/', 303);
 
 }

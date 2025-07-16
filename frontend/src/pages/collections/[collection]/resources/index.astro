@@ -1,7 +1,7 @@
 ---
 import Layout from '@layouts/Layout.astro';
 import Resources from '@components/Resources.astro';
-import { getCollections, getCollection, getResources} from '@logic/data.ts';
+import { getCollections, getCollection, getResources, CollectionPermission} from '@logic/data.ts';
 
 const PAGE_SIZE = 50;
 
@@ -39,34 +39,34 @@ const resourcesData = await getResources(collectionId || '', 1, PAGE_SIZE, token
 
           <p><strong>Collection:</strong> { collection.name }</p>
 
-          { (collection.is_manager || collectionsData.is_admin) &&
-            <a class="govuk-button govuk-!-margin-top-2" href="resources/add">Add file(s)</a>
-          }
+      { (collection.permissions.includes(CollectionPermission.MANAGE_RESOURCES) || collectionsData.is_admin) &&
+        <a class="govuk-button govuk-!-margin-top-2" href="resources/add">Upload file(s)</a>
+      }
 
           <p class="govuk-body-l govuk-!-margin-top-5">Showing { resourcesData.total } resources</p>
 
-          <div style="overflow-x: auto; width: 100%;">
-            <table class="govuk-table">
-              <caption class="govuk-visually-hidden">Files</caption>
-              <thead class="govuk-table__head">
-                <tr class="govuk-table__row">
-                  <th scope="col" class="govuk-table__header">Filename</th>
-                  <th scope="col" class="govuk-table__header">Type</th>
-                  <th scope="col" class="govuk-table__header">Created</th>
-                  { (collection.is_manager || collectionsData.is_admin) &&
-                    <th scope="col" class="govuk-table__header">Actions</th>
-                  }
-                </tr>
-              </thead>
-              <tbody class="govuk-table__body">
-                {/* The 1st page of Resources are ready on page load. Additional pages are added via HTML Streaming */}
-                <Resources resources={ resourcesData.resources } isManager={ collection.is_manager || collectionsData.is_admin } />
-                { Array.from({ length: Math.ceil(resourcesData.total / PAGE_SIZE) - 1 }).map((_, index) => (
-                  <Resources collection={ collectionId } page={ index + 2 } count={ PAGE_SIZE } token={ token } isManager={ collection.is_manager || collectionsData.is_admin } />
-                )) }
-              </tbody>
-            </table>
-          </div>
+      <div style="overflow-x: auto; width: 100%;">
+        <table class="govuk-table">
+          <caption class="govuk-visually-hidden">Files</caption>
+          <thead class="govuk-table__head">
+            <tr class="govuk-table__row">
+              <th scope="col" class="govuk-table__header">Filename</th>
+              <th scope="col" class="govuk-table__header">Type</th>
+              <th scope="col" class="govuk-table__header">Created</th>
+              { (collection.permissions.includes(CollectionPermission.MANAGE_RESOURCES) || collectionsData.is_admin) &&
+                <th scope="col" class="govuk-table__header">Actions</th>
+              }
+            </tr>
+          </thead>
+          <tbody class="govuk-table__body">
+            {/* The 1st page of Resources are ready on page load. Additional pages are added via HTML Streaming */}
+            <Resources resources={ resourcesData.resources } isManager={ collection.permissions.includes(CollectionPermission.MANAGE_RESOURCES) } />
+            { Array.from({ length: Math.ceil(resourcesData.total / PAGE_SIZE) - 1 }).map((_, index) => (
+              <Resources collection={ collectionId } page={ index + 2 } count={ PAGE_SIZE } token={ token } isManager={ collection.permissions.includes(CollectionPermission.MANAGE_RESOURCES) } />
+            )) }
+          </tbody>
+        </table>
+      </div>
 
         </div>
       </div>
