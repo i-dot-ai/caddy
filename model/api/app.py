@@ -144,6 +144,7 @@ async def query_endpoint(
         return await search_collection(
             collection.id,
             request.query,
+            session=session
         )
 
     except Exception:

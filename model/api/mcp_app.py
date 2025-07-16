@@ -119,8 +119,9 @@ async def call_tool(
 
         documents = await search_collection(
             user_collection.collection_id,
-            arguments.get("query"),
-            arguments.get("keywords", []),
+            query=arguments.get("query"),
+            keywords=arguments.get("keywords", []),
+            session=session,
         )
     tool_call_end = datetime.now(UTC)
     timer_result_ms = (call_tool_start - tool_call_end).total_seconds() * 1000

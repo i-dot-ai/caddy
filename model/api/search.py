@@ -4,6 +4,7 @@ from uuid import UUID
 from langchain_community.vectorstores.opensearch_vector_search import HYBRID_SEARCH
 from langchain_core.documents import Document
 
+from sqlmodel import Session
 from api.environment import config
 
 
@@ -18,6 +19,7 @@ def build_document(document: Document, collection_id):
 async def search_collection(
     collection_id: UUID,
     query: str,
+    session: Session,
     keywords: list[str] | None = None,
 ) -> list[Document]:
     """Query opensearch.
