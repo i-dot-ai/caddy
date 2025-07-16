@@ -109,6 +109,21 @@ def another_example_collection(database_transaction):
 
 
 @pytest.fixture
+def web_resource(database_transaction, example_collection):
+    web_resource = Resource(
+        collection_id=example_collection.id,
+        filename="webpage.html",
+        content_type="text/html",
+        url="http://example.com/webpage.html",
+    )
+
+    database_transaction.add(web_resource)
+    database_transaction.commit()
+
+    return web_resource
+
+
+@pytest.fixture
 def example_document(database_transaction, example_collection):
     gov_uk_resource = Resource(
         collection_id=example_collection.id,
