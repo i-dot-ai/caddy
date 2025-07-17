@@ -27,7 +27,7 @@ const { collection, error } = await getCollection(collectionId || '', Astro.requ
   </nav>
 
 
-  <div class="govuk-grid-row">
+  <div class="govuk-grid-row upload-page">
     <div class="govuk-grid-column-full">
 
       <h1 class="govuk-heading-l">Upload</h1>
@@ -47,8 +47,6 @@ const { collection, error } = await getCollection(collectionId || '', Astro.requ
           </div>
         </div>
         <button class={ 'govuk-button plausible-event-name=Add+Files plausible-event-collection=' + collection.name }>Add file(s)</button>
-
-        <upload-info input-id="file-upload-1-input" collection={ collectionId } resources-page="../resources"></upload-info>
       </form>
 
       { collectionsData.is_admin &&
@@ -65,6 +63,8 @@ const { collection, error } = await getCollection(collectionId || '', Astro.requ
         </form>
       }
 
+      <upload-info input-id="file-upload-1-input" collection={ collectionId }></upload-info>
+
     </div>
   </div>
 
@@ -75,62 +75,23 @@ const { collection, error } = await getCollection(collectionId || '', Astro.requ
 
 
 <style is:global>
-  .form-submitted button.govuk-button {
-    display: none;
-  }
 
   .upload-info:focus-visible {
     display: block;
     outline: 2px solid var(--iai-pink);
     outline-offset: 5px;
   }
-  .upload-info__ellipsis {
-    span {
-      animation-duration: 1.5s;
-      animation-iteration-count: infinite;
-      margin: 0 -2px;
-    }
-    span:nth-of-type(2) {
-      animation-name: ellipsis-1;
-    }
-    span:nth-of-type(3) {
-      animation-name: ellipsis-2;
-    }
-    span:nth-of-type(4) {
-      animation-name: ellipsis-3;
-    }
+
+  .upload-info .govuk-task-list__item {
+    display: flex;
+    justify-content: space-between;
   }
-  @keyframes ellipsis-1 {
-    0% {
-      opacity: 0;
-    }
-    24% {
-      opacity: 0;
-    }
-    25% {
-      opacity: 1;
-    }
+  .upload-info .govuk-task-list__name-and-hint {
+    max-width: calc(100% - 120px);
+    word-wrap: break-word;
   }
-  @keyframes ellipsis-2 {
-    0% {
-      opacity: 0;
-    }
-    49% {
-      opacity: 0;
-    }
-    50% {
-      opacity: 1;
-    }
-  }
-  @keyframes ellipsis-3 {
-    0% {
-      opacity: 0;
-    }
-    74% {
-      opacity: 0;
-    }
-    75% {
-      opacity: 1;
-    }
+
+  .upload-page:has(.upload-info li) form {
+    display: none;
   }
 </style>
