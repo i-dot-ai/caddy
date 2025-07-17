@@ -106,6 +106,7 @@ test('Manage resources', async({ page }) => {
   const fileChooser = await fileChooserPromise;
   fileChooser.setFiles(path.join(__dirname, '../README.md'));
   await page.locator('Button:has-text("Add file(s)")').click();
+  await page.locator('a:has-text("Back to resources page")').click();
 
   // Resources page (2)
   await expect(page.locator('h1')).toContainText('Resources');
