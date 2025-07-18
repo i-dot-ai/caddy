@@ -20,8 +20,6 @@ const UploadInfo = class extends HTMLElement {
 
   #render(files: File[]) {
 
-    const notification = files.length === 1 ? `File <strong>${files[0].name}</strong> uploaded` : `<strong>${files.length}</strong> files uploaded`;
-
     this.innerHTML = `
       <h2 class="govuk-heading-m govuk-!-margin-top-7">Uploading files</h2>
       <ul class="govuk-task-list">
@@ -34,7 +32,7 @@ const UploadInfo = class extends HTMLElement {
           </li>
         `).join('')}
       </ul>
-      <a href="../resources?notification=${notification}" hidden>Back to resources page</a>
+      <a href="../resources" hidden>Back to resources page</a>
     `;
 
     this.classList.add('upload-info');
