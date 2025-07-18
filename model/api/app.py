@@ -141,10 +141,7 @@ async def query_endpoint(
         )
 
     try:
-        return await search_collection(
-            collection.id,
-            request.query,
-        )
+        return await search_collection(collection.id, request.query, session=session)
 
     except Exception:
         logger.exception(

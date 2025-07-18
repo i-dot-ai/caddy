@@ -1,14 +1,32 @@
+from functools import partial
 from uuid import UUID
 
 from langchain_community.vectorstores.opensearch_vector_search import HYBRID_SEARCH
 from langchain_core.documents import Document
+from sqlmodel import Session
 
 from api.environment import config
+from api.models import Resource
+
+
+def build_document(document: Document, collection_id, session):
+    resource = session.get(Resource, document.metadata["resource_id"])
+
+    if resource.url:
+        document.metadata["url"] = resource.url
+    else:
+        url = config.resource_url_template.format(
+            collection_id=collection_id, resource_id=resource.id
+        )
+        document.metadata["url"] = url
+
+    return document
 
 
 async def search_collection(
     collection_id: UUID,
     query: str,
+    session: Session,
     keywords: list[str] | None = None,
 ) -> list[Document]:
     """Query opensearch.
@@ -38,11 +56,8 @@ async def search_collection(
         post_filter=pre_filter,
     )
 
-    def build_document(document: Document):
-        url = config.resource_url_template.format(
-            collection_id=collection_id, resource_id=document.metadata["resource_id"]
-        )
-        document.metadata["url"] = url
-        return document
+    build_document_for_collection = partial(
+        build_document, collection_id=collection_id, session=session
+    )
 
-    return list(map(build_document, results))
+    return list(map(build_document_for_collection, results))
