@@ -7,10 +7,16 @@ from api.enums import CollectionPermissionEnum
 from api.exceptions import NoPermissionException
 from api.models import (
     Collection,
+    CollectionResources,
+    Resource,
     User,
     UserCollection,
 )
-from api.permissions import get_collection_permissions_for_user, is_user_admin_user
+from api.permissions import (
+    get_collection_permissions_for_user,
+    get_resource_permissions_for_user,
+    is_user_admin_user,
+)
 from api.types import (
     CollectionDto,
     CollectionsDto,
@@ -18,6 +24,53 @@ from api.types import (
 )
 
 logger = getLogger(__name__)
+
+
+def get_resources_by_collection_id(
+    user: User,
+    session: Session,
+    collection: Collection,
+    page_size: int = 1,
+    page: int = 1,
+) -> CollectionResources:
+    permissions = get_collection_permissions_for_user(user, collection, session)
+    if permissions is None or CollectionPermissionEnum.VIEW not in permissions:
+        raise NoPermissionException(
+            "No permission to view resources on this collection", 401
+        )
+    resources_statement = (
+        select(Resource)
+        .where(Resource.collection_id == collection.id)
+        .order_by(Resource.filename)
+        .offset(page_size * (page - 1))
+        .limit(page_size)
+    )
+    resources = session.exec(resources_statement).all()
+
+    count_statement = select(func.count(Resource.id)).where(
+        Resource.collection_id == collection.id
+    )
+    total = session.scalar(count_statement)
+
+    logger.info(
+        "Retrieved collection {collection_id} resources ({resource_count}) for user {user_id}",
+        collection_id=collection.id,
+        resource_count=total,
+        user_id=user.id,
+    )
+
+    for resource in resources:
+        resource.permissions = get_resource_permissions_for_user(
+            user, resource, session
+        )
+
+    return CollectionResources(
+        collection_id=collection.id,
+        page=page,
+        total=total,
+        page_size=page_size,
+        resources=resources,
+    )
 
 
 def get_user_collections(

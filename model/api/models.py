@@ -10,6 +10,7 @@ from sqlalchemy import event
 from sqlmodel import Field, Relationship, Session, SQLModel, select
 
 from api.config import EMBEDDING_DIMENSION
+from api.enums import ResourcePermissionEnum
 from api.environment import config
 from api.types import CollectionBase, PaginatedResponse, Role
 
@@ -107,6 +108,9 @@ class Resource(SQLModel, table=True):
     )
     process_time: timedelta | None = Field(
         description="time take to process file", default=None
+    )
+    permissions: list[ResourcePermissionEnum] = Field(
+        description="Resource permission enum(s)", default_factory=list
     )
 
 

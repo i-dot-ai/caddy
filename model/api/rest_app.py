@@ -28,7 +28,7 @@ from api.models import (
     utc_now,
 )
 from api.scrape import Scraper
-from api.services import get_user_collections
+from api.services import get_resources_by_collection_id, get_user_collections
 from api.types import (
     Chunks,
     CollectionBase,
@@ -199,37 +199,21 @@ def get_collection_resources(
         user, collection_id, session, is_manager=False, struct_logger=logger
     )
 
-    if not session.get(Collection, collection_id):
-        raise HTTPException(status_code=404)
-
-    resources_statement = (
-        select(Resource)
-        .where(Resource.collection_id == collection_id)
-        .order_by(Resource.filename)
-        .offset(page_size * (page - 1))
-        .limit(page_size)
-    )
-    resources = session.exec(resources_statement).all()
-
-    count_statement = select(func.count(Resource.id)).where(
-        Resource.collection_id == collection_id
-    )
-    total = session.scalar(count_statement)
-
-    logger.info(
-        "Retrieved collection {collection_id} resources ({resource_count}) for user {user_id}",
-        collection_id=collection_id,
-        resource_count=total,
-        user_id=user.id,
-    )
-
-    return CollectionResources(
-        collection_id=collection_id,
-        page=page,
-        total=total,
-        page_size=page_size,
-        resources=resources,
-    )
+    if collection := session.get(Collection, collection_id):
+        try:
+            return get_resources_by_collection_id(
+                user, session, collection, page_size, page
+            )
+        except NoPermissionException:
+            logger.exception(
+                "Unable to return resources for collection {collection_id}",
+                collection_id=collection_id,
+            )
+            raise HTTPException(
+                status_code=401,
+                detail="No permission to view resources for the given collection",
+            )
+    raise HTTPException(status_code=404)
 
 
 @router.post("/collections", status_code=201, tags=["collections"])
