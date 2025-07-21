@@ -15,7 +15,11 @@ from sqlmodel import Session, select
 from api.auth import get_current_user
 from api.depends import get_logger
 from api.environment import config, get_session
-from api.exceptions import NoPermissionException
+from api.exceptions import (
+    DuplicateItemException,
+    ItemNotFoundException,
+    NoPermissionException,
+)
 from api.models import (
     Collection,
     CollectionResources,
@@ -28,7 +32,11 @@ from api.models import (
     utc_now,
 )
 from api.scrape import Scraper
-from api.services import get_resources_by_collection_id, get_user_collections
+from api.services import (
+    create_new_collection,
+    get_resources_by_collection_id,
+    get_user_collections,
+)
 from api.types import (
     Chunks,
     CollectionBase,
@@ -60,68 +68,6 @@ def _split_text(text: str) -> list[Document]:
     )
     document = Document(text)
     return text_splitter.split_documents([document])
-
-
-def __check_user_is_member_of_collection(
-    user: User | None,
-    collection_id: UUID,
-    session: Session,
-    struct_logger: StructuredLogger,
-    is_manager: bool = True,
-):
-    if user is None:
-        struct_logger.info(
-            "Anonymous access request for collection {collection_id} denied",
-            collection_id=collection_id,
-        )
-        raise HTTPException(status_code=401, detail="Unauthorised")
-
-    if not session.get(Collection, collection_id):
-        struct_logger.info(
-            "Collection {collection_id} not found for route request for user {user}",
-            collection_id=collection_id,
-            user=user,
-        )
-        raise HTTPException(status_code=404, detail="Collection Not Found")
-
-    if user.is_admin:
-        struct_logger.info(
-            "user {user} has access to {collection_id} as they are an admin",
-            user=user.email,
-            collection_id=collection_id,
-        )
-        return
-
-    user_collection = session.get(
-        UserCollection, {"user_id": user.id, "collection_id": collection_id}
-    )
-
-    if not user_collection:
-        struct_logger.info(
-            "User {user} not allowed to see collection {collection_id}",
-            user=user.email,
-            collection_id=collection_id,
-        )
-        raise HTTPException(
-            status_code=403, detail="User is not a member of this collection"
-        )
-
-    if is_manager and user_collection.role != Role.MANAGER:
-        struct_logger.info(
-            "User {user} must be a manager for this request to see collection {collection_id}",
-            user=user.email,
-            collection_id=collection_id,
-        )
-        raise HTTPException(
-            status_code=403, detail="User is not a manger of this collection"
-        )
-
-    struct_logger.info(
-        "user {user} has access to {collection_id} as they are a {role}",
-        user=user.email,
-        collection_id=collection_id,
-        role=user_collection.role,
-    )
 
 
 def __process_resource(
@@ -195,23 +141,27 @@ def get_collection_resources(
     page_size: int = Query(10, ge=1),
 ) -> CollectionResources:
     """returns a list of resources belonging to this collection"""
-    __check_user_is_member_of_collection(
-        user, collection_id, session, is_manager=False, struct_logger=logger
-    )
-
     if collection := session.get(Collection, collection_id):
         try:
             return get_resources_by_collection_id(
-                user, session, collection, page_size, page
+                user, session, collection, logger, page_size, page
             )
-        except NoPermissionException:
+        except NoPermissionException as e:
             logger.exception(
                 "Unable to return resources for collection {collection_id}",
                 collection_id=collection_id,
             )
             raise HTTPException(
-                status_code=401,
-                detail="No permission to view resources for the given collection",
+                status_code=e.error_code,
+                detail=e.message,
+            )
+        except ItemNotFoundException as e:
+            logger.exception(
+                "Collection {collection_id} not found", collection_id=collection_id
+            )
+            raise HTTPException(
+                status_code=e.error_code,
+                detail=e.message,
             )
     raise HTTPException(status_code=404)
 
@@ -224,45 +174,23 @@ def create_collection(
     logger: StructuredLogger = Depends(get_logger(__name__)),
 ) -> Collection:
     """create a collection"""
-    if not user.is_admin:
-        logger.info(
-            "User {user} tried to create a collection {collection_name} without being an admin",
-            user=user.email,
+    try:
+        result = create_new_collection(new_collection, session, user, logger)
+    except NoPermissionException as e:
+        logger.exception(
+            "An issue occurred creating collection {collection_name} by user {user_email}",
+            collection_name=new_collection.collection_name,
+            user_email=user.email,
+        )
+        raise HTTPException(status_code=e.error_code, detail=str(e))
+    except DuplicateItemException as e:
+        logger.exception(
+            "A collection with this name already exists. {collection_name}",
             collection_name=new_collection.collection_name,
         )
-        raise HTTPException(status_code=403, detail="User needs to be an admin")
-
-    collection = Collection(**new_collection.model_dump())
-    stmt = select(Collection).where(Collection.name == collection.name)
-    results = session.exec(stmt).all()
-    if results:
-        logger.info(
-            "A collection with name {collection_name} already exists",
-            collection_name=collection.name,
-        )
-        raise HTTPException(
-            status_code=422, detail="A collection with this name already exists"
-        )
-    session.add(collection)
-    session.commit()
-    session.refresh(collection)
-
-    user_collection = UserCollection(
-        user_id=user.id,
-        collection_id=collection.id,
-        role=Role.MANAGER,
-    )
-    session.add(user_collection)
-    session.commit()
-    session.refresh(collection)
-
-    logger.info(
-        "Collection {collection_name} created by user {user}",
-        collection_name=collection.name,
-        user=user.email,
-    )
-
-    return collection
+        raise HTTPException(status_code=e.error_code, detail=str(e))
+    else:
+        return result
 
 
 @router.put("/collections/{collection_id}", status_code=200, tags=["collections"])
@@ -656,12 +584,13 @@ def get_collections(
     """
     logger.info("Getting collections for user: {user}".format(user=user.email))
     try:
-        return get_user_collections(user, session, page, page_size)
-    except NoPermissionException:
-        logger.exception("Error retrieving available collections")
-        raise HTTPException(
-            status_code=401, detail="Not enough permissions to view collections"
+        return get_user_collections(user, session, logger, page, page_size)
+    except NoPermissionException as e:
+        logger.exception(
+            "Error retrieving available collections for user {user_email}",
+            user=user.email,
         )
+        raise HTTPException(status_code=e.error_code, detail=e.message)
     except Exception:
         logger.exception(
             "Error retrieving available collections for user {user}", user=user.email

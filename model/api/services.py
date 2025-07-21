@@ -1,10 +1,9 @@
-from logging import getLogger
-
+from i_dot_ai_utilities.logging.structured_logger import StructuredLogger
 from sqlalchemy import func
 from sqlmodel import Session, select
 
 from api.enums import CollectionPermissionEnum
-from api.exceptions import NoPermissionException
+from api.exceptions import DuplicateItemException, NoPermissionException
 from api.models import (
     Collection,
     CollectionResources,
@@ -13,26 +12,30 @@ from api.models import (
     UserCollection,
 )
 from api.permissions import (
+    check_user_is_member_of_collection,
     get_collection_permissions_for_user,
     get_resource_permissions_for_user,
     is_user_admin_user,
 )
 from api.types import (
+    CollectionBase,
     CollectionDto,
     CollectionsDto,
     Role,
 )
-
-logger = getLogger(__name__)
 
 
 def get_resources_by_collection_id(
     user: User,
     session: Session,
     collection: Collection,
-    page_size: int = 1,
+    logger: StructuredLogger,
+    page_size: int = 10,
     page: int = 1,
 ) -> CollectionResources:
+    check_user_is_member_of_collection(
+        user, collection.id, session, is_manager=False, struct_logger=logger
+    )
     permissions = get_collection_permissions_for_user(user, collection, session)
     if permissions is None or CollectionPermissionEnum.VIEW not in permissions:
         raise NoPermissionException(
@@ -73,8 +76,58 @@ def get_resources_by_collection_id(
     )
 
 
+def create_new_collection(
+    new_collection: CollectionBase,
+    session: Session,
+    user: User,
+    logger: StructuredLogger,
+) -> Collection:
+    if not user.is_admin:
+        logger.info(
+            "User {user} tried to create a collection {collection_name} without being an admin",
+            user=user.email,
+            collection_name=new_collection.collection_name,
+        )
+        raise NoPermissionException(error_code=403, message="User needs to be an admin")
+    collection = Collection(**new_collection.model_dump())
+    stmt = select(Collection).where(Collection.name == collection.name)
+    results = session.exec(stmt).all()
+    if results:
+        logger.info(
+            "A collection with name {collection_name} already exists",
+            collection_name=collection.name,
+        )
+        raise DuplicateItemException(
+            error_code=422, message="A collection with this name already exists"
+        )
+    session.add(collection)
+    session.commit()
+    session.refresh(collection)
+
+    user_collection = UserCollection(
+        user_id=user.id,
+        collection_id=collection.id,
+        role=Role.MANAGER,
+    )
+    session.add(user_collection)
+    session.commit()
+    session.refresh(collection)
+
+    logger.info(
+        "Collection {collection_name} created by user {user}",
+        collection_name=collection.name,
+        user=user.email,
+    )
+
+    return collection
+
+
 def get_user_collections(
-    user: User, session: Session, page: int, page_size: int
+    user: User,
+    session: Session,
+    logger: StructuredLogger,
+    page: int = 1,
+    page_size: int = 10,
 ) -> CollectionsDto:
     user_is_admin = is_user_admin_user(user) or user.is_admin
     where_clauses = (
