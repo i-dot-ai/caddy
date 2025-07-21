@@ -36,6 +36,8 @@ from api.services import (
     create_new_collection,
     get_resources_by_collection_id,
     get_user_collections,
+    update_collection_by_id,
+    delete_collection_by_id,
 )
 from api.types import (
     Chunks,
@@ -200,40 +202,24 @@ def update_collection(
     logger: StructuredLogger = Depends(get_logger(__name__)),
 ) -> CollectionDto:
     """update a collection"""
-    if collection := session.get(Collection, collection_id):
-        collection.name = collection_details.name
-        collection.description = collection_details.description
-        session.add(collection)
-        session.commit()
-        session.refresh(collection)
-
-        is_manager = False
-        if user:
-            is_manager = (
-                session.scalar(
-                    select(func.count(UserCollection.user_id)).where(
-                        UserCollection.collection_id == collection.id,
-                        UserCollection.user_id == user.id,
-                        UserCollection.role == Role.MANAGER,
-                    )
-                )
-                > 0
-            )
-
-        logger.info(
-            "Collection {collection_name} updated by user {user}",
-            collection_name=collection.name,
-            user=user.email,
+    try:
+        result = update_collection_by_id(
+            collection_id, collection_details, session, user, logger
         )
-        return CollectionDto(
-            id=collection.id,
-            name=collection.name,
-            description=collection.description,
-            created_at=collection.created_at,
-            is_manager=is_manager,
+    except NoPermissionException as e:
+        logger.exception(
+            "User {user_email} doesn't have permission to edit collection {collection_name}",
+            user_email=user.email,
+            collection_name=collection_details.collection_name,
         )
-    logger.info("Collection {collection_id} not found", collection_id=collection_id)
-    raise HTTPException(status_code=404)
+        raise HTTPException(status_code=e.error_code, detail=str(e))
+    except ItemNotFoundException as e:
+        logger.exception(
+            "Collection {collection_id} not found", collection_id=collection_id
+        )
+        raise HTTPException(status_code=e.error_code, detail=str(e))
+    else:
+        return result
 
 
 @router.delete("/collections/{collection_id}", status_code=200, tags=["collections"])
@@ -244,31 +230,22 @@ def delete_collection(
     logger: StructuredLogger = Depends(get_logger(__name__)),
 ) -> UUID:
     """delete a collection"""
-    __check_user_is_member_of_collection(
-        user, collection_id, session, struct_logger=logger
-    )
-
-    objects = config.s3_client.list_objects_v2(
-        Bucket=config.data_s3_bucket, Prefix=f"{config.s3_prefix}/{collection_id}"
-    )
-    if contents := objects.get("Contents"):
-        object_keys = [{"Key": obj["Key"]} for obj in contents]
-        config.s3_client.delete_objects(
-            Bucket=config.data_s3_bucket, Delete={"Objects": object_keys}
-        )
-
-    if collection := session.get(Collection, collection_id):
-        session.delete(collection)
-        session.commit()
-        logger.info(
-            "Collection {collection_id}:{collection_name} deleted",
+    try:
+        result = delete_collection_by_id(user, collection_id, session, logger)
+    except NoPermissionException as e:
+        logger.exception(
+            "User {user_email} doesn't have permission to delete collection {collection_id}",
+            user_email=user.email,
             collection_id=collection_id,
-            collection_name=collection.name,
         )
-        return collection_id
-
-    logger.info("Collection {collection_id} not found", collection_id=collection_id)
-    raise HTTPException(status_code=404)
+        raise HTTPException(status_code=e.error_code, detail=str(e))
+    except ItemNotFoundException as e:
+        logger.exception(
+            "Collection {collection_id} not found", collection_id=collection_id
+        )
+        raise HTTPException(status_code=e.error_code, detail=str(e))
+    else:
+        return result
 
 
 @router.post(

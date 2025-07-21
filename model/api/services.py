@@ -5,6 +5,7 @@ from sqlalchemy import func
 from sqlmodel import Session, select
 
 from api.enums import CollectionPermissionEnum
+from api.environment import config
 from api.exceptions import (
     DuplicateItemException,
     ItemNotFoundException,
@@ -192,3 +193,88 @@ def get_user_collections(
         collections=collections,
         is_admin=user_is_admin,
     )
+
+
+def update_collection_by_id(
+    collection_id: UUID,
+    collection_details: CollectionBase,
+    session: Session,
+    user: User,
+    logger: StructuredLogger,
+) -> CollectionDto:
+    if collection := session.get(Collection, collection_id):
+        permissions = get_collection_permissions_for_user(user, collection, session)
+        if (
+            CollectionPermissionEnum.EDIT not in permissions
+            or CollectionPermissionEnum.VIEW not in permissions
+        ):
+            raise NoPermissionException(
+                error_code=401, message="Permission to edit collection not found"
+            )
+        collection.name = collection_details.name
+        collection.description = collection_details.description
+        session.add(collection)
+        session.commit()
+        session.refresh(collection)
+
+        is_manager = False
+        if user:
+            is_manager = (
+                session.scalar(
+                    select(func.count(UserCollection.user_id)).where(
+                        UserCollection.collection_id == collection.id,
+                        UserCollection.user_id == user.id,
+                        UserCollection.role == Role.MANAGER,
+                    )
+                )
+                > 0
+            )
+
+        logger.info(
+            "Collection {collection_name} updated by user {user}",
+            collection_name=collection.name,
+            user=user.email,
+        )
+        return CollectionDto(
+            id=collection.id,
+            name=collection.name,
+            description=collection.description,
+            created_at=collection.created_at,
+            is_manager=is_manager,
+        )
+    else:
+        logger.info("Collection {collection_id} not found", collection_id=collection_id)
+        raise ItemNotFoundException("Collection not found", 403)
+
+
+def delete_collection_by_id(
+    user: User, collection_id: UUID, session: Session, logger: StructuredLogger
+) -> UUID:
+    check_user_is_member_of_collection(
+        user, collection_id, session, struct_logger=logger
+    )
+    if collection := session.get(Collection, collection_id):
+        permissions = get_collection_permissions_for_user(user, collection, session)
+        if CollectionPermissionEnum.DELETE not in permissions:
+            raise NoPermissionException(
+                "Permission to delete collection not found", 401
+            )
+        objects = config.s3_client.list_objects_v2(
+            Bucket=config.data_s3_bucket, Prefix=f"{config.s3_prefix}/{collection_id}"
+        )
+        if contents := objects.get("Contents"):
+            object_keys = [{"Key": obj["Key"]} for obj in contents]
+            config.s3_client.delete_objects(
+                Bucket=config.data_s3_bucket, Delete={"Objects": object_keys}
+            )
+
+        session.delete(collection)
+        session.commit()
+        logger.info(
+            "Collection {collection_id}:{collection_name} deleted",
+            collection_id=collection_id,
+            collection_name=collection.name,
+        )
+        return collection_id
+    else:
+        raise ItemNotFoundException(error_code=404, message="Collection not found")
