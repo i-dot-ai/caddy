@@ -1,13 +1,9 @@
-from datetime import timedelta
-from io import BytesIO
 from typing import Annotated
-from urllib.parse import urlparse
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
 from i_dot_ai_utilities.logging.structured_logger import StructuredLogger
 from langchain_core.documents import Document
-from langchain_text_splitters import RecursiveCharacterTextSplitter
 from markitdown import MarkItDown, MarkItDownException
 from sqlalchemy import func
 from sqlmodel import Session, select
@@ -29,106 +25,27 @@ from api.models import (
     UserCollection,
     UserCollectionWithEmail,
     UserRoleList,
-    utc_now,
 )
-from api.scrape import Scraper
 from api.services import (
     create_new_collection,
+    create_resource_from_file,
+    create_resource_from_urls,
+    delete_collection_by_id,
     get_resources_by_collection_id,
     get_user_collections,
     update_collection_by_id,
-    delete_collection_by_id,
 )
 from api.types import (
     Chunks,
     CollectionBase,
     CollectionDto,
     CollectionsDto,
-    Role,
     UserRole,
 )
 
 router = APIRouter()  # Create an APIRouter instance
 md = MarkItDown()
 metric_writer = config.get_metrics_writer()
-
-
-def _split_text(text: str) -> list[Document]:
-    """
-    Split text into chunks using RecursiveCharacterTextSplitter.
-
-    Args:
-        text (str): The text to chunk.
-
-    Returns:
-        List[Document]: A list of Documents.
-    """
-    text_splitter = RecursiveCharacterTextSplitter(
-        chunk_size=2048,
-        chunk_overlap=100,
-        length_function=len,
-    )
-    document = Document(text)
-    return text_splitter.split_documents([document])
-
-
-def __process_resource(
-    resource_name: str,
-    collection_id: UUID,
-    content_type: str,
-    content: str | bytes,
-    session: Session,
-    user: User,
-    url: str | None = None,
-) -> tuple[Resource, timedelta]:
-    process_time_start = utc_now()
-    resource = Resource(
-        collection_id=collection_id,
-        filename=resource_name,
-        content_type=content_type,
-        url=url,
-        created_by=user,
-    )
-    session.add(resource)
-    session.commit()
-    session.refresh(resource)
-
-    if not url and type(content) is bytes:
-        # Assume the file is a File, not URL, so it can be uploaded to S3
-        # Take advantage of S3 upload and download to handle file conversion and to get back string body
-        config.s3_client.put_object(
-            Bucket=config.data_s3_bucket,
-            Key=f"{config.s3_prefix}/{collection_id}/{resource.id}/{resource_name}",
-            Body=content,
-        )
-        s3_object = config.s3_client.get_object(
-            Bucket=config.data_s3_bucket,
-            Key=f"{config.s3_prefix}/{resource.collection_id}/{resource.id}/{resource.filename}",
-        )
-
-        s3_content = BytesIO(s3_object["Body"].read())
-        content = md.convert(s3_content).text_content
-
-    documents = _split_text(content)
-
-    embeddings = config.embedding_model.embed_documents(
-        [d.page_content for d in documents]
-    )
-
-    for order, (document, embedding) in enumerate(zip(documents, embeddings)):
-        text_chunk = TextChunk(
-            text=document.page_content,
-            order=order,
-            resource=resource,
-            embedding=embedding,
-        )
-        session.add(text_chunk)
-    resource.is_processed = True
-    resource.process_time = utc_now() - process_time_start
-    session.add(resource)
-    session.commit()
-
-    return resource, (utc_now() - process_time_start)
 
 
 @router.get(
@@ -271,64 +188,24 @@ def create_resource(
     Returns:
         Resource
     """
-    __check_user_is_member_of_collection(
-        user, collection_id, session, struct_logger=logger
-    )
-
     try:
-        resource, processing_time = __process_resource(
-            resource_name=file.filename,
+        result = create_resource_from_file(user, collection_id, session, logger, file)
+    except NoPermissionException as e:
+        logger.exception(
+            "Permission to create resources on collection {collection_id} failed",
             collection_id=collection_id,
-            content_type=file.content_type,
-            content=file.file.read(),
-            session=session,
-            user=user,
-            url=None,
         )
+        raise HTTPException(status_code=e.error_code, detail=str(e))
+    except ItemNotFoundException as e:
+        logger.exception(
+            "Collection {collection_id} not found", collection_id=collection_id
+        )
+        raise HTTPException(status_code=e.error_code, detail=str(e))
     except MarkItDownException:
-        raise HTTPException(
-            status_code=422, detail="An issue occurred processing this file"
-        )
-    except Exception:
-        raise HTTPException(
-            status_code=422, detail="An issue occurred processing this file"
-        )
+        logger.exception("An error in markitdown occurred")
+        raise HTTPException(detail="An error in markitdown occurred", status_code=500)
     else:
-        session.commit()
-        session.refresh(resource)
-
-        metric_writer.put_metric(
-            metric_name="resource_created",
-            value=1,
-            dimensions={
-                "file_type": resource.content_type,
-            },
-        )
-        metric_writer.put_metric(
-            metric_name="resource_created_duration_ms",
-            value=processing_time.total_seconds() * 1000,
-            dimensions={
-                "file_type": resource.content_type,
-            },
-        )
-        metric_writer.put_metric(
-            metric_name="resource_created_size_bytes",
-            value=file.size,
-            dimensions={
-                "file_type": resource.content_type,
-            },
-        )
-
-        logger.info(
-            "Resource created from file upload. File name: {file_name}. File type: {file_type}. File size (bytes): {file_size}. User: {user}. Processing time (ms): {processing_time}.",
-            file_name=file.filename,
-            file_type=file.content_type,
-            file_size=file.size,
-            user=user,
-            processing_time=processing_time,
-        )
-
-        return resource
+        return result
 
 
 @router.post(
@@ -354,60 +231,23 @@ async def create_resources_from_url_list(
     Returns:
         Resources
     """
-    __check_user_is_member_of_collection(
-        user, collection_id, session, struct_logger=logger
-    )
-    scrape_time_start = utc_now()
-    for url in urls:
-        parsed = urlparse(url)
-        if not parsed.scheme or not parsed.netloc:
-            raise HTTPException(
-                status_code=422, detail=f"Unsupported URL ({url}) found in URL list"
-            )
-
-    scraper = Scraper(logger)
-    files = await scraper.download_urls(urls)
-    scrape_processing_time = utc_now() - scrape_time_start
     try:
-        resources = []
-        processing_total = timedelta()
-        for file in files:
-            resource, resource_processing_time = __process_resource(
-                url=file.url,
-                resource_name=file.title,
-                collection_id=collection_id,
-                content_type=file.content_type,
-                content=file.markdown,
-                session=session,
-                user=user,
-            )
-            session.add(resource)
-            session.commit()
-            session.refresh(resource)
-            resources.append(resource)
-            processing_total += resource_processing_time
-        logger.info("Finished scraping from urls")
-        for resource in resources:
-            session.refresh(resource)
-        metric_writer.put_metric(
-            metric_name="resource_created_from_url_call_count",
-            value=1,
+        result = await create_resource_from_urls(
+            user, session, collection_id, logger, urls
         )
-        metric_writer.put_metric(
-            metric_name="resource_from_urls_created_duration_ms_total",
-            value=(scrape_processing_time + processing_total).total_seconds() * 1000,
+    except NoPermissionException as e:
+        logger.exception(
+            "Permission to create resources on collection {collection_id} failed",
+            collection_id=collection_id,
         )
-        logger.info(
-            "Resource created from url scrape. URl count: {url_count}. User: {user}. Processing time (ms): {processing_time}.",
-            url_count=len(urls),
-            user=user,
-            processing_time=(scrape_processing_time + processing_total).total_seconds()
-            * 1000,
+        raise HTTPException(status_code=e.error_code, detail=str(e))
+    except ItemNotFoundException as e:
+        logger.exception(
+            "Collection {collection_id} not found", collection_id=collection_id
         )
-        return resources
-    except Exception:
-        logger.exception("Error uploading urls")
-        raise HTTPException(status_code=422, detail="Failed to upload resources")
+        raise HTTPException(status_code=e.error_code, detail=str(e))
+    else:
+        return result
 
 
 @router.get(

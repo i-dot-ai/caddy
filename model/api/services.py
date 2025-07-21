@@ -1,6 +1,13 @@
+from datetime import timedelta
+from io import BytesIO
+from urllib.parse import urlparse
 from uuid import UUID
 
+from fastapi import File
 from i_dot_ai_utilities.logging.structured_logger import StructuredLogger
+from langchain_core.documents import Document
+from langchain_text_splitters import RecursiveCharacterTextSplitter
+from markitdown import MarkItDown
 from sqlalchemy import func
 from sqlmodel import Session, select
 
@@ -8,6 +15,7 @@ from api.enums import CollectionPermissionEnum
 from api.environment import config
 from api.exceptions import (
     DuplicateItemException,
+    InvalidUrlFormatException,
     ItemNotFoundException,
     NoPermissionException,
 )
@@ -15,8 +23,10 @@ from api.models import (
     Collection,
     CollectionResources,
     Resource,
+    TextChunk,
     User,
     UserCollection,
+    utc_now,
 )
 from api.permissions import (
     check_user_is_member_of_collection,
@@ -24,12 +34,94 @@ from api.permissions import (
     get_resource_permissions_for_user,
     is_user_admin_user,
 )
+from api.scrape import Scraper
 from api.types import (
     CollectionBase,
     CollectionDto,
     CollectionsDto,
     Role,
 )
+
+metric_writer = config.get_metrics_writer()
+md = MarkItDown()
+
+
+def _split_text(text: str) -> list[Document]:
+    """
+    Split text into chunks using RecursiveCharacterTextSplitter.
+
+    Args:
+        text (str): The text to chunk.
+
+    Returns:
+        List[Document]: A list of Documents.
+    """
+    text_splitter = RecursiveCharacterTextSplitter(
+        chunk_size=2048,
+        chunk_overlap=100,
+        length_function=len,
+    )
+    document = Document(text)
+    return text_splitter.split_documents([document])
+
+
+def __process_resource(
+    resource_name: str,
+    collection_id: UUID,
+    content_type: str,
+    content: str | bytes,
+    session: Session,
+    user: User,
+    url: str | None = None,
+) -> tuple[Resource, timedelta]:
+    process_time_start = utc_now()
+    resource = Resource(
+        collection_id=collection_id,
+        filename=resource_name,
+        content_type=content_type,
+        url=url,
+        created_by=user,
+    )
+    session.add(resource)
+    session.commit()
+    session.refresh(resource)
+
+    if not url and type(content) is bytes:
+        # Assume the file is a File, not URL, so it can be uploaded to S3
+        # Take advantage of S3 upload and download to handle file conversion and to get back string body
+        config.s3_client.put_object(
+            Bucket=config.data_s3_bucket,
+            Key=f"{config.s3_prefix}/{collection_id}/{resource.id}/{resource_name}",
+            Body=content,
+        )
+        s3_object = config.s3_client.get_object(
+            Bucket=config.data_s3_bucket,
+            Key=f"{config.s3_prefix}/{resource.collection_id}/{resource.id}/{resource.filename}",
+        )
+
+        s3_content = BytesIO(s3_object["Body"].read())
+        content = md.convert(s3_content).text_content
+
+    documents = _split_text(content)
+
+    embeddings = config.embedding_model.embed_documents(
+        [d.page_content for d in documents]
+    )
+
+    for order, (document, embedding) in enumerate(zip(documents, embeddings)):
+        text_chunk = TextChunk(
+            text=document.page_content,
+            order=order,
+            resource=resource,
+            embedding=embedding,
+        )
+        session.add(text_chunk)
+    resource.is_processed = True
+    resource.process_time = utc_now() - process_time_start
+    session.add(resource)
+    session.commit()
+
+    return resource, (utc_now() - process_time_start)
 
 
 def get_resources_by_collection_id(
@@ -276,5 +368,139 @@ def delete_collection_by_id(
             collection_name=collection.name,
         )
         return collection_id
+    else:
+        raise ItemNotFoundException(error_code=404, message="Collection not found")
+
+
+def create_resource_from_file(
+    user: User,
+    collection_id: UUID,
+    session: Session,
+    logger: StructuredLogger,
+    file: File,
+) -> Resource:
+    check_user_is_member_of_collection(
+        user, collection_id, session, struct_logger=logger
+    )
+
+    if collection := session.get(Collection, collection_id):
+        permissions = get_collection_permissions_for_user(user, collection, session)
+        if CollectionPermissionEnum.MANAGE_RESOURCES not in permissions:
+            raise NoPermissionException(
+                "User does not have permission to manage resources for this collection"
+            )
+
+        resource, processing_time = __process_resource(
+            resource_name=file.filename,
+            collection_id=collection_id,
+            content_type=file.content_type,
+            content=file.file.read(),
+            session=session,
+            user=user,
+            url=None,
+        )
+        session.commit()
+        session.refresh(resource)
+
+        metric_writer.put_metric(
+            metric_name="resource_created",
+            value=1,
+            dimensions={
+                "file_type": resource.content_type,
+            },
+        )
+        metric_writer.put_metric(
+            metric_name="resource_created_duration_ms",
+            value=processing_time.total_seconds() * 1000,
+            dimensions={
+                "file_type": resource.content_type,
+            },
+        )
+        metric_writer.put_metric(
+            metric_name="resource_created_size_bytes",
+            value=file.size,
+            dimensions={
+                "file_type": resource.content_type,
+            },
+        )
+
+        logger.info(
+            "Resource created from file upload. File name: {file_name}. File type: {file_type}. File size (bytes): {file_size}. User: {user}. Processing time (ms): {processing_time}.",
+            file_name=file.filename,
+            file_type=file.content_type,
+            file_size=file.size,
+            user=user,
+            processing_time=processing_time,
+        )
+
+        return resource
+    else:
+        raise ItemNotFoundException(error_code=404, message="Collection not found")
+
+
+async def create_resource_from_urls(
+    user: User,
+    session: Session,
+    collection_id: UUID,
+    logger: StructuredLogger,
+    urls: list[str],
+) -> list[Resource]:
+    check_user_is_member_of_collection(
+        user, collection_id, session, struct_logger=logger
+    )
+    if collection := session.get(Collection, collection_id):
+        permissions = get_collection_permissions_for_user(user, collection, session)
+        if CollectionPermissionEnum.MANAGE_RESOURCES not in permissions:
+            raise NoPermissionException(
+                "User does not have permission to manage resources for this collection",
+                error_code=401,
+            )
+        scrape_time_start = utc_now()
+        for url in urls:
+            parsed = urlparse(url)
+            if not parsed.scheme or not parsed.netloc:
+                raise InvalidUrlFormatException(
+                    error_code=422, message=f"Unsupported URL ({url}) found in URL list"
+                )
+
+        scraper = Scraper(logger)
+        files = await scraper.download_urls(urls)
+        scrape_processing_time = utc_now() - scrape_time_start
+        resources = []
+        processing_total = timedelta()
+        for file in files:
+            resource, resource_processing_time = __process_resource(
+                url=file.url,
+                resource_name=file.title,
+                collection_id=collection_id,
+                content_type=file.content_type,
+                content=file.markdown,
+                session=session,
+                user=user,
+            )
+            session.add(resource)
+            session.commit()
+            session.refresh(resource)
+            resources.append(resource)
+            processing_total += resource_processing_time
+        logger.info("Finished scraping from urls")
+        for resource in resources:
+            session.refresh(resource)
+        metric_writer.put_metric(
+            metric_name="resource_created_from_url_call_count",
+            value=1,
+        )
+        metric_writer.put_metric(
+            metric_name="resource_from_urls_created_duration_ms_total",
+            value=(scrape_processing_time + processing_total).total_seconds() * 1000,
+        )
+        logger.info(
+            "Resource created from url scrape. URl count: {url_count}. User: {user}. Processing time (ms): {processing_time}.",
+            url_count=len(urls),
+            user=user,
+            processing_time=(scrape_processing_time + processing_total).total_seconds()
+            * 1000,
+        )
+        return resources
     else:
         raise ItemNotFoundException(error_code=404, message="Collection not found")
