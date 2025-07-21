@@ -1277,17 +1277,19 @@ pyreadline3 = {version = "*", markers = "sys_platform == \"win32\" and python_ve
 
 [[package]]
 name = "i-dot-ai-utilities"
-version = "0.2.0"
+version = "0.2.2"
 description = "Utilities for i.ai to use"
 optional = false
 python-versions = "<4.0,>=3.10"
 groups = ["main"]
 files = [
-    {file = "i_dot_ai_utilities-0.2.0-py3-none-any.whl", hash = "sha256:efb2153e3b2192eae5935abfd493fece2dd6584cad136849fdee94eb18f817a9"},
-    {file = "i_dot_ai_utilities-0.2.0.tar.gz", hash = "sha256:eb67bd1f6101e324f7a7b3da5dd7c5f023e727d5bf52328f61fcecd71e36ec93"},
+    {file = "i_dot_ai_utilities-0.2.2-py3-none-any.whl", hash = "sha256:0451a2ed2a7130a1a9f813b7b8e746208800fe1f425f145faae8a94d8b6fc366"},
+    {file = "i_dot_ai_utilities-0.2.2.tar.gz", hash = "sha256:4df6004e1916bef2b2f3cf5048a047fb271186a98a97e39c36d345555249dfed"},
 ]
 
 [package.dependencies]
+pydantic = ">=2.11.7"
+pydantic-settings = ">=2.10.1"
 requests = ">=2.32.3"
 structlog = ">=25.4.0"
 
@@ -5045,4 +5047,4 @@ cffi = ["cffi (>=1.11)"]
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.12"
-content-hash = "a5169f92e8d5dea6480eb9084b3fece695819823ed22df83fa7d5093c9e02a76"
+content-hash = "05a8c36555832d48d2b942849648bba32514744dadf1a9a82617e6210fc06eae"
