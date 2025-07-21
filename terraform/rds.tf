@@ -20,5 +20,5 @@ module "rds" {
   env                                   = var.env
   rds_vpn_access_ips                    = var.developer_ips
   enable_performance_insights           = var.env == "dev" ? false : true
-  performance_insights_retention_period = var.env == "dev" ? 1 : 7
+  performance_insights_retention_period = var.env == "dev" ? null : 7
 }
