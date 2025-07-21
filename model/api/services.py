@@ -40,7 +40,7 @@ def get_user_collections(
         .join(UserCollection, isouter=True)
         .where(*where_clauses)
         .distinct()
-        .order_by(Collection.id)
+        .order_by(Collection.name)
         .offset(page_size * (page - 1))
         .limit(page_size)
     )
