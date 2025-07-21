@@ -141,29 +141,27 @@ def get_collection_resources(
     page_size: int = Query(10, ge=1),
 ) -> CollectionResources:
     """returns a list of resources belonging to this collection"""
-    if collection := session.get(Collection, collection_id):
-        try:
-            return get_resources_by_collection_id(
-                user, session, collection, logger, page_size, page
-            )
-        except NoPermissionException as e:
-            logger.exception(
-                "Unable to return resources for collection {collection_id}",
-                collection_id=collection_id,
-            )
-            raise HTTPException(
-                status_code=e.error_code,
-                detail=e.message,
-            )
-        except ItemNotFoundException as e:
-            logger.exception(
-                "Collection {collection_id} not found", collection_id=collection_id
-            )
-            raise HTTPException(
-                status_code=e.error_code,
-                detail=e.message,
-            )
-    raise HTTPException(status_code=404)
+    try:
+        return get_resources_by_collection_id(
+            user, session, collection_id, logger, page_size, page
+        )
+    except NoPermissionException as e:
+        logger.exception(
+            "Unable to return resources for collection {collection_id}",
+            collection_id=collection_id,
+        )
+        raise HTTPException(
+            status_code=e.error_code,
+            detail=e.message,
+        )
+    except ItemNotFoundException as e:
+        logger.exception(
+            "Collection {collection_id} not found", collection_id=collection_id
+        )
+        raise HTTPException(
+            status_code=e.error_code,
+            detail=e.message,
+        )
 
 
 @router.post("/collections", status_code=201, tags=["collections"])

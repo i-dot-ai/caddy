@@ -1,9 +1,15 @@
+from uuid import UUID
+
 from i_dot_ai_utilities.logging.structured_logger import StructuredLogger
 from sqlalchemy import func
 from sqlmodel import Session, select
 
 from api.enums import CollectionPermissionEnum
-from api.exceptions import DuplicateItemException, NoPermissionException
+from api.exceptions import (
+    DuplicateItemException,
+    ItemNotFoundException,
+    NoPermissionException,
+)
 from api.models import (
     Collection,
     CollectionResources,
@@ -28,52 +34,55 @@ from api.types import (
 def get_resources_by_collection_id(
     user: User,
     session: Session,
-    collection: Collection,
+    collection_id: UUID,
     logger: StructuredLogger,
     page_size: int = 10,
     page: int = 1,
 ) -> CollectionResources:
-    check_user_is_member_of_collection(
-        user, collection.id, session, is_manager=False, struct_logger=logger
-    )
-    permissions = get_collection_permissions_for_user(user, collection, session)
-    if permissions is None or CollectionPermissionEnum.VIEW not in permissions:
-        raise NoPermissionException(
-            "No permission to view resources on this collection", 401
+    if collection := session.get(Collection, collection_id):
+        check_user_is_member_of_collection(
+            user, collection.id, session, is_manager=False, struct_logger=logger
         )
-    resources_statement = (
-        select(Resource)
-        .where(Resource.collection_id == collection.id)
-        .order_by(Resource.filename)
-        .offset(page_size * (page - 1))
-        .limit(page_size)
-    )
-    resources = session.exec(resources_statement).all()
+        permissions = get_collection_permissions_for_user(user, collection, session)
+        if permissions is None or CollectionPermissionEnum.VIEW not in permissions:
+            raise NoPermissionException(
+                "No permission to view resources on this collection", 401
+            )
+        resources_statement = (
+            select(Resource)
+            .where(Resource.collection_id == collection.id)
+            .order_by(Resource.filename)
+            .offset(page_size * (page - 1))
+            .limit(page_size)
+        )
+        resources = session.exec(resources_statement).all()
 
-    count_statement = select(func.count(Resource.id)).where(
-        Resource.collection_id == collection.id
-    )
-    total = session.scalar(count_statement)
+        count_statement = select(func.count(Resource.id)).where(
+            Resource.collection_id == collection.id
+        )
+        total = session.scalar(count_statement)
 
-    logger.info(
-        "Retrieved collection {collection_id} resources ({resource_count}) for user {user_id}",
-        collection_id=collection.id,
-        resource_count=total,
-        user_id=user.id,
-    )
-
-    for resource in resources:
-        resource.permissions = get_resource_permissions_for_user(
-            user, resource, session
+        logger.info(
+            "Retrieved collection {collection_id} resources ({resource_count}) for user {user_id}",
+            collection_id=collection.id,
+            resource_count=total,
+            user_id=user.id,
         )
 
-    return CollectionResources(
-        collection_id=collection.id,
-        page=page,
-        total=total,
-        page_size=page_size,
-        resources=resources,
-    )
+        for resource in resources:
+            resource.permissions = get_resource_permissions_for_user(
+                user, resource, session
+            )
+
+        return CollectionResources(
+            collection_id=collection.id,
+            page=page,
+            total=total,
+            page_size=page_size,
+            resources=resources,
+        )
+    else:
+        raise ItemNotFoundException("Collection not found", 403)
 
 
 def create_new_collection(
