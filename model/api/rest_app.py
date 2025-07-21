@@ -704,7 +704,7 @@ def get_collections_user_roles(
         select(UserCollection, User.email.label("user_email"))
         .where(UserCollection.collection_id == collection_id)
         .join(User, UserCollection.user_id == User.id)
-        .order_by(UserCollection.created_at)
+        .order_by(UserCollection.user.email)
         .offset(page_size * (page - 1))
         .limit(page_size)
     )
