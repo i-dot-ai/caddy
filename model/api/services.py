@@ -26,7 +26,9 @@ from api.models import (
     TextChunk,
     User,
     UserCollection,
-    utc_now, UserRoleList, UserCollectionWithEmail,
+    UserCollectionWithEmail,
+    UserRoleList,
+    utc_now,
 )
 from api.permissions import (
     check_user_is_member_of_collection,
@@ -36,10 +38,12 @@ from api.permissions import (
 )
 from api.scrape import Scraper
 from api.types import (
+    Chunks,
     CollectionBase,
     CollectionDto,
     CollectionsDto,
-    Role, Chunks, UserRole,
+    Role,
+    UserRole,
 )
 
 metric_writer = config.get_metrics_writer()
@@ -506,7 +510,15 @@ async def create_resource_from_urls(
         raise ItemNotFoundException(error_code=404, message="Collection not found")
 
 
-def get_documents_for_resource_by_id(user: User, collection_id: UUID, session: Session, logger: StructuredLogger, resource_id: UUID, page: int = 1, page_size: int = 10) -> Chunks:
+def get_documents_for_resource_by_id(
+    user: User,
+    collection_id: UUID,
+    session: Session,
+    logger: StructuredLogger,
+    resource_id: UUID,
+    page: int = 1,
+    page_size: int = 10,
+) -> Chunks:
     check_user_is_member_of_collection(
         user, collection_id, session, is_manager=False, struct_logger=logger
     )
@@ -520,11 +532,18 @@ def get_documents_for_resource_by_id(user: User, collection_id: UUID, session: S
     if not collection:
         raise ItemNotFoundException(error_code=404, message="Collection not found")
 
-    collection_permissions = get_collection_permissions_for_user(user, collection, session)
+    collection_permissions = get_collection_permissions_for_user(
+        user, collection, session
+    )
     resource_permissions = get_collection_permissions_for_user(user, resource, session)
 
-    if CollectionPermissionEnum.VIEW not in collection_permissions or ResourcePermissionEnum.VIEW not in resource_permissions:
-        raise NoPermissionException(error_code=401, message="No permission to view documents for this resource")
+    if (
+        CollectionPermissionEnum.VIEW not in collection_permissions
+        or ResourcePermissionEnum.VIEW not in resource_permissions
+    ):
+        raise NoPermissionException(
+            error_code=401, message="No permission to view documents for this resource"
+        )
 
     statement = (
         select(TextChunk)
@@ -573,7 +592,13 @@ def get_documents_for_resource_by_id(user: User, collection_id: UUID, session: S
     )
 
 
-def delete_resource_by_id(user: User, session: Session, collection_id: UUID, resource_id: UUID, logger: StructuredLogger) -> UUID:
+def delete_resource_by_id(
+    user: User,
+    session: Session,
+    collection_id: UUID,
+    resource_id: UUID,
+    logger: StructuredLogger,
+) -> UUID:
     check_user_is_member_of_collection(
         user, collection_id, session, struct_logger=logger
     )
@@ -582,7 +607,10 @@ def delete_resource_by_id(user: User, session: Session, collection_id: UUID, res
         permissions = get_resource_permissions_for_user(user, resource, session)
 
         if ResourcePermissionEnum.DELETE not in permissions:
-            raise NoPermissionException(error_code=401, message="No permission to delete documents for this resource")
+            raise NoPermissionException(
+                error_code=401,
+                message="No permission to delete documents for this resource",
+            )
 
         config.s3_client.delete_object(
             Bucket=config.data_s3_bucket,
@@ -596,7 +624,14 @@ def delete_resource_by_id(user: User, session: Session, collection_id: UUID, res
     else:
         raise ItemNotFoundException(error_code=404, message="Resource not found")
 
-def get_resource_by_id(user: User, session: Session, collection_id: UUID, resource_id: UUID, logger: StructuredLogger) -> Resource:
+
+def get_resource_by_id(
+    user: User,
+    session: Session,
+    collection_id: UUID,
+    resource_id: UUID,
+    logger: StructuredLogger,
+) -> Resource:
     check_user_is_member_of_collection(
         user, collection_id, session, is_manager=False, struct_logger=logger
     )
@@ -604,21 +639,36 @@ def get_resource_by_id(user: User, session: Session, collection_id: UUID, resour
     if resource := session.get(Resource, resource_id):
         permissions = get_resource_permissions_for_user(user, resource, session)
         if ResourcePermissionEnum.VIEW not in permissions:
-            raise NoPermissionException(error_code=401, message="No permission to view this resource")
+            raise NoPermissionException(
+                error_code=401, message="No permission to view this resource"
+            )
         logger.info("Resource {resource_id} found ", resource_id=resource_id)
         return resource
     else:
         raise ItemNotFoundException(error_code=404, message="Resource not found")
 
-def get_collection_user_roles_by_id(user: User, session: Session, collection_id: UUID, logger: StructuredLogger, page: int = 1, page_size: int = 10) -> UserRoleList:
+
+def get_collection_user_roles_by_id(
+    user: User,
+    session: Session,
+    collection_id: UUID,
+    logger: StructuredLogger,
+    page: int = 1,
+    page_size: int = 10,
+) -> UserRoleList:
     check_user_is_member_of_collection(
         user, collection_id, session, struct_logger=logger
     )
 
     if session.get(Collection, collection_id):
         permissions = get_collection_permissions_for_user(user, collection_id, session)
-        if CollectionPermissionEnum.VIEW not in permissions or CollectionPermissionEnum.MANAGE_USERS not in permissions:
-            raise NoPermissionException(error_code=401, message="No permission to view this collections users")
+        if (
+            CollectionPermissionEnum.VIEW not in permissions
+            or CollectionPermissionEnum.MANAGE_USERS not in permissions
+        ):
+            raise NoPermissionException(
+                error_code=401, message="No permission to view this collections users"
+            )
 
         statement = (
             select(UserCollection, User.email.label("user_email"))
@@ -644,12 +694,22 @@ def get_collection_user_roles_by_id(user: User, session: Session, collection_id:
             total=total,
         )
         return UserRoleList(
-            page=page, page_size=page_size, total=total, user_roles=user_roles_with_emails
+            page=page,
+            page_size=page_size,
+            total=total,
+            user_roles=user_roles_with_emails,
         )
     else:
         raise ItemNotFoundException(error_code=404, message="Collection not found")
 
-def create_user_role_on_collection(user: User, session: Session, user_role: UserRole, collection_id: UUID, logger: StructuredLogger) -> UserCollection:
+
+def create_user_role_on_collection(
+    user: User,
+    session: Session,
+    user_role: UserRole,
+    collection_id: UUID,
+    logger: StructuredLogger,
+) -> UserCollection:
     if collection := session.get(Collection, collection_id):
         check_user_is_member_of_collection(
             user, collection_id, session, struct_logger=logger
@@ -657,7 +717,9 @@ def create_user_role_on_collection(user: User, session: Session, user_role: User
 
         permissions = get_collection_permissions_for_user(user, collection, session)
         if CollectionPermissionEnum.MANAGE_USERS not in permissions:
-            raise NoPermissionException(error_code=401, message="No permission to manage users")
+            raise NoPermissionException(
+                error_code=401, message="No permission to manage users"
+            )
 
         user_to_add = User.get_by_email(session, user_role.email)
 
@@ -668,7 +730,7 @@ def create_user_role_on_collection(user: User, session: Session, user_role: User
             session.refresh(user_to_add)
 
         if user_collection := session.get(
-                UserCollection, {"collection_id": collection_id, "user_id": user_to_add.id}
+            UserCollection, {"collection_id": collection_id, "user_id": user_to_add.id}
         ):
             user_collection.role = user_role.role
         else:
@@ -691,12 +753,23 @@ def create_user_role_on_collection(user: User, session: Session, user_role: User
     else:
         raise ItemNotFoundException(error_code=404, message="Collection not found")
 
-def delete_user_role_from_collection(user: User, session: Session, collection_id: UUID, user_id: UUID, logger: StructuredLogger) -> bool:
+
+def delete_user_role_from_collection(
+    user: User,
+    session: Session,
+    collection_id: UUID,
+    user_id: UUID,
+    logger: StructuredLogger,
+) -> bool:
     if collection := session.get(Collection, collection_id):
         if not session.get(User, user_id):
-            raise ItemNotFoundException(error_code=404, message="User to remove not found")
+            raise ItemNotFoundException(
+                error_code=404, message="User to remove not found"
+            )
 
-        if user_role := session.get(UserCollection, {"user_id": user_id, "collection_id": collection_id}):
+        if user_role := session.get(
+            UserCollection, {"user_id": user_id, "collection_id": collection_id}
+        ):
             check_user_is_member_of_collection(
                 user, collection_id, session, struct_logger=logger
             )
@@ -704,7 +777,10 @@ def delete_user_role_from_collection(user: User, session: Session, collection_id
             permissions = get_collection_permissions_for_user(user, collection, session)
 
             if CollectionPermissionEnum.MANAGE_USERS not in permissions:
-                raise NoPermissionException(error_code=401, message="No permission to manage users for this collection")
+                raise NoPermissionException(
+                    error_code=401,
+                    message="No permission to manage users for this collection",
+                )
 
             session.delete(user_role)
             session.commit()
@@ -715,6 +791,8 @@ def delete_user_role_from_collection(user: User, session: Session, collection_id
             )
             return True
         else:
-            raise ItemNotFoundException(error_code=404, message="User is not added to the given collection")
+            raise ItemNotFoundException(
+                error_code=404, message="User is not added to the given collection"
+            )
     else:
         raise ItemNotFoundException(error_code=404, message="Collection not found")

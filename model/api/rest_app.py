@@ -3,10 +3,8 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
 from i_dot_ai_utilities.logging.structured_logger import StructuredLogger
-from langchain_core.documents import Document
 from markitdown import MarkItDown, MarkItDownException
-from sqlalchemy import func
-from sqlmodel import Session, select
+from sqlmodel import Session
 
 from api.auth import get_current_user
 from api.depends import get_logger
@@ -20,21 +18,24 @@ from api.models import (
     Collection,
     CollectionResources,
     Resource,
-    TextChunk,
     User,
     UserCollection,
-    UserCollectionWithEmail,
     UserRoleList,
 )
 from api.services import (
     create_new_collection,
     create_resource_from_file,
     create_resource_from_urls,
+    create_user_role_on_collection,
     delete_collection_by_id,
+    delete_resource_by_id,
+    delete_user_role_from_collection,
+    get_collection_user_roles_by_id,
+    get_documents_for_resource_by_id,
+    get_resource_by_id,
     get_resources_by_collection_id,
     get_user_collections,
-    update_collection_by_id, get_documents_for_resource_by_id, delete_resource_by_id, get_resource_by_id,
-    get_collection_user_roles_by_id, create_user_role_on_collection, delete_user_role_from_collection,
+    update_collection_by_id,
 )
 from api.types import (
     Chunks,
@@ -267,20 +268,29 @@ def get_resource_documents(
 ) -> Chunks:
     """get a documents belonging to a resource"""
     try:
-        result = get_documents_for_resource_by_id(user, collection_id, session, logger, resource_id, page, page_size)
+        result = get_documents_for_resource_by_id(
+            user, collection_id, session, logger, resource_id, page, page_size
+        )
     except NoPermissionException as e:
-        logger.exception("Permission to get documents on collection {collection_id} and resource {resource_id} failed", collection_id=collection_id, resource_id=resource_id)
+        logger.exception(
+            "Permission to get documents on collection {collection_id} and resource {resource_id} failed",
+            collection_id=collection_id,
+            resource_id=resource_id,
+        )
         raise HTTPException(status_code=e.error_code, detail=str(e))
     except ItemNotFoundException as e:
         is_resource = str(e) == "Resource not found"
         if is_resource:
-            logger.exception("Resource {resource_id} not found", resource_id=resource_id)
+            logger.exception(
+                "Resource {resource_id} not found", resource_id=resource_id
+            )
         else:
-            logger.exception("Collection {collection_id} not found", collection_id=collection_id)
+            logger.exception(
+                "Collection {collection_id} not found", collection_id=collection_id
+            )
         raise HTTPException(status_code=e.error_code, detail=str(e))
     else:
         return result
-
 
 
 @router.delete(
@@ -297,12 +307,22 @@ def delete_resource(
 ) -> UUID:
     """delete a resource"""
     try:
-        result = delete_resource_by_id(user, session, collection_id, resource_id, logger)
+        result = delete_resource_by_id(
+            user, session, collection_id, resource_id, logger
+        )
     except NoPermissionException as e:
-        logger.exception("Permission to delete resource {resource_id} on collection {collection_id} failed", resource_id=resource_id, collection_id=collection_id)
+        logger.exception(
+            "Permission to delete resource {resource_id} on collection {collection_id} failed",
+            resource_id=resource_id,
+            collection_id=collection_id,
+        )
         raise HTTPException(status_code=e.error_code, detail=str(e))
     except ItemNotFoundException as e:
-        logger.exception("Resource {resource_id} or collection {collection_id} not found", resource_id=resource_id, collection_id=collection_id)
+        logger.exception(
+            "Resource {resource_id} or collection {collection_id} not found",
+            resource_id=resource_id,
+            collection_id=collection_id,
+        )
         raise HTTPException(status_code=e.error_code, detail=str(e))
     else:
         return result
@@ -324,10 +344,18 @@ def get_resource(
     try:
         result = get_resource_by_id(user, session, collection_id, resource_id, logger)
     except NoPermissionException as e:
-        logger.exception("Permission to view resource {resource_id} on collection {collection_id} not found", resource_id=resource_id, collection_id=collection_id)
+        logger.exception(
+            "Permission to view resource {resource_id} on collection {collection_id} not found",
+            resource_id=resource_id,
+            collection_id=collection_id,
+        )
         raise HTTPException(status_code=e.error_code, detail=str(e))
     except ItemNotFoundException as e:
-        logger.exception("Resource {resource_id} or collection {collection_id} not found", resource_id=resource_id, collection_id=collection_id)
+        logger.exception(
+            "Resource {resource_id} or collection {collection_id} not found",
+            resource_id=resource_id,
+            collection_id=collection_id,
+        )
         raise HTTPException(status_code=e.error_code, detail=str(e))
     else:
         return result
@@ -364,7 +392,8 @@ def get_collections(
         raise HTTPException(status_code=e.error_code, detail=e.message)
     except Exception:
         logger.exception(
-            "Generic error occurred whilst retrieving available collections for user {user}", user=user.email
+            "Generic error occurred whilst retrieving available collections for user {user}",
+            user=user.email,
         )
         raise HTTPException(
             status_code=500, detail="Failed to retrieve available collections"
@@ -383,12 +412,19 @@ def get_collections_user_roles(
     page_size: int = Query(10, ge=1),
 ) -> UserRoleList:
     try:
-        result = get_collection_user_roles_by_id(user, session, collection_id, logger, page, page_size)
+        result = get_collection_user_roles_by_id(
+            user, session, collection_id, logger, page, page_size
+        )
     except NoPermissionException as e:
-        logger.exception("Permission to view users on collection {collection_id} not found", collection_id=collection_id)
+        logger.exception(
+            "Permission to view users on collection {collection_id} not found",
+            collection_id=collection_id,
+        )
         raise HTTPException(status_code=e.error_code, detail=str(e))
     except ItemNotFoundException as e:
-        logger.exception("Collection {collection_id} not found", collection_id=collection_id)
+        logger.exception(
+            "Collection {collection_id} not found", collection_id=collection_id
+        )
         raise HTTPException(status_code=e.error_code, detail=str(e))
     else:
         return result
@@ -403,12 +439,19 @@ def create_collections_user_role(
     logger: StructuredLogger = Depends(get_logger(__name__)),
 ) -> UserCollection:
     try:
-        result = create_user_role_on_collection(user, session, user_role, collection_id, logger)
+        result = create_user_role_on_collection(
+            user, session, user_role, collection_id, logger
+        )
     except NoPermissionException as e:
-        logger.exception("Permission to manage users on collection {collection_id} not found", collection_id=collection_id)
+        logger.exception(
+            "Permission to manage users on collection {collection_id} not found",
+            collection_id=collection_id,
+        )
         raise HTTPException(status_code=e.error_code, detail=str(e))
     except ItemNotFoundException as e:
-        logger.exception("Collection {collection_id} not found", collection_id=collection_id)
+        logger.exception(
+            "Collection {collection_id} not found", collection_id=collection_id
+        )
         raise HTTPException(status_code=e.error_code, detail=str(e))
     else:
         return result
@@ -427,9 +470,14 @@ def delete_collections_user_role(
     logger: StructuredLogger = Depends(get_logger(__name__)),
 ) -> bool:
     try:
-        result = delete_user_role_from_collection(user, session, collection_id, user_id, logger)
+        result = delete_user_role_from_collection(
+            user, session, collection_id, user_id, logger
+        )
     except NoPermissionException as e:
-        logger.exception("Permission to manage users on collection {collection_id} not found", collection_id=collection_id)
+        logger.exception(
+            "Permission to manage users on collection {collection_id} not found",
+            collection_id=collection_id,
+        )
         raise HTTPException(status_code=e.error_code, detail=str(e))
     except ItemNotFoundException as e:
         logger.exception(str(e), collection_id=collection_id, user_id=user_id)
