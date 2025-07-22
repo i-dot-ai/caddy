@@ -25,7 +25,8 @@ setup_local_postgres:
 	psql -f model/scripts/postgres-init.sql
 
 run:
-	docker compose --env-file .env up
+	# will run with local client by default
+	docker compose -f docker-compose.yaml -f docker-compose-config/local-client.yaml up
 
 stop:
 	docker compose down
