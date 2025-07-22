@@ -11,7 +11,7 @@ from markitdown import MarkItDown
 from sqlalchemy import func
 from sqlmodel import Session, select
 
-from api.enums import CollectionPermissionEnum
+from api.enums import CollectionPermissionEnum, ResourcePermissionEnum
 from api.environment import config
 from api.exceptions import (
     DuplicateItemException,
@@ -39,7 +39,7 @@ from api.types import (
     CollectionBase,
     CollectionDto,
     CollectionsDto,
-    Role,
+    Role, Chunks,
 )
 
 metric_writer = config.get_metrics_writer()
@@ -504,3 +504,108 @@ async def create_resource_from_urls(
         return resources
     else:
         raise ItemNotFoundException(error_code=404, message="Collection not found")
+
+
+def get_documents_for_resource_by_id(user: User, collection_id: UUID, session: Session, logger: StructuredLogger, resource_id: UUID, page: int = 1, page_size: int = 10) -> Chunks:
+    check_user_is_member_of_collection(
+        user, collection_id, session, is_manager=False, struct_logger=logger
+    )
+
+    resource = session.get(Resource, resource_id)
+    collection = session.get(Collection, collection_id)
+
+    if not resource:
+        raise ItemNotFoundException(error_code=404, message="Resource not found")
+
+    if not collection:
+        raise ItemNotFoundException(error_code=404, message="Collection not found")
+
+    collection_permissions = get_collection_permissions_for_user(user, collection, session)
+    resource_permissions = get_collection_permissions_for_user(user, resource, session)
+
+    if CollectionPermissionEnum.VIEW not in collection_permissions or ResourcePermissionEnum.VIEW not in resource_permissions:
+        raise NoPermissionException(error_code=401, message="No permission to view documents for this resource")
+
+    statement = (
+        select(TextChunk)
+        .where(TextChunk.resource_id == resource_id)
+        .order_by(TextChunk.order)
+        .offset(page_size * (page - 1))
+        .limit(page_size)
+    )
+
+    text_chunks = session.exec(statement).all()
+
+    def to_document(tc: TextChunk):
+        return Document(
+            page_content=tc.text,
+            id=str(tc.id),
+            metadata={
+                "resource_id": tc.resource_id,
+                "filename": tc.resource.filename,
+                "content_type": tc.resource.content_type,
+                "chunk_order": tc.order,
+                "created_at": tc.created_at,
+            },
+        )
+
+    documents = [to_document(item) for item in text_chunks]
+
+    count_statement = select(func.count(TextChunk.id)).where(
+        TextChunk.resource_id == resource_id
+    )
+    total = session.exec(count_statement).one()
+
+    logger.info(
+        "{total} document(s) for resource {resource_id} retrieved by user {user}",
+        total=total,
+        resource_id=resource_id,
+        user=str(user),
+    )
+
+    return Chunks(
+        collection_id=collection_id,
+        resource_id=resource_id,
+        page=page,
+        total=total,
+        page_size=page_size,
+        documents=documents,
+    )
+
+
+def delete_resource_by_id(user: User, session: Session, collection_id: UUID, resource_id: UUID, logger: StructuredLogger) -> UUID:
+    check_user_is_member_of_collection(
+        user, collection_id, session, struct_logger=logger
+    )
+
+    if resource := session.get(Resource, resource_id):
+        permissions = get_resource_permissions_for_user(user, resource, session)
+
+        if ResourcePermissionEnum.DELETE not in permissions:
+            raise NoPermissionException(error_code=401, message="No permission to delete documents for this resource")
+
+        config.s3_client.delete_object(
+            Bucket=config.data_s3_bucket,
+            Key=f"{config.s3_prefix}/{collection_id}/{resource_id}",
+        )
+
+        session.delete(resource)
+        session.commit()
+        logger.info("Resource {resource_id} deleted", resource_id=resource_id)
+        return resource_id
+    else:
+        raise ItemNotFoundException(error_code=404, message="Resource not found")
+
+def get_resource_by_id(user: User, session: Session, collection_id: UUID, resource_id: UUID, logger: StructuredLogger) -> Resource:
+    check_user_is_member_of_collection(
+        user, collection_id, session, is_manager=False, struct_logger=logger
+    )
+
+    if resource := session.get(Resource, resource_id):
+        permissions = get_resource_permissions_for_user(user, resource, session)
+        if ResourcePermissionEnum.VIEW not in permissions:
+            raise NoPermissionException(error_code=401, message="No permission to view this resource")
+        logger.info("Resource {resource_id} found ", resource_id=resource_id)
+        return resource
+    else:
+        raise ItemNotFoundException(error_code=404, message="Resource not found")

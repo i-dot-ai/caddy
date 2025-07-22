@@ -33,7 +33,7 @@ from api.services import (
     delete_collection_by_id,
     get_resources_by_collection_id,
     get_user_collections,
-    update_collection_by_id,
+    update_collection_by_id, get_documents_for_resource_by_id, delete_resource_by_id, get_resource_by_id,
 )
 from api.types import (
     Chunks,
@@ -265,60 +265,21 @@ def get_resource_documents(
     page_size: int = Query(10, ge=1),
 ) -> Chunks:
     """get a documents belonging to a resource"""
+    try:
+        result = get_documents_for_resource_by_id(user, collection_id, session, logger, resource_id, page, page_size)
+    except NoPermissionException as e:
+        logger.exception("Permission to get documents on collection {collection_id} and resource {resource_id} failed", collection_id=collection_id, resource_id=resource_id)
+        raise HTTPException(status_code=e.error_code, detail=str(e))
+    except ItemNotFoundException as e:
+        is_resource = str(e) == "Resource not found"
+        if is_resource:
+            logger.exception("Resource {resource_id} not found", resource_id=resource_id)
+        else:
+            logger.exception("Collection {collection_id} not found", collection_id=collection_id)
+        raise HTTPException(status_code=e.error_code, detail=str(e))
+    else:
+        return result
 
-    __check_user_is_member_of_collection(
-        user, collection_id, session, is_manager=False, struct_logger=logger
-    )
-
-    if not session.get(Resource, resource_id):
-        logger.info("Resource with id {resource_id} not found", resource_id=resource_id)
-        raise HTTPException(status_code=404)
-
-    statement = (
-        select(TextChunk)
-        .where(TextChunk.resource_id == resource_id)
-        .order_by(TextChunk.order)
-        .offset(page_size * (page - 1))
-        .limit(page_size)
-    )
-
-    text_chunks = session.exec(statement).all()
-
-    def to_document(tc: TextChunk):
-        return Document(
-            page_content=tc.text,
-            id=str(tc.id),
-            metadata={
-                "resource_id": tc.resource_id,
-                "filename": tc.resource.filename,
-                "content_type": tc.resource.content_type,
-                "chunk_order": tc.order,
-                "created_at": tc.created_at,
-            },
-        )
-
-    documents = [to_document(item) for item in text_chunks]
-
-    count_statement = select(func.count(TextChunk.id)).where(
-        TextChunk.resource_id == resource_id
-    )
-    total = session.exec(count_statement).one()
-
-    logger.info(
-        "{total} document(s) for resource {resource_id} retrieved by user {user}",
-        total=total,
-        resource_id=resource_id,
-        user=user,
-    )
-
-    return Chunks(
-        collection_id=collection_id,
-        resource_id=resource_id,
-        page=page,
-        total=total,
-        page_size=page_size,
-        documents=documents,
-    )
 
 
 @router.delete(
@@ -334,23 +295,16 @@ def delete_resource(
     logger: StructuredLogger = Depends(get_logger(__name__)),
 ) -> UUID:
     """delete a resource"""
-    __check_user_is_member_of_collection(
-        user, collection_id, session, struct_logger=logger
-    )
-
-    config.s3_client.delete_object(
-        Bucket=config.data_s3_bucket,
-        Key=f"{config.s3_prefix}/{collection_id}/{resource_id}",
-    )
-
-    if resource := session.get(Resource, resource_id):
-        session.delete(resource)
-        session.commit()
-        logger.info("Resource {resource_id} deleted", resource_id=resource_id)
-        return resource_id
+    try:
+        result = delete_resource_by_id(user, session, collection_id, resource_id, logger)
+    except NoPermissionException as e:
+        logger.exception("Permission to delete resource {resource_id} on collection {collection_id} failed", resource_id=resource_id, collection_id=collection_id)
+        raise HTTPException(status_code=e.error_code, detail=str(e))
+    except ItemNotFoundException as e:
+        logger.exception("Resource {resource_id} or collection {collection_id} not found", resource_id=resource_id, collection_id=collection_id)
+        raise HTTPException(status_code=e.error_code, detail=str(e))
     else:
-        logger.info("Resource {resource_id} not found", resource_id=resource_id)
-        raise HTTPException(status_code=404)
+        return result
 
 
 @router.get(
@@ -366,15 +320,16 @@ def get_resource(
     logger: StructuredLogger = Depends(get_logger(__name__)),
 ) -> Resource:
     """get a resource"""
-    __check_user_is_member_of_collection(
-        user, collection_id, session, is_manager=False, struct_logger=logger
-    )
-
-    if resource := session.get(Resource, resource_id):
-        logger.info("Resource {resource_id} found", resource_id=resource_id)
-        return resource
-    logger.info("Resource {resource_id} not found", resource_id=resource_id)
-    raise HTTPException(status_code=404)
+    try:
+        result = get_resource_by_id(user, session, collection_id, resource_id, logger)
+    except NoPermissionException as e:
+        logger.exception("Permission to view resource {resource_id} on collection {collection_id} failed", resource_id=resource_id, collection_id=collection_id)
+        raise HTTPException(status_code=e.error_code, detail=str(e))
+    except ItemNotFoundException as e:
+        logger.exception("Resource {resource_id} or collection {collection_id} not found", resource_id=resource_id, collection_id=collection_id)
+        raise HTTPException(status_code=e.error_code, detail=str(e))
+    else:
+        return result
 
 
 @router.get("/collections", status_code=200, tags=["collections"])
@@ -399,7 +354,7 @@ def get_collections(
     """
     logger.info("Getting collections for user: {user}".format(user=user.email))
     try:
-        return get_user_collections(user, session, logger, page, page_size)
+        result = get_user_collections(user, session, logger, page, page_size)
     except NoPermissionException as e:
         logger.exception(
             "Error retrieving available collections for user {user_email}",
@@ -408,11 +363,13 @@ def get_collections(
         raise HTTPException(status_code=e.error_code, detail=e.message)
     except Exception:
         logger.exception(
-            "Error retrieving available collections for user {user}", user=user.email
+            "Generic error occurred whilst retrieving available collections for user {user}", user=user.email
         )
         raise HTTPException(
             status_code=500, detail="Failed to retrieve available collections"
         )
+    else:
+        return result
 
 
 @router.get("/collections/{collection_id}/users", status_code=200, tags=["user-roles"])

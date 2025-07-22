@@ -58,6 +58,9 @@ class User(SQLModel, table=True):
     def token(self):
         return user_token(self)
 
+    def __str__(self):
+        return self.email
+
 
 class Collection(CollectionBase, SQLModel, table=True):
     id: UUID = Field(
