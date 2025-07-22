@@ -26,7 +26,7 @@ from api.models import (
     TextChunk,
     User,
     UserCollection,
-    utc_now,
+    utc_now, UserRoleList, UserCollectionWithEmail,
 )
 from api.permissions import (
     check_user_is_member_of_collection,
@@ -39,7 +39,7 @@ from api.types import (
     CollectionBase,
     CollectionDto,
     CollectionsDto,
-    Role, Chunks,
+    Role, Chunks, UserRole,
 )
 
 metric_writer = config.get_metrics_writer()
@@ -609,3 +609,84 @@ def get_resource_by_id(user: User, session: Session, collection_id: UUID, resour
         return resource
     else:
         raise ItemNotFoundException(error_code=404, message="Resource not found")
+
+def get_collection_user_roles_by_id(user: User, session: Session, collection_id: UUID, logger: StructuredLogger, page: int = 1, page_size: int = 10) -> UserRoleList:
+    check_user_is_member_of_collection(
+        user, collection_id, session, struct_logger=logger
+    )
+
+    if session.get(Collection, collection_id):
+        permissions = get_collection_permissions_for_user(user, collection_id, session)
+        if CollectionPermissionEnum.VIEW not in permissions or CollectionPermissionEnum.MANAGE_USERS not in permissions:
+            raise NoPermissionException(error_code=401, message="No permission to view this collections users")
+
+        statement = (
+            select(UserCollection, User.email.label("user_email"))
+            .where(UserCollection.collection_id == collection_id)
+            .join(User, UserCollection.user_id == User.id)
+            .order_by(UserCollection.created_at)
+            .offset(page_size * (page - 1))
+            .limit(page_size)
+        )
+        user_roles = session.exec(statement).all()
+
+        user_roles_with_emails: list[UserCollectionWithEmail] = [
+            UserCollectionWithEmail(user_email=email, **ur.model_dump())
+            for ur, email in user_roles
+        ]
+
+        count_statement = func.count(UserCollection.user_id)
+        total = session.exec(count_statement).scalar()
+        logger.info(
+            "Retrieved user roles for collection {collection_id} for user {user}. {total} user(s) retrieved",
+            collection_id=collection_id,
+            user=str(user),
+            total=total,
+        )
+        return UserRoleList(
+            page=page, page_size=page_size, total=total, user_roles=user_roles_with_emails
+        )
+    else:
+        raise ItemNotFoundException(error_code=404, message="Collection not found")
+
+def create_user_role_on_collection(user: User, session: Session, user_role: UserRole, collection_id: UUID, logger: StructuredLogger) -> UserCollection:
+    if collection := session.get(Collection, collection_id):
+        check_user_is_member_of_collection(
+            user, collection_id, session, struct_logger=logger
+        )
+
+        permissions = get_collection_permissions_for_user(user, collection, session)
+        if CollectionPermissionEnum.MANAGE_USERS not in permissions:
+            raise NoPermissionException(error_code=401, message="No permission to manage users")
+
+        user_to_add = User.get_by_email(session, user_role.email)
+
+        if not user_to_add:
+            user_to_add = User(email=user_role.email)
+            session.add(user_to_add)
+            session.commit()
+            session.refresh(user_to_add)
+
+        if user_collection := session.get(
+                UserCollection, {"collection_id": collection_id, "user_id": user_to_add.id}
+        ):
+            user_collection.role = user_role.role
+        else:
+            user_collection = UserCollection(
+                collection_id=collection_id,
+                user_id=user_to_add.id,
+                role=user_role.role,
+            )
+
+        session.add(user_collection)
+        session.commit()
+        session.refresh(user_collection)
+        logger.info(
+            "Role {role} for user {user} created on collection {collection_id}",
+            role=user_role.role,
+            user=str(user_to_add),
+            collection_id=collection_id,
+        )
+        return user_collection
+    else:
+        raise ItemNotFoundException(error_code=404, message="Collection not found")

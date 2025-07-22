@@ -34,6 +34,7 @@ from api.services import (
     get_resources_by_collection_id,
     get_user_collections,
     update_collection_by_id, get_documents_for_resource_by_id, delete_resource_by_id, get_resource_by_id,
+    get_collection_user_roles_by_id, create_user_role_on_collection,
 )
 from api.types import (
     Chunks,
@@ -323,7 +324,7 @@ def get_resource(
     try:
         result = get_resource_by_id(user, session, collection_id, resource_id, logger)
     except NoPermissionException as e:
-        logger.exception("Permission to view resource {resource_id} on collection {collection_id} failed", resource_id=resource_id, collection_id=collection_id)
+        logger.exception("Permission to view resource {resource_id} on collection {collection_id} not found", resource_id=resource_id, collection_id=collection_id)
         raise HTTPException(status_code=e.error_code, detail=str(e))
     except ItemNotFoundException as e:
         logger.exception("Resource {resource_id} or collection {collection_id} not found", resource_id=resource_id, collection_id=collection_id)
@@ -381,36 +382,16 @@ def get_collections_user_roles(
     page: int = Query(1, ge=1),
     page_size: int = Query(10, ge=1),
 ) -> UserRoleList:
-    __check_user_is_member_of_collection(
-        user, collection_id, session, struct_logger=logger
-    )
-
-    statement = (
-        select(UserCollection, User.email.label("user_email"))
-        .where(UserCollection.collection_id == collection_id)
-        .join(User, UserCollection.user_id == User.id)
-        .order_by(UserCollection.created_at)
-        .offset(page_size * (page - 1))
-        .limit(page_size)
-    )
-    user_roles = session.exec(statement).all()
-
-    user_roles_with_emails: list[UserCollectionWithEmail] = [
-        UserCollectionWithEmail(user_email=email, **ur.model_dump())
-        for ur, email in user_roles
-    ]
-
-    count_statement = func.count(UserCollection.user_id)
-    total = session.exec(count_statement).scalar()
-    logger.info(
-        "Retrieved user roles for collection {collection_id} for user {user}. {total} user(s) retrieved",
-        collection_id=collection_id,
-        user=user.email,
-        total=total,
-    )
-    return UserRoleList(
-        page=page, page_size=page_size, total=total, user_roles=user_roles_with_emails
-    )
+    try:
+        result = get_collection_user_roles_by_id(user, session, collection_id, logger, page, page_size)
+    except NoPermissionException as e:
+        logger.exception("Permission to view users on collection {collection_id} not found", collection_id=collection_id)
+        raise HTTPException(status_code=e.error_code, detail=str(e))
+    except ItemNotFoundException as e:
+        logger.exception("Collection {collection_id} not found", collection_id=collection_id)
+        raise HTTPException(status_code=e.error_code, detail=str(e))
+    else:
+        return result
 
 
 @router.post("/collections/{collection_id}/users", status_code=201, tags=["user-roles"])
@@ -421,45 +402,16 @@ def create_collections_user_role(
     user: Annotated[User, Depends(get_current_user)],
     logger: StructuredLogger = Depends(get_logger(__name__)),
 ) -> UserCollection:
-    __check_user_is_member_of_collection(
-        user, collection_id, session, struct_logger=logger
-    )
-
-    user = User.get_by_email(session, user_role.email)
-
-    if not user:
-        user = User(email=user_role.email)
-        session.add(user)
-        session.commit()
-        session.refresh(user)
-
-    if not session.get(Collection, collection_id):
-        logger.info(
-            "Failed to find collection {collection_id}", collection_id=collection_id
-        )
-        raise HTTPException(status_code=404, detail="Collection not found")
-
-    if user_collection := session.get(
-        UserCollection, {"collection_id": collection_id, "user_id": user.id}
-    ):
-        user_collection.role = user_role.role
+    try:
+        result = create_user_role_on_collection(user, session, user_role, collection_id, logger)
+    except NoPermissionException as e:
+        logger.exception("Permission to manage users on collection {collection_id} not found", collection_id=collection_id)
+        raise HTTPException(status_code=e.error_code, detail=str(e))
+    except ItemNotFoundException as e:
+        logger.exception("Collection {collection_id} not found", collection_id=collection_id)
+        raise HTTPException(status_code=e.error_code, detail=str(e))
     else:
-        user_collection = UserCollection(
-            collection_id=collection_id,
-            user_id=user.id,
-            role=user_role.role,
-        )
-
-    session.add(user_collection)
-    session.commit()
-    session.refresh(user_collection)
-    logger.info(
-        "Role {role} for user {user} created on collection {collection_id}",
-        role=user_role.role,
-        user=user.email,
-        collection_id=collection_id,
-    )
-    return user_collection
+        return result
 
 
 @router.delete(
