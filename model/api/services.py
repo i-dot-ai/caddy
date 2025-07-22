@@ -690,3 +690,31 @@ def create_user_role_on_collection(user: User, session: Session, user_role: User
         return user_collection
     else:
         raise ItemNotFoundException(error_code=404, message="Collection not found")
+
+def delete_user_role_from_collection(user: User, session: Session, collection_id: UUID, user_id: UUID, logger: StructuredLogger) -> bool:
+    if collection := session.get(Collection, collection_id):
+        if not session.get(User, user_id):
+            raise ItemNotFoundException(error_code=404, message="User to remove not found")
+
+        if user_role := session.get(UserCollection, {"user_id": user_id, "collection_id": collection_id}):
+            check_user_is_member_of_collection(
+                user, collection_id, session, struct_logger=logger
+            )
+
+            permissions = get_collection_permissions_for_user(user, collection, session)
+
+            if CollectionPermissionEnum.MANAGE_USERS not in permissions:
+                raise NoPermissionException(error_code=401, message="No permission to manage users for this collection")
+
+            session.delete(user_role)
+            session.commit()
+            logger.info(
+                "User role for collection {collection_id} deleted for user {user_id}",
+                collection_id=collection_id,
+                user_id=user_id,
+            )
+            return True
+        else:
+            raise ItemNotFoundException(error_code=404, message="User is not added to the given collection")
+    else:
+        raise ItemNotFoundException(error_code=404, message="Collection not found")

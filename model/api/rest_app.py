@@ -34,7 +34,7 @@ from api.services import (
     get_resources_by_collection_id,
     get_user_collections,
     update_collection_by_id, get_documents_for_resource_by_id, delete_resource_by_id, get_resource_by_id,
-    get_collection_user_roles_by_id, create_user_role_on_collection,
+    get_collection_user_roles_by_id, create_user_role_on_collection, delete_user_role_from_collection,
 )
 from api.types import (
     Chunks,
@@ -426,24 +426,13 @@ def delete_collections_user_role(
     user: Annotated[User, Depends(get_current_user)],
     logger: StructuredLogger = Depends(get_logger(__name__)),
 ) -> bool:
-    __check_user_is_member_of_collection(
-        user, collection_id, session, struct_logger=logger
-    )
-
-    if user_role := session.get(
-        UserCollection, {"collection_id": collection_id, "user_id": user_id}
-    ):
-        session.delete(user_role)
-        session.commit()
-        logger.info(
-            "User role for collection {collection_id} deleted for user {user}",
-            collection_id=collection_id,
-            user=user.email,
-        )
-        return True
-    logger.info(
-        "Failed to delete user role for user {user} from collection {collection_id}",
-        user=user.email,
-        collection_id=collection_id,
-    )
-    raise HTTPException(status_code=404)
+    try:
+        result = delete_user_role_from_collection(user, session, collection_id, user_id, logger)
+    except NoPermissionException as e:
+        logger.exception("Permission to manage users on collection {collection_id} not found", collection_id=collection_id)
+        raise HTTPException(status_code=e.error_code, detail=str(e))
+    except ItemNotFoundException as e:
+        logger.exception(str(e), collection_id=collection_id, user_id=user_id)
+        raise HTTPException(status_code=e.error_code, detail=str(e))
+    else:
+        return result
