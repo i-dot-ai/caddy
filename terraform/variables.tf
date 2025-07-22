@@ -136,6 +136,7 @@ variable "security_level" {
   default     = "base"
   description = "Security Level of the infrastructure."
 }
+<<<<<<< found
 
 variable "SENTRY_DSN" {
   type        = string
@@ -204,4 +205,12 @@ variable "ADMIN_USERS" {
   type = string
   description = "comma seperated list of users email addresses to make admins"
 
+}||||||| expected
+=======
+
+variable "scope" {
+  description = "Scope of the WAF, either 'CLOUDFRONT' or 'REGIONAL'"
+  type        = string
+  default     = "REGIONAL"
 }
+>>>>>>> replacement
