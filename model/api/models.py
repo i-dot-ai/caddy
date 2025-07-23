@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Any, Self
 from uuid import UUID, uuid4
 
@@ -10,9 +10,8 @@ from sqlalchemy import event
 from sqlmodel import Field, Relationship, Session, SQLModel, select
 
 from api.config import EMBEDDING_DIMENSION
-from api.enums import ResourcePermissionEnum
 from api.environment import config
-from api.types import CollectionBase, PaginatedResponse, Role
+from api.types import CollectionBase, PaginatedResponse, ResourceBase, Role
 
 
 def user_token(user):
@@ -85,7 +84,7 @@ class UserCollection(SQLModel, table=True):
     created_at: datetime = Field(default_factory=utc_now)
 
 
-class Resource(SQLModel, table=True):
+class Resource(ResourceBase, SQLModel, table=True):
     id: UUID = Field(primary_key=True, default_factory=uuid4)
     created_at: datetime = Field(
         description="timestamp at which this resource was ingested into Caddy",
@@ -95,25 +94,8 @@ class Resource(SQLModel, table=True):
         foreign_key="user.id", default=None, ondelete="SET NULL"
     )
     created_by: User = Relationship()
-
     collection_id: UUID = Field(
         foreign_key="collection.id", ondelete="CASCADE", index=True
-    )
-
-    filename: str | None = Field(description="name of original file")
-    content_type: str | None = Field(description="type of content")
-    url: str | None = Field(description="url of the uploaded resource", default=None)
-    is_processed: bool = Field(
-        description="has this file been processed", default=False
-    )
-    process_error: str | None = Field(
-        description="error encountered during processing file, if any", default=None
-    )
-    process_time: timedelta | None = Field(
-        description="time take to process file", default=None
-    )
-    permissions: list[ResourcePermissionEnum] = Field(
-        description="Resource permission enum(s)", default_factory=list
     )
 
 

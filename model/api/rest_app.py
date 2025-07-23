@@ -17,7 +17,6 @@ from api.exceptions import (
 from api.models import (
     Collection,
     CollectionResources,
-    Resource,
     User,
     UserCollection,
     UserRoleList,
@@ -42,6 +41,7 @@ from api.types import (
     CollectionBase,
     CollectionDto,
     CollectionsDto,
+    ResourceDto,
     UserRole,
 )
 
@@ -176,7 +176,7 @@ def create_resource(
     session: Annotated[Session, Depends(get_session)],
     user: Annotated[User, Depends(get_current_user)],
     logger: StructuredLogger = Depends(get_logger(__name__)),
-) -> Resource:
+) -> ResourceDto:
     """
     Endpoint to upload a file to a specified collection.
 
@@ -219,7 +219,7 @@ async def create_resources_from_url_list(
     session: Annotated[Session, Depends(get_session)],
     user: Annotated[User, Depends(get_current_user)],
     logger: StructuredLogger = Depends(get_logger(__name__)),
-) -> list[Resource]:
+) -> list[ResourceDto]:
     """
     Endpoint to upload a file to a specified collection.
 
@@ -339,7 +339,7 @@ def get_resource(
     session: Annotated[Session, Depends(get_session)],
     user: Annotated[User, Depends(get_current_user)],
     logger: StructuredLogger = Depends(get_logger(__name__)),
-) -> Resource:
+) -> ResourceDto:
     """get a resource"""
     try:
         result = get_resource_by_id(user, session, collection_id, resource_id, logger)

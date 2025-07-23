@@ -42,6 +42,7 @@ from api.types import (
     CollectionBase,
     CollectionDto,
     CollectionsDto,
+    ResourceDto,
     Role,
     UserRole,
 )
@@ -382,7 +383,7 @@ def create_resource_from_file(
     session: Session,
     logger: StructuredLogger,
     file: File,
-) -> Resource:
+) -> ResourceDto:
     check_user_is_member_of_collection(
         user, collection_id, session, struct_logger=logger
     )
@@ -391,7 +392,8 @@ def create_resource_from_file(
         permissions = get_collection_permissions_for_user(user, collection, session)
         if CollectionPermissionEnum.MANAGE_RESOURCES not in permissions:
             raise NoPermissionException(
-                "User does not have permission to manage resources for this collection"
+                message="User does not have permission to manage resources for this collection",
+                error_code=401,
             )
 
         resource, processing_time = __process_resource(
@@ -436,8 +438,17 @@ def create_resource_from_file(
             user=user,
             processing_time=processing_time,
         )
-
-        return resource
+        return ResourceDto(
+            id=resource.id,
+            filename=resource.filename,
+            created_at=resource.created_at,
+            content_type=resource.content_type,
+            permissions=get_resource_permissions_for_user(user, resource, session),
+            url=resource.url,
+            is_processed=resource.is_processed,
+            process_error=resource.process_error,
+            process_time=resource.process_time,
+        )
     else:
         raise ItemNotFoundException(error_code=404, message="Collection not found")
 
@@ -448,7 +459,7 @@ async def create_resource_from_urls(
     collection_id: UUID,
     logger: StructuredLogger,
     urls: list[str],
-) -> list[Resource]:
+) -> list[ResourceDto]:
     check_user_is_member_of_collection(
         user, collection_id, session, struct_logger=logger
     )
@@ -505,7 +516,20 @@ async def create_resource_from_urls(
             processing_time=(scrape_processing_time + processing_total).total_seconds()
             * 1000,
         )
-        return resources
+        return [
+            ResourceDto(
+                id=resource.id,
+                filename=resource.filename,
+                created_at=resource.created_at,
+                content_type=resource.content_type,
+                permissions=get_resource_permissions_for_user(user, resource, session),
+                url=resource.url,
+                is_processed=resource.is_processed,
+                process_error=resource.process_error,
+                process_time=resource.process_time,
+            )
+            for resource in resources
+        ]
     else:
         raise ItemNotFoundException(error_code=404, message="Collection not found")
 
@@ -631,7 +655,7 @@ def get_resource_by_id(
     collection_id: UUID,
     resource_id: UUID,
     logger: StructuredLogger,
-) -> Resource:
+) -> ResourceDto:
     check_user_is_member_of_collection(
         user, collection_id, session, is_manager=False, struct_logger=logger
     )
@@ -643,7 +667,18 @@ def get_resource_by_id(
                 error_code=401, message="No permission to view this resource"
             )
         logger.info("Resource {resource_id} found ", resource_id=resource_id)
-        return resource
+        resource_db = Resource.model_validate(resource)
+        return ResourceDto(
+            id=resource_db.id,
+            filename=resource_db.filename,
+            created_at=resource_db.created_at,
+            content_type=resource_db.content_type,
+            permissions=permissions,
+            url=resource_db.url,
+            is_processed=resource_db.is_processed,
+            process_error=resource_db.process_error,
+            process_time=resource_db.process_time,
+        )
     else:
         raise ItemNotFoundException(error_code=404, message="Resource not found")
 
