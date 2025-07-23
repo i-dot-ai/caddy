@@ -16,22 +16,9 @@ module "rds" {
   aurora_min_scaling                    = 0.5
   aurora_max_scaling                    = 1
   aurora_instance_count                 = 1
-<<<<<<< found
   deletion_protection                   = var.env == "dev" ? false : true
   env                                   = var.env
-  rds_vpn_access_ips                    = var.developer_ips
+  rds_vpn_access_ips                    = data.aws_wafv2_ip_set.ip_whitelist_internal.addresses
   enable_performance_insights           = var.env == "dev" ? false : true
   performance_insights_retention_period = var.env == "dev" ? null : 7
 }
-||||||| expected
-  deletion_protection    = var.env == "dev" ? false : true
-  env                    = var.env 
-}
-=======
-  deletion_protection    = var.env == "dev" ? false : true
-  env                    = var.env 
-  rds_vpn_access_ips     = data.aws_wafv2_ip_set.ip_whitelist_internal.addresses
-  enable_performance_insights           = var.env == "dev" ? false : true
-  performance_insights_retention_period = var.env == "dev" ? null : 7
-}
->>>>>>> replacement
