@@ -152,8 +152,12 @@ def create_resource(
     """
     try:
         result = create_resource_from_file(user, collection_id, session, logger, file)
-    except (NoPermissionException, ItemNotFoundException, MarkItDownException) as e:
+    except (NoPermissionException, ItemNotFoundException) as e:
         raise HTTPException(status_code=e.error_code, detail=str(e))
+    except MarkItDownException:
+        raise HTTPException(
+            detail="An issue occurred processing this file", status_code=422
+        )
     else:
         return result
 
