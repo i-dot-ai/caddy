@@ -51,7 +51,6 @@ export enum CollectionPermission {
   MANAGE_RESOURCES = 'MANAGE_RESOURCES',
 }
 
-
 interface Collection {
   id: string,
   name: string,
@@ -116,6 +115,10 @@ export const deleteCollection = async(collectionId: string, keycloakToken: strin
   return json;
 };
 
+export enum ResourcePermission {
+  VIEW = 'VIEW',
+  DELETE = 'DELETE',
+}
 
 export interface ResourceDetail {
   id: string,
@@ -123,7 +126,9 @@ export interface ResourceDetail {
   content_type: string,
   created_at?: string,
   process_error?: string,
+  permissions: ResourcePermission[],
 }
+
 interface ResourceList {
   total: number,
   page_size: number,
