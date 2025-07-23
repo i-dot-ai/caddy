@@ -64,26 +64,16 @@ def get_collection_resources(
 ) -> CollectionResources:
     """returns a list of resources belonging to this collection"""
     try:
-        return get_resources_by_collection_id(
+        result = get_resources_by_collection_id(
             user, session, collection_id, logger, page_size, page
         )
-    except NoPermissionException as e:
-        logger.exception(
-            "Unable to return resources for collection {collection_id}",
-            collection_id=collection_id,
-        )
+    except (NoPermissionException, ItemNotFoundException) as e:
         raise HTTPException(
             status_code=e.error_code,
             detail=e.message,
         )
-    except ItemNotFoundException as e:
-        logger.exception(
-            "Collection {collection_id} not found", collection_id=collection_id
-        )
-        raise HTTPException(
-            status_code=e.error_code,
-            detail=e.message,
-        )
+    else:
+        return result
 
 
 @router.post("/collections", status_code=201, tags=["collections"])
@@ -96,18 +86,7 @@ def create_collection(
     """create a collection"""
     try:
         result = create_new_collection(new_collection, session, user, logger)
-    except NoPermissionException as e:
-        logger.exception(
-            "An issue occurred creating collection {collection_name} by user {user_email}",
-            collection_name=new_collection.name,
-            user_email=user.email,
-        )
-        raise HTTPException(status_code=e.error_code, detail=str(e))
-    except DuplicateItemException as e:
-        logger.exception(
-            "A collection with this name already exists. {collection_name}",
-            collection_name=new_collection.name,
-        )
+    except (NoPermissionException, DuplicateItemException) as e:
         raise HTTPException(status_code=e.error_code, detail=str(e))
     else:
         return result
@@ -126,17 +105,7 @@ def update_collection(
         result = update_collection_by_id(
             collection_id, collection_details, session, user, logger
         )
-    except NoPermissionException as e:
-        logger.exception(
-            "User {user_email} doesn't have permission to edit collection {collection_name}",
-            user_email=user.email,
-            collection_name=collection_details.collection_name,
-        )
-        raise HTTPException(status_code=e.error_code, detail=str(e))
-    except ItemNotFoundException as e:
-        logger.exception(
-            "Collection {collection_id} not found", collection_id=collection_id
-        )
+    except (NoPermissionException, ItemNotFoundException) as e:
         raise HTTPException(status_code=e.error_code, detail=str(e))
     else:
         return result
@@ -152,17 +121,7 @@ def delete_collection(
     """delete a collection"""
     try:
         result = delete_collection_by_id(user, collection_id, session, logger)
-    except NoPermissionException as e:
-        logger.exception(
-            "User {user_email} doesn't have permission to delete collection {collection_id}",
-            user_email=user.email,
-            collection_id=collection_id,
-        )
-        raise HTTPException(status_code=e.error_code, detail=str(e))
-    except ItemNotFoundException as e:
-        logger.exception(
-            "Collection {collection_id} not found", collection_id=collection_id
-        )
+    except (NoPermissionException, ItemNotFoundException) as e:
         raise HTTPException(status_code=e.error_code, detail=str(e))
     else:
         return result
@@ -193,22 +152,8 @@ def create_resource(
     """
     try:
         result = create_resource_from_file(user, collection_id, session, logger, file)
-    except NoPermissionException as e:
-        logger.exception(
-            "Permission to create resources on collection {collection_id} failed",
-            collection_id=collection_id,
-        )
+    except (NoPermissionException, ItemNotFoundException, MarkItDownException) as e:
         raise HTTPException(status_code=e.error_code, detail=str(e))
-    except ItemNotFoundException as e:
-        logger.exception(
-            "Collection {collection_id} not found", collection_id=collection_id
-        )
-        raise HTTPException(status_code=e.error_code, detail=str(e))
-    except MarkItDownException:
-        logger.exception("An error in markitdown occurred")
-        raise HTTPException(
-            detail="An issue occurred processing this file", status_code=422
-        )
     else:
         return result
 
@@ -240,22 +185,11 @@ async def create_resources_from_url_list(
         result = await create_resource_from_urls(
             user, session, collection_id, logger, urls
         )
-    except NoPermissionException as e:
-        logger.exception(
-            "Permission to create resources on collection {collection_id} failed",
-            collection_id=collection_id,
-        )
-        raise HTTPException(status_code=e.error_code, detail=str(e))
-    except ItemNotFoundException as e:
-        logger.exception(
-            "Collection {collection_id} not found", collection_id=collection_id
-        )
-        raise HTTPException(status_code=e.error_code, detail=str(e))
-    except InvalidUrlFormatException as e:
-        logger.exception(
-            "Invalid url format found in url list for collection {collection_id}",
-            collection_id=collection_id,
-        )
+    except (
+        NoPermissionException,
+        ItemNotFoundException,
+        InvalidUrlFormatException,
+    ) as e:
         raise HTTPException(status_code=e.error_code, detail=str(e))
     else:
         return result
@@ -280,23 +214,7 @@ def get_resource_documents(
         result = get_documents_for_resource_by_id(
             user, collection_id, session, logger, resource_id, page, page_size
         )
-    except NoPermissionException as e:
-        logger.exception(
-            "Permission to get documents on collection {collection_id} and resource {resource_id} failed",
-            collection_id=collection_id,
-            resource_id=resource_id,
-        )
-        raise HTTPException(status_code=e.error_code, detail=str(e))
-    except ItemNotFoundException as e:
-        is_resource = str(e) == "Resource not found"
-        if is_resource:
-            logger.exception(
-                "Resource {resource_id} not found", resource_id=resource_id
-            )
-        else:
-            logger.exception(
-                "Collection {collection_id} not found", collection_id=collection_id
-            )
+    except (NoPermissionException, ItemNotFoundException) as e:
         raise HTTPException(status_code=e.error_code, detail=str(e))
     else:
         return result
@@ -319,19 +237,7 @@ def delete_resource(
         result = delete_resource_by_id(
             user, session, collection_id, resource_id, logger
         )
-    except NoPermissionException as e:
-        logger.exception(
-            "Permission to delete resource {resource_id} on collection {collection_id} failed",
-            resource_id=resource_id,
-            collection_id=collection_id,
-        )
-        raise HTTPException(status_code=e.error_code, detail=str(e))
-    except ItemNotFoundException as e:
-        logger.exception(
-            "Resource {resource_id} or collection {collection_id} not found",
-            resource_id=resource_id,
-            collection_id=collection_id,
-        )
+    except (NoPermissionException, ItemNotFoundException) as e:
         raise HTTPException(status_code=e.error_code, detail=str(e))
     else:
         return result
@@ -352,19 +258,7 @@ def get_resource(
     """get a resource"""
     try:
         result = get_resource_by_id(user, session, collection_id, resource_id, logger)
-    except NoPermissionException as e:
-        logger.exception(
-            "Permission to view resource {resource_id} on collection {collection_id} not found",
-            resource_id=resource_id,
-            collection_id=collection_id,
-        )
-        raise HTTPException(status_code=e.error_code, detail=str(e))
-    except ItemNotFoundException as e:
-        logger.exception(
-            "Resource {resource_id} or collection {collection_id} not found",
-            resource_id=resource_id,
-            collection_id=collection_id,
-        )
+    except (NoPermissionException, ItemNotFoundException) as e:
         raise HTTPException(status_code=e.error_code, detail=str(e))
     else:
         return result
@@ -387,26 +281,12 @@ def get_collections(
         page_size: Number of records for each page
     Returns:
         CollectionList: List of available collections available to currently logged-in user
-    Raises:
-        HTTPException: 500 status code if collection retrieval fails
     """
     logger.info("Getting collections for user: {user}".format(user=user.email))
     try:
         result = get_user_collections(user, session, logger, page, page_size)
     except NoPermissionException as e:
-        logger.exception(
-            "Error retrieving available collections for user {user_email}",
-            user=user.email,
-        )
         raise HTTPException(status_code=e.error_code, detail=e.message)
-    except Exception:
-        logger.exception(
-            "Generic error occurred whilst retrieving available collections for user {user}",
-            user=user.email,
-        )
-        raise HTTPException(
-            status_code=500, detail="Failed to retrieve available collections"
-        )
     else:
         return result
 
@@ -424,16 +304,7 @@ def get_collections_user_roles(
         result = get_collection_user_roles_by_id(
             user, session, collection_id, logger, page, page_size
         )
-    except NoPermissionException as e:
-        logger.exception(
-            "Permission to view users on collection {collection_id} not found",
-            collection_id=collection_id,
-        )
-        raise HTTPException(status_code=e.error_code, detail=str(e))
-    except ItemNotFoundException as e:
-        logger.exception(
-            "Collection {collection_id} not found", collection_id=collection_id
-        )
+    except (NoPermissionException, ItemNotFoundException) as e:
         raise HTTPException(status_code=e.error_code, detail=str(e))
     else:
         return result
@@ -451,16 +322,7 @@ def create_collections_user_role(
         result = create_user_role_on_collection(
             user, session, user_role, collection_id, logger
         )
-    except NoPermissionException as e:
-        logger.exception(
-            "Permission to manage users on collection {collection_id} not found",
-            collection_id=collection_id,
-        )
-        raise HTTPException(status_code=e.error_code, detail=str(e))
-    except ItemNotFoundException as e:
-        logger.exception(
-            "Collection {collection_id} not found", collection_id=collection_id
-        )
+    except (NoPermissionException, ItemNotFoundException) as e:
         raise HTTPException(status_code=e.error_code, detail=str(e))
     else:
         return result
@@ -482,14 +344,7 @@ def delete_collections_user_role(
         result = delete_user_role_from_collection(
             user, session, collection_id, user_id, logger
         )
-    except NoPermissionException as e:
-        logger.exception(
-            "Permission to manage users on collection {collection_id} not found",
-            collection_id=collection_id,
-        )
-        raise HTTPException(status_code=e.error_code, detail=str(e))
-    except ItemNotFoundException as e:
-        logger.exception(str(e), collection_id=collection_id, user_id=user_id)
+    except (NoPermissionException, ItemNotFoundException) as e:
         raise HTTPException(status_code=e.error_code, detail=str(e))
     else:
         return result
