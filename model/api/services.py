@@ -173,7 +173,9 @@ def get_resources_by_collection_id(
             resource_dtos.append(
                 ResourceDto(
                     id=resource.id,
-                    filename=resource.filename,
+                    filename=resource.id
+                    if is_user_admin_user(user)
+                    else resource.filename,
                     created_at=resource.created_at,
                     content_type=resource.content_type,
                     permissions=get_resource_permissions_for_user(
@@ -456,7 +458,7 @@ def create_resource_from_file(
         )
         return ResourceDto(
             id=resource.id,
-            filename=resource.filename,
+            filename=resource.id if is_user_admin_user(user) else resource.filename,
             created_at=resource.created_at,
             content_type=resource.content_type,
             permissions=get_resource_permissions_for_user(user, resource, session),
@@ -537,7 +539,7 @@ async def create_resource_from_urls(
         return [
             ResourceDto(
                 id=resource.id,
-                filename=resource.filename,
+                filename=resource.id if is_user_admin_user(user) else resource.filename,
                 created_at=resource.created_at,
                 content_type=resource.content_type,
                 permissions=get_resource_permissions_for_user(user, resource, session),
@@ -687,19 +689,21 @@ def get_resource_by_id(
                 error_code=401, message="No permission to view this resource"
             )
         logger.info("Resource {resource_id} found ", resource_id=resource_id)
-        resource_db = Resource.model_validate(resource)
+        resource_dto = Resource.model_validate(resource)
         return ResourceDto(
-            id=resource_db.id,
-            filename=resource_db.filename,
-            created_at=resource_db.created_at,
-            content_type=resource_db.content_type,
+            id=resource_dto.id,
+            filename=resource_dto.id
+            if is_user_admin_user(user)
+            else resource_dto.filename,
+            created_at=resource_dto.created_at,
+            content_type=resource_dto.content_type,
             permissions=permissions,
-            url=resource_db.url,
-            is_processed=resource_db.is_processed,
-            process_error=resource_db.process_error,
-            process_time=resource_db.process_time,
-            created_by_id=resource_db.created_by_id,
-            collection_id=resource_db.collection_id,
+            url=resource_dto.url,
+            is_processed=resource_dto.is_processed,
+            process_error=resource_dto.process_error,
+            process_time=resource_dto.process_time,
+            created_by_id=resource_dto.created_by_id,
+            collection_id=resource_dto.collection_id,
         )
     else:
         raise ItemNotFoundException(error_code=404, message="Resource not found")
