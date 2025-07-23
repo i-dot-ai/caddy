@@ -7,6 +7,7 @@ import pytest
 from langchain_core.documents import Document
 from sqlmodel import Session
 
+from api.enums import CollectionPermissionEnum
 from api.environment import config
 from api.models import (
     Resource,
@@ -277,7 +278,9 @@ def test_anonymous__get_collections(
     assert response.status_code == 401
 
 
-def test_get_collection_resources(client, collection_manager, many_documents):
+def test_get_collection_resources(
+    client, collection_manager, many_documents, normal_user
+):
     # GIVEN: 50 resources
     # WHEN I query the 7th page of size 3
     response = client.get(
@@ -293,9 +296,13 @@ def test_get_collection_resources(client, collection_manager, many_documents):
         "content_type": "text/plain",
         "created_at": "2001-01-01T01:01:00",
         "is_processed": False,
+        "permissions": [
+            CollectionPermissionEnum.VIEW.value,
+            CollectionPermissionEnum.DELETE.value,
+        ],
         "process_error": None,
         "process_time": None,
-        "created_by_id": None,
+        "created_by_id": str(normal_user.id),
         "url": None,
     }
 
@@ -308,13 +315,13 @@ def test_get_collection_resources(client, collection_manager, many_documents):
     assert actual_result == expected_result
 
 
-def test_get_collection_resources_404(client, admin_user):
+def test_get_collection_resources_403(client, admin_user):
     response = client.get(
         f"/collections/{uuid4()}/resources",
         headers={"Authorization": admin_user.token},
     )
-    assert response.status_code == 404
-    assert response.json() == {"message": "Not found"}
+    assert response.status_code == 403
+    assert response.json() == {"detail": "Collection not found"}
 
 
 def test_get_collection_resources_401(client):
@@ -422,14 +429,14 @@ def test_update_collection(client, example_collection, admin_user):
     assert response.json()["description"] == "new-description"
 
 
-def test_update_collection_404(client, admin_user):
+def test_update_collection_403(client, admin_user):
     response = client.put(
         f"/collections/{uuid4()}",
         json={"name": "new-name", "description": "new-description"},
         headers={"Authorization": admin_user.token},
     )
-    assert response.status_code == 404
-    assert response.json() == {"message": "Not found"}
+    assert response.status_code == 403
+    assert response.json() == {"detail": "Collection not found (Error Code: 403)"}
 
 
 def test_update_collection_401(client):
@@ -613,7 +620,7 @@ def test_upload_urls_to_upload_endpoint_422(client, example_collection, admin_us
     )
     assert response.status_code == 422
     assert response.json() == {
-        "detail": f"Unsupported URL ({fake_url}) found in URL list"
+        "detail": f"Unsupported URL ({fake_url}) found in URL list (Error Code: 422)"
     }
 
 

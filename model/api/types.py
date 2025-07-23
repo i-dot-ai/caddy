@@ -96,9 +96,18 @@ class CollectionsDto(PaginatedResponse):
 
 class ResourceDto(ResourceBase):
     id: UUID
+    created_by_id: UUID
+    collection_id: UUID
     created_at: datetime | None = Field(
         description="collection creation date", default=None
     )
     permissions: list[ResourcePermissionEnum] = Field(
         description="Resource permission enum(s)", default_factory=list
+    )
+
+
+class CollectionResources(PaginatedResponse):
+    collection_id: UUID
+    resources: list[ResourceDto] = Field(
+        description="Resources belonging to this collection", default=None
     )

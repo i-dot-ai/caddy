@@ -11,12 +11,12 @@ from api.depends import get_logger
 from api.environment import config, get_session
 from api.exceptions import (
     DuplicateItemException,
+    InvalidUrlFormatException,
     ItemNotFoundException,
     NoPermissionException,
 )
 from api.models import (
     Collection,
-    CollectionResources,
     User,
     UserCollection,
     UserRoleList,
@@ -40,6 +40,7 @@ from api.types import (
     Chunks,
     CollectionBase,
     CollectionDto,
+    CollectionResources,
     CollectionsDto,
     ResourceDto,
     UserRole,
@@ -98,14 +99,14 @@ def create_collection(
     except NoPermissionException as e:
         logger.exception(
             "An issue occurred creating collection {collection_name} by user {user_email}",
-            collection_name=new_collection.collection_name,
+            collection_name=new_collection.name,
             user_email=user.email,
         )
         raise HTTPException(status_code=e.error_code, detail=str(e))
     except DuplicateItemException as e:
         logger.exception(
             "A collection with this name already exists. {collection_name}",
-            collection_name=new_collection.collection_name,
+            collection_name=new_collection.name,
         )
         raise HTTPException(status_code=e.error_code, detail=str(e))
     else:
@@ -205,7 +206,9 @@ def create_resource(
         raise HTTPException(status_code=e.error_code, detail=str(e))
     except MarkItDownException:
         logger.exception("An error in markitdown occurred")
-        raise HTTPException(detail="An error in markitdown occurred", status_code=500)
+        raise HTTPException(
+            detail="An issue occurred processing this file", status_code=422
+        )
     else:
         return result
 
@@ -246,6 +249,12 @@ async def create_resources_from_url_list(
     except ItemNotFoundException as e:
         logger.exception(
             "Collection {collection_id} not found", collection_id=collection_id
+        )
+        raise HTTPException(status_code=e.error_code, detail=str(e))
+    except InvalidUrlFormatException as e:
+        logger.exception(
+            "Invalid url format found in url list for collection {collection_id}",
+            collection_id=collection_id,
         )
         raise HTTPException(status_code=e.error_code, detail=str(e))
     else:

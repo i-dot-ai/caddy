@@ -113,13 +113,6 @@ class TextChunk(SQLModel, table=True):
     order: int = Field(description="extraction order of text-chunk")
 
 
-class CollectionResources(PaginatedResponse):
-    collection_id: UUID
-    resources: list[Resource] = Field(
-        description="Resources belonging to this collection", default=None
-    )
-
-
 class UserCollectionWithEmail(BaseModel):
     user_id: UUID
     collection_id: UUID

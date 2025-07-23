@@ -21,7 +21,6 @@ from api.exceptions import (
 )
 from api.models import (
     Collection,
-    CollectionResources,
     Resource,
     TextChunk,
     User,
@@ -41,6 +40,7 @@ from api.types import (
     Chunks,
     CollectionBase,
     CollectionDto,
+    CollectionResources,
     CollectionsDto,
     ResourceDto,
     Role,
@@ -167,9 +167,25 @@ def get_resources_by_collection_id(
             user_id=user.id,
         )
 
+        resource_dtos = []
         for resource in resources:
-            resource.permissions = get_resource_permissions_for_user(
-                user, resource, session
+            resource = Resource.model_validate(resource)
+            resource_dtos.append(
+                ResourceDto(
+                    id=resource.id,
+                    filename=resource.filename,
+                    created_at=resource.created_at,
+                    content_type=resource.content_type,
+                    permissions=get_resource_permissions_for_user(
+                        user, resource, session
+                    ),
+                    url=resource.url,
+                    is_processed=resource.is_processed,
+                    process_error=resource.process_error,
+                    process_time=resource.process_time,
+                    created_by_id=resource.created_by_id,
+                    collection_id=resource.collection_id,
+                )
             )
 
         return CollectionResources(
@@ -177,7 +193,7 @@ def get_resources_by_collection_id(
             page=page,
             total=total,
             page_size=page_size,
-            resources=resources,
+            resources=resource_dtos,
         )
     else:
         raise ItemNotFoundException("Collection not found", 403)
@@ -341,7 +357,7 @@ def update_collection_by_id(
         )
     else:
         logger.info("Collection {collection_id} not found", collection_id=collection_id)
-        raise ItemNotFoundException("Collection not found", 403)
+        raise ItemNotFoundException(message="Collection not found", error_code=403)
 
 
 def delete_collection_by_id(
@@ -448,6 +464,8 @@ def create_resource_from_file(
             is_processed=resource.is_processed,
             process_error=resource.process_error,
             process_time=resource.process_time,
+            created_by_id=resource.created_by_id,
+            collection_id=resource.collection_id,
         )
     else:
         raise ItemNotFoundException(error_code=404, message="Collection not found")
@@ -527,6 +545,8 @@ async def create_resource_from_urls(
                 is_processed=resource.is_processed,
                 process_error=resource.process_error,
                 process_time=resource.process_time,
+                created_by_id=resource.created_by_id,
+                collection_id=resource.collection_id,
             )
             for resource in resources
         ]
@@ -678,6 +698,8 @@ def get_resource_by_id(
             is_processed=resource_db.is_processed,
             process_error=resource_db.process_error,
             process_time=resource_db.process_time,
+            created_by_id=resource_db.created_by_id,
+            collection_id=resource_db.collection_id,
         )
     else:
         raise ItemNotFoundException(error_code=404, message="Resource not found")
