@@ -1,4 +1,5 @@
 ---
+import { ResourcePermission } from '@logic/data.ts';
 import { getResources, type ResourceDetail } from '@logic/data.ts';
 
 let { collection: collectionId, page, count, token, resources, isManager } = Astro.props;
@@ -19,7 +20,7 @@ const dateOptions: Intl.DateTimeFormatOptions = {
 { resources?.map((resource: ResourceDetail) =>
   <tr class="govuk-table__row">
     <td class="govuk-table__cell">
-      { !resource.process_error ?
+      { !resource.process_error && resource.permissions.includes(ResourcePermission.READ_CONTENTS) ?
         <a class="govuk-!-display-block" href={ `resources/${resource.id}` }>{ resource.filename || resource.id }</a>
       :
         <>
