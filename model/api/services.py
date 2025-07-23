@@ -173,7 +173,7 @@ def get_resources_by_collection_id(
             resource_dtos.append(
                 ResourceDto(
                     id=resource.id,
-                    filename=resource.id
+                    filename=str(resource.id)
                     if is_user_admin_user(user)
                     else resource.filename,
                     created_at=resource.created_at,
@@ -458,7 +458,9 @@ def create_resource_from_file(
         )
         return ResourceDto(
             id=resource.id,
-            filename=resource.id if is_user_admin_user(user) else resource.filename,
+            filename=str(resource.id)
+            if is_user_admin_user(user)
+            else resource.filename,
             created_at=resource.created_at,
             content_type=resource.content_type,
             permissions=get_resource_permissions_for_user(user, resource, session),
@@ -539,7 +541,9 @@ async def create_resource_from_urls(
         return [
             ResourceDto(
                 id=resource.id,
-                filename=resource.id if is_user_admin_user(user) else resource.filename,
+                filename=str(resource.id)
+                if is_user_admin_user(user)
+                else resource.filename,
                 created_at=resource.created_at,
                 content_type=resource.content_type,
                 permissions=get_resource_permissions_for_user(user, resource, session),
@@ -692,7 +696,7 @@ def get_resource_by_id(
         resource_dto = Resource.model_validate(resource)
         return ResourceDto(
             id=resource_dto.id,
-            filename=resource_dto.id
+            filename=str(resource_dto.id)
             if is_user_admin_user(user)
             else resource_dto.filename,
             created_at=resource_dto.created_at,

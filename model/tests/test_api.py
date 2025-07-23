@@ -102,7 +102,7 @@ def test_upload_pdf_to_file_upload_endpoint(
         assert response.status_code == 201
         assert response.json()["content_type"] == "application/pdf"
 
-        assert response.json()["filename"] == "dummy.pdf"
+        assert response.json()["filename"] == response.json()["id"]
     delete_resource(database_transaction, response.json()["id"])
 
 
@@ -217,7 +217,7 @@ def test_get_resource(client, collection_manager, example_document):
 
     assert response.status_code == 200
     response_json = response.json()
-    assert response_json["filename"] == example_document.resource.filename
+    assert response_json["filename"] == str(example_document.resource_id)
     assert response_json["content_type"] == example_document.resource.content_type
     assert response_json["id"] == str(example_document.resource_id)
 
@@ -307,9 +307,21 @@ def test_get_collection_resources(
     }
 
     expected_result = [
-        dict(proto, id="00000000-0000-0000-0000-000000000018", filename="filename-18"),
-        dict(proto, id="00000000-0000-0000-0000-000000000019", filename="filename-19"),
-        dict(proto, id="00000000-0000-0000-0000-000000000020", filename="filename-20"),
+        dict(
+            proto,
+            id="00000000-0000-0000-0000-000000000018",
+            filename="00000000-0000-0000-0000-000000000018",
+        ),
+        dict(
+            proto,
+            id="00000000-0000-0000-0000-000000000019",
+            filename="00000000-0000-0000-0000-000000000019",
+        ),
+        dict(
+            proto,
+            id="00000000-0000-0000-0000-000000000020",
+            filename="00000000-0000-0000-0000-000000000020",
+        ),
     ]
     actual_result = response.json()["resources"]
     assert actual_result == expected_result
@@ -661,14 +673,19 @@ def test_upload_urls_to_upload_endpoint_401(client, example_collection, admin_us
     ],
 )
 def test_upload_urls_to_upload_endpoint(
-    client, example_collection, admin_user, url, expected_results, expected_status
+    client,
+    collection_manager_non_admin,
+    normal_user,
+    url,
+    expected_results,
+    expected_status,
 ):
     response = client.post(
-        f"/collections/{example_collection.id}/resources/urls",
+        f"/collections/{collection_manager_non_admin.collection_id}/resources/urls",
         json=[
             url,
         ],
-        headers={"Authorization": admin_user.token},
+        headers={"Authorization": normal_user.token},
     )
     assert response.status_code == 201
     resources = [Resource.model_validate(resource) for resource in response.json()]
@@ -678,5 +695,5 @@ def test_upload_urls_to_upload_endpoint(
     assert actual_result.content_type == expected_results["content_type"]
     assert actual_result.filename == expected_results["filename"]
     assert actual_result.is_processed == expected_results["is_processed"]
-    assert actual_result.collection_id == example_collection.id
-    assert actual_result.created_by_id == admin_user.id
+    assert actual_result.collection_id == collection_manager_non_admin.collection_id
+    assert actual_result.created_by_id == normal_user.id
