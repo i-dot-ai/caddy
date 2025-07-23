@@ -88,7 +88,7 @@ def check_user_is_member_of_collection(
     collection_id: UUID,
     session: Session,
     struct_logger: StructuredLogger,
-    is_manager: bool = True,
+    is_manager_of_collection: bool = True,
 ):
     if user is None:
         struct_logger.info(
@@ -127,7 +127,7 @@ def check_user_is_member_of_collection(
             error_code=403, message="User is not a member of this collection"
         )
 
-    if is_manager and user_collection.role != Role.MANAGER:
+    if is_manager_of_collection and user_collection.role != Role.MANAGER:
         struct_logger.info(
             "User {user} must be a manager for this request to see collection {collection_id}",
             user=str(user),

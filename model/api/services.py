@@ -139,7 +139,11 @@ def get_resources_by_collection_id(
 ) -> CollectionResources:
     if collection := session.get(Collection, collection_id):
         check_user_is_member_of_collection(
-            user, collection.id, session, is_manager=False, struct_logger=logger
+            user,
+            collection.id,
+            session,
+            is_manager_of_collection=False,
+            struct_logger=logger,
         )
         permissions = get_collection_permissions_for_user(user, collection, session)
         if permissions is None or CollectionPermissionEnum.VIEW not in permissions:
@@ -257,15 +261,8 @@ def get_user_collections(
         [UserCollection.user_id == user.id] if user and not user.is_admin else []
     )
 
-    is_manager = func.coalesce(
-        func.bool_or(UserCollection.role == Role.MANAGER).over(
-            partition_by=Collection.id
-        ),
-        False,
-    ).label("is_manager")
-
     statement = (
-        select(Collection, is_manager)
+        select(Collection)
         .join(UserCollection, isouter=True)
         .where(*where_clauses)
         .distinct()
@@ -279,10 +276,14 @@ def get_user_collections(
     # Build collections based on previous statements
 
     collections = []
-    for collection, is_manager in query_results:
+    for collection in query_results:
         permissions = get_collection_permissions_for_user(user, collection, session)
         if CollectionPermissionEnum.VIEW not in permissions:
-            logger.error(msg="No permission to view collection")
+            logger.error(
+                "User {user} does not have permission to view {collection}",
+                user=str(user),
+                collection=collection.id,
+            )
             raise NoPermissionException(
                 error_code=401, message="Failed to retrieve available collections"
             )
@@ -293,7 +294,6 @@ def get_user_collections(
                 description=collection.description,
                 created_at=collection.created_at,
                 permissions=permissions,
-                is_manager=is_manager,
             )
         )
 
@@ -330,19 +330,6 @@ def update_collection_by_id(
         session.commit()
         session.refresh(collection)
 
-        is_manager = False
-        if user:
-            is_manager = (
-                session.scalar(
-                    select(func.count(UserCollection.user_id)).where(
-                        UserCollection.collection_id == collection.id,
-                        UserCollection.user_id == user.id,
-                        UserCollection.role == Role.MANAGER,
-                    )
-                )
-                > 0
-            )
-
         logger.info(
             "Collection {collection_name} updated by user {user}",
             collection_name=collection.name,
@@ -353,7 +340,7 @@ def update_collection_by_id(
             name=collection.name,
             description=collection.description,
             created_at=collection.created_at,
-            is_manager=is_manager,
+            permissions=get_collection_permissions_for_user(user, collection, session),
         )
     else:
         logger.info("Collection {collection_id} not found", collection_id=collection_id)
@@ -564,7 +551,11 @@ def get_documents_for_resource_by_id(
     page_size: int = 10,
 ) -> Chunks:
     check_user_is_member_of_collection(
-        user, collection_id, session, is_manager=False, struct_logger=logger
+        user,
+        collection_id,
+        session,
+        is_manager_of_collection=False,
+        struct_logger=logger,
     )
 
     resource = session.get(Resource, resource_id)
@@ -677,7 +668,11 @@ def get_resource_by_id(
     logger: StructuredLogger,
 ) -> ResourceDto:
     check_user_is_member_of_collection(
-        user, collection_id, session, is_manager=False, struct_logger=logger
+        user,
+        collection_id,
+        session,
+        is_manager_of_collection=False,
+        struct_logger=logger,
     )
 
     if resource := session.get(Resource, resource_id):

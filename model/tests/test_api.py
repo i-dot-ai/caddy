@@ -263,10 +263,14 @@ def test_get_collections(
     collection_b = next(
         c for c in actual.collections if c.id == another_example_collection.id
     )
-    assert (
-        collection_a.is_manager
-    )  # admin_user is the manger of this one via `collection_manager`
-    assert not collection_b.is_manager  # but not this one
+    assert collection_a.permissions == [
+        CollectionPermissionEnum.VIEW,
+        CollectionPermissionEnum.EDIT,
+        CollectionPermissionEnum.DELETE,
+        CollectionPermissionEnum.MANAGE_USERS,
+        CollectionPermissionEnum.MANAGE_RESOURCES,
+    ]  # admin_user is the manger of this one via `collection_manager`
+    assert CollectionPermissionEnum.EDIT in collection_b.permissions  # but not this one
 
 
 def test_anonymous__get_collections(

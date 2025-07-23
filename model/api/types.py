@@ -75,9 +75,6 @@ class CollectionDto(CollectionBase):
     created_at: datetime | None = Field(
         description="collection creation date", default=None
     )
-    is_manager: bool = Field(
-        description="is manager of this collection or not", default=False
-    )
     permissions: list[CollectionPermissionEnum] = Field(
         description="Collection permission enum(s)", default_factory=list
     )
