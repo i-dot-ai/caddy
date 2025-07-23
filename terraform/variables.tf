@@ -195,13 +195,17 @@ variable "OPENSEARCH_ADMIN_EMAILS" {
 }
 
 variable "RESOURCE_URL_TEMPLATE" {
-  type = string
+  type        = string
   description = "resource url template"
-
 }
 
 variable "ADMIN_USERS" {
-  type = string
+  type        = string
   description = "comma seperated list of users email addresses to make admins"
+}
 
+variable "scope" {
+  description = "Scope of the WAF, either 'CLOUDFRONT' or 'REGIONAL'"
+  type        = string
+  default     = "REGIONAL"
 }
