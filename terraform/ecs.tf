@@ -76,6 +76,8 @@ module "model" {
     unhealthy_threshold = 5
     port                = local.backend_port
   }
+
+  wait_for_ready_state = true
 }
 
 module "frontend" {
@@ -136,6 +138,8 @@ module "frontend" {
     client_secret : data.aws_ssm_parameter.client_secret.value,
     keycloak_dns : data.terraform_remote_state.keycloak.outputs.keycloak_dns
   }
+
+  wait_for_ready_state = true
 }
 
 resource "aws_service_discovery_private_dns_namespace" "private_dns_namespace" {
