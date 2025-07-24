@@ -76,7 +76,7 @@ class CollectionDto(CollectionBase):
         description="collection creation date", default=None
     )
     permissions: list[CollectionPermissionEnum] = Field(
-        description="Collection permission enum(s)", default_factory=list
+        description="Collection permission enum value(s)", default_factory=list
     )
 
 
@@ -96,10 +96,10 @@ class ResourceDto(ResourceBase):
     created_by_id: UUID
     collection_id: UUID
     created_at: datetime | None = Field(
-        description="collection creation date", default=None
+        description="Resource creation date", default=None
     )
     permissions: list[ResourcePermissionEnum] = Field(
-        description="Resource permission enum(s)", default_factory=list
+        description="Resource permission enum value(s)", default_factory=list
     )
 
 
