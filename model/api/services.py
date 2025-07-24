@@ -342,7 +342,7 @@ def update_collection_by_id(
             name=collection.name,
             description=collection.description,
             created_at=collection.created_at,
-            permissions=get_collection_permissions_for_user(user, collection, session),
+            permissions=permissions,
         )
     else:
         logger.info("Collection {collection_id} not found", collection_id=collection_id)
