@@ -117,6 +117,7 @@ export const deleteCollection = async(collectionId: string, keycloakToken: strin
 
 export enum ResourcePermission {
   VIEW = 'VIEW',
+  READ_CONTENTS = 'READ_CONTENTS',
   DELETE = 'DELETE',
 }
 

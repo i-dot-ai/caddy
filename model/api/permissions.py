@@ -25,13 +25,13 @@ def get_session() -> Session:
 
 
 def is_user_admin_user(user: User):
-    return user.email in config.admin_users
+    return user.email in config.admin_users or user.is_admin
 
 
 def get_collection_permissions_for_user(
     user: User, collection: Collection, session: Session | None
 ) -> list[CollectionPermissionEnum]:
-    if user.is_admin or is_user_admin_user(user):
+    if is_user_admin_user(user):
         return [
             CollectionPermissionEnum.VIEW,
             CollectionPermissionEnum.EDIT,
@@ -65,7 +65,7 @@ def get_collection_permissions_for_user(
 def get_resource_permissions_for_user(
     user: User, resource: Resource, session: Session | None
 ) -> list[ResourcePermissionEnum]:
-    if user.is_admin or is_user_admin_user(user):
+    if is_user_admin_user(user):
         return [ResourcePermissionEnum.VIEW, ResourcePermissionEnum.DELETE]
     else:
         if not session:
@@ -78,9 +78,13 @@ def get_resource_permissions_for_user(
         if not results:
             return []
         if results.role == Role.MANAGER:
-            return [ResourcePermissionEnum.VIEW, ResourcePermissionEnum.DELETE]
+            return [
+                ResourcePermissionEnum.VIEW,
+                ResourcePermissionEnum.READ_CONTENTS,
+                ResourcePermissionEnum.DELETE,
+            ]
         if results.role == Role.MEMBER:
-            return [ResourcePermissionEnum.VIEW]
+            return [ResourcePermissionEnum.VIEW, ResourcePermissionEnum.READ_CONTENTS]
 
 
 def check_user_is_member_of_collection(
