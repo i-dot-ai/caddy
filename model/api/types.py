@@ -3,7 +3,8 @@ from datetime import datetime, timedelta
 from uuid import UUID
 
 from langchain_core.documents import Document
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, computed_field
+from slugify import slugify
 
 from api.enums import CollectionPermissionEnum, ResourcePermissionEnum
 
@@ -22,6 +23,11 @@ class CollectionBase(BaseModel):
         examples=["my-collection"],
     )
     description: str = Field(description="used by LLM to choose tool suitability")
+
+    @computed_field
+    @property
+    def slug(self) -> str:
+        return slugify(self.name)
 
 
 class ResourceBase(BaseModel):

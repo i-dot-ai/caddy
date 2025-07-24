@@ -108,7 +108,7 @@ async def call_tool(
             .join(Collection)
             .where(
                 User.email == user_email,
-                Collection.name == name,
+                Collection.slug == name,
             )
         )
         user_collection = session.exec(statement).first()
@@ -159,7 +159,7 @@ async def list_tools() -> list[types.Tool]:
 
     return [
         types.Tool(
-            name=collection.name,
+            name=collection.slug,
             description=collection.description,
             inputSchema={
                 "type": "object",
