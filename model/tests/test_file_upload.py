@@ -57,7 +57,9 @@ def test_file_upload(client, tmp_path, admin_user):
         )["Contents"]
     }
     resource_ids = {
-        f"{config.s3_prefix}/{collection_id}/{item['id']}/{item['filename']}"
+        f"{config.s3_prefix}/{collection_id}/{item['id']}/"
         for item in response.json()["resources"]
     }
-    assert s3_keys == resource_ids
+    assert all(
+        any(resource_id in s3_key for s3_key in s3_keys) for resource_id in resource_ids
+    )

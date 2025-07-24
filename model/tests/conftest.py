@@ -124,9 +124,10 @@ def web_resource(database_transaction, example_collection):
 
 
 @pytest.fixture
-def example_document(database_transaction, example_collection):
+def example_document(database_transaction, example_collection, normal_user):
     gov_uk_resource = Resource(
         collection_id=example_collection.id,
+        created_by_id=normal_user.id,
         filename="gov.pdf",
         content_type="text/html",
     )
@@ -169,6 +170,7 @@ def another_example_document(database_transaction, another_example_collection):
 def many_documents(
     example_collection: Collection,
     database_transaction,
+    normal_user,
 ):
     # 50 resources with 10 documents each
     resources = []
@@ -179,6 +181,7 @@ def many_documents(
         r = Resource(
             id=UUID(str(i).rjust(32, "0")),
             collection_id=example_collection.id,
+            created_by_id=normal_user.id,
             filename=f"filename-{filename}",
             content_type="text/plain",
             created_at="2001-01-01T01:01:00",

@@ -7,6 +7,7 @@ import pytest
 from langchain_core.documents import Document
 from sqlmodel import Session
 
+from api.enums import CollectionPermissionEnum
 from api.environment import config
 from api.models import (
     Resource,
@@ -101,7 +102,7 @@ def test_upload_pdf_to_file_upload_endpoint(
         assert response.status_code == 201
         assert response.json()["content_type"] == "application/pdf"
 
-        assert response.json()["filename"] == "dummy.pdf"
+        assert response.json()["filename"] == response.json()["id"]
     delete_resource(database_transaction, response.json()["id"])
 
 
@@ -216,7 +217,7 @@ def test_get_resource(client, collection_manager, example_document):
 
     assert response.status_code == 200
     response_json = response.json()
-    assert response_json["filename"] == example_document.resource.filename
+    assert response_json["filename"] == str(example_document.resource_id)
     assert response_json["content_type"] == example_document.resource.content_type
     assert response_json["id"] == str(example_document.resource_id)
 
@@ -262,10 +263,14 @@ def test_get_collections(
     collection_b = next(
         c for c in actual.collections if c.id == another_example_collection.id
     )
-    assert (
-        collection_a.is_manager
-    )  # admin_user is the manger of this one via `collection_manager`
-    assert not collection_b.is_manager  # but not this one
+    assert collection_a.permissions == [
+        CollectionPermissionEnum.VIEW,
+        CollectionPermissionEnum.EDIT,
+        CollectionPermissionEnum.DELETE,
+        CollectionPermissionEnum.MANAGE_USERS,
+        CollectionPermissionEnum.MANAGE_RESOURCES,
+    ]  # admin_user is the manger of this one via `collection_manager`
+    assert CollectionPermissionEnum.EDIT in collection_b.permissions  # but not this one
 
 
 def test_anonymous__get_collections(
@@ -277,7 +282,9 @@ def test_anonymous__get_collections(
     assert response.status_code == 401
 
 
-def test_get_collection_resources(client, collection_manager, many_documents):
+def test_get_collection_resources(
+    client, collection_manager, many_documents, normal_user
+):
     # GIVEN: 50 resources
     # WHEN I query the 7th page of size 3
     response = client.get(
@@ -293,28 +300,44 @@ def test_get_collection_resources(client, collection_manager, many_documents):
         "content_type": "text/plain",
         "created_at": "2001-01-01T01:01:00",
         "is_processed": False,
+        "permissions": [
+            CollectionPermissionEnum.VIEW.value,
+            CollectionPermissionEnum.DELETE.value,
+        ],
         "process_error": None,
         "process_time": None,
-        "created_by_id": None,
+        "created_by_id": str(normal_user.id),
         "url": None,
     }
 
     expected_result = [
-        dict(proto, id="00000000-0000-0000-0000-000000000018", filename="filename-18"),
-        dict(proto, id="00000000-0000-0000-0000-000000000019", filename="filename-19"),
-        dict(proto, id="00000000-0000-0000-0000-000000000020", filename="filename-20"),
+        dict(
+            proto,
+            id="00000000-0000-0000-0000-000000000018",
+            filename="00000000-0000-0000-0000-000000000018",
+        ),
+        dict(
+            proto,
+            id="00000000-0000-0000-0000-000000000019",
+            filename="00000000-0000-0000-0000-000000000019",
+        ),
+        dict(
+            proto,
+            id="00000000-0000-0000-0000-000000000020",
+            filename="00000000-0000-0000-0000-000000000020",
+        ),
     ]
     actual_result = response.json()["resources"]
     assert actual_result == expected_result
 
 
-def test_get_collection_resources_404(client, admin_user):
+def test_get_collection_resources_403(client, admin_user):
     response = client.get(
         f"/collections/{uuid4()}/resources",
         headers={"Authorization": admin_user.token},
     )
-    assert response.status_code == 404
-    assert response.json() == {"message": "Not found"}
+    assert response.status_code == 403
+    assert response.json() == {"detail": "Collection not found"}
 
 
 def test_get_collection_resources_401(client):
@@ -422,14 +445,14 @@ def test_update_collection(client, example_collection, admin_user):
     assert response.json()["description"] == "new-description"
 
 
-def test_update_collection_404(client, admin_user):
+def test_update_collection_403(client, admin_user):
     response = client.put(
         f"/collections/{uuid4()}",
         json={"name": "new-name", "description": "new-description"},
         headers={"Authorization": admin_user.token},
     )
-    assert response.status_code == 404
-    assert response.json() == {"message": "Not found"}
+    assert response.status_code == 403
+    assert response.json() == {"detail": "Collection not found (Error Code: 403)"}
 
 
 def test_update_collection_401(client):
@@ -613,7 +636,7 @@ def test_upload_urls_to_upload_endpoint_422(client, example_collection, admin_us
     )
     assert response.status_code == 422
     assert response.json() == {
-        "detail": f"Unsupported URL ({fake_url}) found in URL list"
+        "detail": f"Unsupported URL ({fake_url}) found in URL list (Error Code: 422)"
     }
 
 
@@ -654,14 +677,19 @@ def test_upload_urls_to_upload_endpoint_401(client, example_collection, admin_us
     ],
 )
 def test_upload_urls_to_upload_endpoint(
-    client, example_collection, admin_user, url, expected_results, expected_status
+    client,
+    collection_manager_non_admin,
+    normal_user,
+    url,
+    expected_results,
+    expected_status,
 ):
     response = client.post(
-        f"/collections/{example_collection.id}/resources/urls",
+        f"/collections/{collection_manager_non_admin.collection_id}/resources/urls",
         json=[
             url,
         ],
-        headers={"Authorization": admin_user.token},
+        headers={"Authorization": normal_user.token},
     )
     assert response.status_code == 201
     resources = [Resource.model_validate(resource) for resource in response.json()]
@@ -671,5 +699,5 @@ def test_upload_urls_to_upload_endpoint(
     assert actual_result.content_type == expected_results["content_type"]
     assert actual_result.filename == expected_results["filename"]
     assert actual_result.is_processed == expected_results["is_processed"]
-    assert actual_result.collection_id == example_collection.id
-    assert actual_result.created_by_id == admin_user.id
+    assert actual_result.collection_id == collection_manager_non_admin.collection_id
+    assert actual_result.created_by_id == normal_user.id

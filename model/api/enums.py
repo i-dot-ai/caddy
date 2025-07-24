@@ -11,4 +11,5 @@ class CollectionPermissionEnum(StrEnum):
 
 class ResourcePermissionEnum(StrEnum):
     VIEW = "VIEW"
+    READ_CONTENTS = "READ_CONTENTS"
     DELETE = "DELETE"
