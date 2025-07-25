@@ -7,7 +7,7 @@ import pytest
 from langchain_core.documents import Document
 from sqlmodel import Session
 
-from api.enums import CollectionPermissionEnum
+from api.enums import CollectionPermissionEnum, ResourcePermissionEnum
 from api.environment import config
 from api.models import (
     Resource,
@@ -301,8 +301,9 @@ def test_get_collection_resources(
         "created_at": "2001-01-01T01:01:00",
         "is_processed": False,
         "permissions": [
-            CollectionPermissionEnum.VIEW.value,
-            CollectionPermissionEnum.DELETE.value,
+            ResourcePermissionEnum.VIEW.value,
+            ResourcePermissionEnum.READ_CONTENTS.value,
+            ResourcePermissionEnum.DELETE.value,
         ],
         "process_error": None,
         "process_time": None,
@@ -314,17 +315,17 @@ def test_get_collection_resources(
         dict(
             proto,
             id="00000000-0000-0000-0000-000000000018",
-            filename="00000000-0000-0000-0000-000000000018",
+            filename="filename-18",
         ),
         dict(
             proto,
             id="00000000-0000-0000-0000-000000000019",
-            filename="00000000-0000-0000-0000-000000000019",
+            filename="filename-19",
         ),
         dict(
             proto,
             id="00000000-0000-0000-0000-000000000020",
-            filename="00000000-0000-0000-0000-000000000020",
+            filename="filename-20",
         ),
     ]
     actual_result = response.json()["resources"]
