@@ -702,3 +702,43 @@ def test_upload_urls_to_upload_endpoint(
     assert actual_result.is_processed == expected_results["is_processed"]
     assert actual_result.collection_id == collection_manager_non_admin.collection_id
     assert actual_result.created_by_id == normal_user.id
+
+
+def test_admin_non_file_name_obfuscation(
+    client, example_collection, admin_user, collection_manager, example_document
+):
+    response = client.get(
+        f"/collections/{collection_manager.collection_id}/resources",
+        headers={"Authorization": admin_user.token},
+    )
+
+    assert response.status_code == 200
+    assert len(response.json()["resources"]) > 0
+    assert (
+        response.json()["resources"][0]["filename"]
+        != response.json()["resources"][0]["id"]
+    )
+    assert (
+        response.json()["resources"][0]["filename"]
+        == example_document.resource.filename
+    )
+
+
+def test_admin_file_name_obfuscation(
+    client, example_collection, admin_user, example_document
+):
+    response = client.get(
+        f"/collections/{example_collection.id}/resources",
+        headers={"Authorization": admin_user.token},
+    )
+
+    assert response.status_code == 200
+    assert len(response.json()["resources"]) > 0
+    assert (
+        response.json()["resources"][0]["filename"]
+        == response.json()["resources"][0]["id"]
+    )
+    assert (
+        response.json()["resources"][0]["filename"]
+        != example_document.resource.filename
+    )
