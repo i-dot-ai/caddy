@@ -171,15 +171,20 @@ def get_resources_by_collection_id(
             user_id=user.id,
         )
 
+        if session.get(
+            UserCollection, {"collection_id": collection_id, "user_id": user.id}
+        ):
+            use_file_name = True
+        else:
+            use_file_name = False
+
         resource_dtos = []
         for resource in resources:
             resource = Resource.model_validate(resource)
             resource_dtos.append(
                 ResourceDto(
                     id=resource.id,
-                    filename=str(resource.id)
-                    if is_user_admin_user(user)
-                    else resource.filename,
+                    filename=resource.filename if use_file_name else str(resource.id),
                     created_at=resource.created_at,
                     content_type=resource.content_type,
                     permissions=get_resource_permissions_for_user(
@@ -443,11 +448,15 @@ def create_resource_from_file(
             user=user,
             processing_time=processing_time,
         )
+        if session.get(
+            UserCollection, {"collection_id": collection_id, "user_id": user.id}
+        ):
+            file_name = resource.filename
+        else:
+            file_name = str(resource.id)
         return ResourceDto(
             id=resource.id,
-            filename=str(resource.id)
-            if is_user_admin_user(user)
-            else resource.filename,
+            filename=file_name,
             created_at=resource.created_at,
             content_type=resource.content_type,
             permissions=get_resource_permissions_for_user(user, resource, session),
@@ -525,24 +534,34 @@ async def create_resource_from_urls(
             processing_time=(scrape_processing_time + processing_total).total_seconds()
             * 1000,
         )
-        return [
-            ResourceDto(
-                id=resource.id,
-                filename=str(resource.id)
-                if is_user_admin_user(user)
-                else resource.filename,
-                created_at=resource.created_at,
-                content_type=resource.content_type,
-                permissions=get_resource_permissions_for_user(user, resource, session),
-                url=resource.url,
-                is_processed=resource.is_processed,
-                process_error=resource.process_error,
-                process_time=resource.process_time,
-                created_by_id=resource.created_by_id,
-                collection_id=resource.collection_id,
+
+        if session.get(
+            UserCollection, {"collection_id": collection_id, "user_id": user.id}
+        ):
+            use_file_name = True
+        else:
+            use_file_name = False
+
+        resource_dtos = []
+        for resource in resources:
+            resource_dtos.append(
+                ResourceDto(
+                    id=resource.id,
+                    filename=resource.filename if use_file_name else str(resource.id),
+                    created_at=resource.created_at,
+                    content_type=resource.content_type,
+                    permissions=get_resource_permissions_for_user(
+                        user, resource, session
+                    ),
+                    url=resource.url,
+                    is_processed=resource.is_processed,
+                    process_error=resource.process_error,
+                    process_time=resource.process_time,
+                    created_by_id=resource.created_by_id,
+                    collection_id=resource.collection_id,
+                )
             )
-            for resource in resources
-        ]
+        return resource_dtos
     else:
         raise ItemNotFoundException(error_code=404, message="Collection not found")
 
