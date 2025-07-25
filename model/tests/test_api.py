@@ -414,7 +414,6 @@ def test_create_collection_same_name(client, collection_manager, example_collect
 @pytest.mark.parametrize(
     ("collection_name", "error_message"),
     [
-        ("my collection", "String should match pattern '^[\\w-]+$'"),
         ("AB", "String should have at least 3 characters"),
         (
             "my-far-far-far-too-long-collection-name",

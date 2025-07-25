@@ -6,7 +6,7 @@ export async function POST({ request, redirect }: EndpointParams) {
 
   const data = await request.formData();
   const id = data.get('collection')?.toString() || '';
-  const name = data.get('name')?.toString().replaceAll(' ', '-');
+  const name = data.get('name')?.toString();
   const description = data.get('description')?.toString() || '';
 
   let notification = '';
