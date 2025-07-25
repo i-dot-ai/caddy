@@ -65,26 +65,25 @@ def get_collection_permissions_for_user(
 def get_resource_permissions_for_user(
     user: User, resource: Resource, session: Session | None
 ) -> list[ResourcePermissionEnum]:
-    if is_user_admin_user(user):
-        return [ResourcePermissionEnum.VIEW, ResourcePermissionEnum.DELETE]
-    else:
-        if not session:
-            session = get_session()
-        stmt = select(UserCollection).where(
-            UserCollection.user_id == user.id
-            and UserCollection.collection_id == resource.collection_id
-        )
-        results = session.exec(stmt).first()
-        if not results:
-            return []
-        if results.role == Role.MANAGER:
-            return [
-                ResourcePermissionEnum.VIEW,
-                ResourcePermissionEnum.READ_CONTENTS,
-                ResourcePermissionEnum.DELETE,
-            ]
-        if results.role == Role.MEMBER:
-            return [ResourcePermissionEnum.VIEW, ResourcePermissionEnum.READ_CONTENTS]
+    if not session:
+        session = get_session()
+    stmt = select(UserCollection).where(
+        UserCollection.user_id == user.id
+        and UserCollection.collection_id == resource.collection_id
+    )
+    results = session.exec(stmt).first()
+    if not results:
+        if is_user_admin_user(user):
+            return [ResourcePermissionEnum.VIEW, ResourcePermissionEnum.DELETE]
+        return []
+    if results.role == Role.MANAGER:
+        return [
+            ResourcePermissionEnum.VIEW,
+            ResourcePermissionEnum.READ_CONTENTS,
+            ResourcePermissionEnum.DELETE,
+        ]
+    if results.role == Role.MEMBER:
+        return [ResourcePermissionEnum.VIEW, ResourcePermissionEnum.READ_CONTENTS]
 
 
 def check_user_is_member_of_collection(
