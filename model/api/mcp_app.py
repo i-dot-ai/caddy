@@ -108,17 +108,22 @@ async def call_tool(
             .join(Collection)
             .where(
                 User.email == user_email,
-                Collection.slug == name,
             )
         )
-        user_collection = session.exec(statement).first()
-        if not user_collection:
+        user_collections = session.exec(statement).all()
+        matching_collections = [
+            user_collection
+            for user_collection in user_collections
+            if user_collection.collection.slug == name
+        ]
+        if not matching_collections:
             raise HTTPException(
                 403, detail="User does not have access to this collection"
             )
+        slugged_collection = matching_collections[0]
 
         documents = await search_collection(
-            user_collection.collection_id,
+            slugged_collection.collection_id,
             query=arguments.get("query"),
             keywords=arguments.get("keywords", []),
             session=session,
