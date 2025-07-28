@@ -220,7 +220,7 @@ def create_new_collection(
         logger.info(
             "User {user} tried to create a collection {collection_name} without being an admin",
             user=user.email,
-            collection_name=new_collection.collection_name,
+            collection_name=new_collection.name,
         )
         raise NoPermissionException(error_code=403, message="User needs to be an admin")
     collection = Collection(**new_collection.model_dump())
