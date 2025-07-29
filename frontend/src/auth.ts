@@ -2,28 +2,7 @@ import 'dotenv/config';
 import { jwtVerify, decodeJwt, errors, importSPKI } from 'jose';
 
 
-export async function isAuthorisedUser(header: string): Promise<boolean> {
-  if (!process.env.REPO) {
-    console.error('REPO environment variable not set');
-    return false;
-  }
-
-  const parsedToken = await parseAuthToken(header);
-
-  if (!parsedToken) {
-    console.error('No token found for user');
-    return false;
-  }
-
-  /*
-   * We have decided not to check Keycloak roles (any role is allowed)
-   * Therefore return all roles without filtering
-   */
-  return parsedToken.roles;
-
-}
-
-async function parseAuthToken(header: string) {
+export async function parseAuthToken(header: string) {
   if (!header) {
     console.error('No auth token provided to parse');
     return null;

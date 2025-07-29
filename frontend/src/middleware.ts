@@ -1,5 +1,5 @@
 import 'dotenv/config';
-import { isAuthorisedUser } from './auth.ts';
+import { parseAuthToken } from './auth.ts';
 
 // Define paths that should be public (no authorisation required)
 const PUBLIC_PATHS = [
@@ -31,9 +31,13 @@ export async function onRequest(context, next) {
       return redirectToUnauthorised(context);
     }
 
-    if (!await isAuthorisedUser(token)) {
+    const parsedToken = await parseAuthToken(token);
+    if (!parsedToken?.email) {
       return redirectToUnauthorised(context);
     }
+
+    // Is this user an admin user? Used to determine whether to add analytics. Permissions are handled through the API.
+    await context.session?.set('isAdmin', process.env.ADMIN_USERS?.includes(parsedToken.email));
 
     return next();
   } catch(error) {
