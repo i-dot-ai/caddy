@@ -112,7 +112,11 @@ async def call_tool(
         )
         user_collections = session.exec(statement).all()
         matched_collection = next(
-            filter(lambda c: c.slug == name, user_collections), None
+            filter(
+                lambda user_collection: user_collection.collection.slug == name,
+                user_collections,
+            ),
+            None,
         )
         if not matched_collection:
             raise HTTPException(
