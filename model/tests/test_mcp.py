@@ -19,7 +19,7 @@ async def test_mcp_tool_call(
         "id": 2,
         "method": "tools/call",
         "params": {
-            "name": collection_manager.collection.name,
+            "name": collection_manager.collection.slug,
             "arguments": {"query": "hello", "keywords": []},
         },
     }

@@ -108,17 +108,23 @@ async def call_tool(
             .join(Collection)
             .where(
                 User.email == user_email,
-                Collection.name == name,
             )
         )
-        user_collection = session.exec(statement).first()
-        if not user_collection:
+        user_collections = session.exec(statement).all()
+        matched_collection = next(
+            filter(
+                lambda user_collection: user_collection.collection.slug == name,
+                user_collections,
+            ),
+            None,
+        )
+        if not matched_collection:
             raise HTTPException(
                 403, detail="User does not have access to this collection"
             )
 
         documents = await search_collection(
-            user_collection.collection_id,
+            matched_collection.collection_id,
             query=arguments.get("query"),
             keywords=arguments.get("keywords", []),
             session=session,
@@ -159,7 +165,7 @@ async def list_tools() -> list[types.Tool]:
 
     return [
         types.Tool(
-            name=collection.name,
+            name=collection.slug,
             description=collection.description,
             inputSchema={
                 "type": "object",
