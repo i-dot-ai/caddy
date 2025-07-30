@@ -1,6 +1,6 @@
 {
   "template": "git@github.com:i-dot-ai/i-dot-ai-cookiecutter.git",
-  "commit": "f73a30c3e82341db7ee793e1d0115d5eef49b410",
+  "commit": "77c1bc375249f7c14a2bdc73b5594eb9f0db68b2",
   "checkout": null,
   "context": {
     "cookiecutter": {
