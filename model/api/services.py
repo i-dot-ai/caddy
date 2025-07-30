@@ -216,7 +216,7 @@ def create_new_collection(
     user: User,
     logger: StructuredLogger,
 ) -> Collection:
-    if not user.is_admin:
+    if not is_user_admin_user(user):
         logger.info(
             "User {user} tried to create a collection {collection_name} without being an admin",
             user=user.email,
