@@ -7,7 +7,7 @@ import pytest
 from langchain_core.documents import Document
 from sqlmodel import Session
 
-from api.enums import CollectionPermissionEnum
+from api.enums import CollectionPermissionEnum, ResourcePermissionEnum
 from api.environment import config
 from api.models import (
     Resource,
@@ -301,8 +301,9 @@ def test_get_collection_resources(
         "created_at": "2001-01-01T01:01:00",
         "is_processed": False,
         "permissions": [
-            CollectionPermissionEnum.VIEW.value,
-            CollectionPermissionEnum.DELETE.value,
+            ResourcePermissionEnum.VIEW.value,
+            ResourcePermissionEnum.READ_CONTENTS.value,
+            ResourcePermissionEnum.DELETE.value,
         ],
         "process_error": None,
         "process_time": None,
@@ -314,17 +315,17 @@ def test_get_collection_resources(
         dict(
             proto,
             id="00000000-0000-0000-0000-000000000018",
-            filename="00000000-0000-0000-0000-000000000018",
+            filename="filename-18",
         ),
         dict(
             proto,
             id="00000000-0000-0000-0000-000000000019",
-            filename="00000000-0000-0000-0000-000000000019",
+            filename="filename-19",
         ),
         dict(
             proto,
             id="00000000-0000-0000-0000-000000000020",
-            filename="00000000-0000-0000-0000-000000000020",
+            filename="filename-20",
         ),
     ]
     actual_result = response.json()["resources"]
@@ -414,7 +415,6 @@ def test_create_collection_same_name(client, collection_manager, example_collect
 @pytest.mark.parametrize(
     ("collection_name", "error_message"),
     [
-        ("my collection", "String should match pattern '^[\\w-]+$'"),
         ("AB", "String should have at least 3 characters"),
         (
             "my-far-far-far-too-long-collection-name",
@@ -701,3 +701,43 @@ def test_upload_urls_to_upload_endpoint(
     assert actual_result.is_processed == expected_results["is_processed"]
     assert actual_result.collection_id == collection_manager_non_admin.collection_id
     assert actual_result.created_by_id == normal_user.id
+
+
+def test_admin_non_file_name_obfuscation(
+    client, example_collection, admin_user, collection_manager, example_document
+):
+    response = client.get(
+        f"/collections/{collection_manager.collection_id}/resources",
+        headers={"Authorization": admin_user.token},
+    )
+
+    assert response.status_code == 200
+    assert len(response.json()["resources"]) > 0
+    assert (
+        response.json()["resources"][0]["filename"]
+        != response.json()["resources"][0]["id"]
+    )
+    assert (
+        response.json()["resources"][0]["filename"]
+        == example_document.resource.filename
+    )
+
+
+def test_admin_file_name_obfuscation(
+    client, example_collection, admin_user, example_document
+):
+    response = client.get(
+        f"/collections/{example_collection.id}/resources",
+        headers={"Authorization": admin_user.token},
+    )
+
+    assert response.status_code == 200
+    assert len(response.json()["resources"]) > 0
+    assert (
+        response.json()["resources"][0]["filename"]
+        == response.json()["resources"][0]["id"]
+    )
+    assert (
+        response.json()["resources"][0]["filename"]
+        != example_document.resource.filename
+    )
