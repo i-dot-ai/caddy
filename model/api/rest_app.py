@@ -51,6 +51,11 @@ md = MarkItDown()
 metric_writer = config.get_metrics_writer()
 
 
+def __set_logger_context(logger: StructuredLogger, user: User):
+    logger.set_context_field("user_email", str(user))
+    logger.set_context_field("user_id", str(user.id))
+
+
 @router.get(
     "/collections/{collection_id}/resources", status_code=200, tags=["collections"]
 )
@@ -64,6 +69,7 @@ def get_collection_resources(
 ) -> CollectionResources:
     """returns a list of resources belonging to this collection"""
     try:
+        __set_logger_context(logger, user)
         result = get_resources_by_collection_id(
             user, session, collection_id, logger, page_size, page
         )
@@ -85,6 +91,7 @@ def create_collection(
 ) -> Collection:
     """create a collection"""
     try:
+        __set_logger_context(logger, user)
         result = create_new_collection(new_collection, session, user, logger)
     except (NoPermissionException, DuplicateItemException) as e:
         raise HTTPException(status_code=e.error_code, detail=str(e))
@@ -102,6 +109,7 @@ def update_collection(
 ) -> CollectionDto:
     """update a collection"""
     try:
+        __set_logger_context(logger, user)
         result = update_collection_by_id(
             collection_id, collection_details, session, user, logger
         )
@@ -120,6 +128,7 @@ def delete_collection(
 ) -> UUID:
     """delete a collection"""
     try:
+        __set_logger_context(logger, user)
         result = delete_collection_by_id(user, collection_id, session, logger)
     except (NoPermissionException, ItemNotFoundException) as e:
         raise HTTPException(status_code=e.error_code, detail=str(e))
@@ -151,6 +160,7 @@ def create_resource(
         Resource
     """
     try:
+        __set_logger_context(logger, user)
         result = create_resource_from_file(user, collection_id, session, logger, file)
     except (NoPermissionException, ItemNotFoundException) as e:
         raise HTTPException(status_code=e.error_code, detail=str(e))
@@ -186,6 +196,7 @@ async def create_resources_from_url_list(
         Resources
     """
     try:
+        __set_logger_context(logger, user)
         result = await create_resource_from_urls(
             user, session, collection_id, logger, urls
         )
@@ -215,6 +226,7 @@ def get_resource_documents(
 ) -> Chunks:
     """get a documents belonging to a resource"""
     try:
+        __set_logger_context(logger, user)
         result = get_documents_for_resource_by_id(
             user, collection_id, session, logger, resource_id, page, page_size
         )
@@ -238,6 +250,7 @@ def delete_resource(
 ) -> UUID:
     """delete a resource"""
     try:
+        __set_logger_context(logger, user)
         result = delete_resource_by_id(
             user, session, collection_id, resource_id, logger
         )
@@ -261,6 +274,7 @@ def get_resource(
 ) -> ResourceDto:
     """get a resource"""
     try:
+        __set_logger_context(logger, user)
         result = get_resource_by_id(user, session, collection_id, resource_id, logger)
     except (NoPermissionException, ItemNotFoundException) as e:
         raise HTTPException(status_code=e.error_code, detail=str(e))
@@ -286,8 +300,8 @@ def get_collections(
     Returns:
         CollectionList: List of available collections available to currently logged-in user
     """
-    logger.info("Getting collections for user: {user}".format(user=user.email))
     try:
+        __set_logger_context(logger, user)
         result = get_user_collections(user, session, logger, page, page_size)
     except NoPermissionException as e:
         raise HTTPException(status_code=e.error_code, detail=e.message)
@@ -305,6 +319,7 @@ def get_collections_user_roles(
     page_size: int = Query(10, ge=1),
 ) -> UserRoleList:
     try:
+        __set_logger_context(logger, user)
         result = get_collection_user_roles_by_id(
             user, session, collection_id, logger, page, page_size
         )
@@ -323,6 +338,7 @@ def create_collections_user_role(
     logger: StructuredLogger = Depends(get_logger(__name__)),
 ) -> UserCollection:
     try:
+        __set_logger_context(logger, user)
         result = create_user_role_on_collection(
             user, session, user_role, collection_id, logger
         )
@@ -345,6 +361,7 @@ def delete_collections_user_role(
     logger: StructuredLogger = Depends(get_logger(__name__)),
 ) -> bool:
     try:
+        __set_logger_context(logger, user)
         result = delete_user_role_from_collection(
             user, session, collection_id, user_id, logger
         )
