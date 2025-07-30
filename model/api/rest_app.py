@@ -355,7 +355,11 @@ def delete_collections_user_role(
         return result
 
 
-@router.get("/collections/{collection_id}/resources/{resource_id}/download")
+@router.get(
+    "/collections/{collection_id}/resources/{resource_id}/download",
+    status_code=200,
+    tags=["resources"],
+)
 def download_resource(
     collection_id: UUID,
     resource_id: UUID,
