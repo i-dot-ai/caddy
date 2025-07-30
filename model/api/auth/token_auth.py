@@ -69,7 +69,7 @@ def get_authorised_user(auth_header: str, logger: StructuredLogger) -> EmailStr 
         auth_header = auth_header.replace("Bearer ", "")
 
     verify_jwt_source = not config.disable_auth_signature_verification
-    token_content = __get_decoded_jwt(auth_header, verify_jwt_source)
+    token_content = __get_decoded_jwt(auth_header, verify_jwt_source, logger)
 
     email = token_content.get("email")
     if not email:
