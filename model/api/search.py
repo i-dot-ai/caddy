@@ -19,6 +19,7 @@ def build_document(document: Document, collection_id, session):
             collection_id=collection_id, resource_id=resource.id
         )
         document.metadata["url"] = url
+        document.metadata["download_url"] = f"{url}/download"
 
     return document
 

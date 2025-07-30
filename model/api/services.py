@@ -1,9 +1,11 @@
+import io
 from datetime import timedelta
 from io import BytesIO
 from urllib.parse import urlparse
 from uuid import UUID
 
 from fastapi import File
+from fastapi.responses import StreamingResponse
 from i_dot_ai_utilities.logging.structured_logger import StructuredLogger
 from langchain_core.documents import Document
 from langchain_text_splitters import RecursiveCharacterTextSplitter
@@ -853,6 +855,55 @@ def delete_user_role_from_collection(
         else:
             raise ItemNotFoundException(
                 error_code=404, message="User is not added to the given collection"
+            )
+    else:
+        raise ItemNotFoundException(error_code=404, message="Collection not found")
+
+
+def download_resource_for_user(
+    user: User,
+    session: Session,
+    collection_id: UUID,
+    resource_id: UUID,
+    logger: StructuredLogger,
+):
+    if collection := session.get(Collection, collection_id):
+        check_user_is_member_of_collection(
+            user,
+            collection.id,
+            session,
+            is_manager_of_collection=False,
+            struct_logger=logger,
+        )
+        permissions = get_collection_permissions_for_user(user, collection, session)
+        if permissions is None or CollectionPermissionEnum.VIEW not in permissions:
+            raise NoPermissionException(
+                "No permission to view resources on this collection", 401
+            )
+        if resource := session.get(Resource, resource_id):
+            permissions = get_resource_permissions_for_user(user, resource, session)
+            if ResourcePermissionEnum.READ_CONTENTS not in permissions:
+                raise NoPermissionException(
+                    error_code=401, message="No permission to view this resource"
+                )
+
+            s3_client = config.s3_client
+
+            response = s3_client.get_object(
+                Bucket=config.data_s3_bucket,
+                Key=f"{config.s3_prefix}/{resource.collection_id}/{resource.id}/{resource.filename}",
+            )
+
+            return StreamingResponse(
+                io.BytesIO(response["Body"].read()),
+                media_type=response.get("ContentType", "application/octet-stream"),
+                headers={
+                    "Content-Disposition": f"attachment; filename={resource.filename}"
+                },
+            )
+        else:
+            raise ItemNotFoundException(
+                error_code=404, message="Resource to download not found"
             )
     else:
         raise ItemNotFoundException(error_code=404, message="Collection not found")

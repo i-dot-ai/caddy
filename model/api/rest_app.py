@@ -29,6 +29,7 @@ from api.services import (
     delete_collection_by_id,
     delete_resource_by_id,
     delete_user_role_from_collection,
+    download_resource_for_user,
     get_collection_user_roles_by_id,
     get_documents_for_resource_by_id,
     get_resource_by_id,
@@ -347,6 +348,24 @@ def delete_collections_user_role(
     try:
         result = delete_user_role_from_collection(
             user, session, collection_id, user_id, logger
+        )
+    except (NoPermissionException, ItemNotFoundException) as e:
+        raise HTTPException(status_code=e.error_code, detail=str(e))
+    else:
+        return result
+
+
+@router.get("/collections/{collection_id}/resources/{resource_id}/download")
+def download_resource(
+    collection_id: UUID,
+    resource_id: UUID,
+    session: Annotated[Session, Depends(get_session)],
+    user: Annotated[User, Depends(get_current_user)],
+    logger: StructuredLogger = Depends(get_logger(__name__)),
+):
+    try:
+        result = download_resource_for_user(
+            user, session, collection_id, resource_id, logger
         )
     except (NoPermissionException, ItemNotFoundException) as e:
         raise HTTPException(status_code=e.error_code, detail=str(e))
