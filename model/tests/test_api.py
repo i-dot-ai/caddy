@@ -217,7 +217,7 @@ def test_get_resource(client, collection_manager, example_document):
 
     assert response.status_code == 200
     response_json = response.json()
-    assert response_json["filename"] == str(example_document.resource_id)
+    assert response_json["filename"] == str(example_document.resource.filename)
     assert response_json["content_type"] == example_document.resource.content_type
     assert response_json["id"] == str(example_document.resource_id)
 
