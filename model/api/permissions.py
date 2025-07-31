@@ -102,16 +102,16 @@ def check_user_is_member_of_collection(
 
     if not session.get(Collection, collection_id):
         struct_logger.info(
-            "Collection {collection_id} not found for route request for user {user}",
+            "Collection {collection_id} not found for route request for user {user_email}",
             collection_id=collection_id,
-            user=str(user),
+            user_email=str(user),
         )
         raise ItemNotFoundException(error_code=404, message="Collection Not Found")
 
     if user.is_admin:
         struct_logger.info(
-            "user {user} has access to {collection_id} as they are an admin",
-            user=str(user),
+            "user {user_email} has access to {collection_id} as they are an admin",
+            user_email=str(user),
             collection_id=collection_id,
         )
         return
@@ -122,8 +122,8 @@ def check_user_is_member_of_collection(
 
     if not user_collection:
         struct_logger.info(
-            "User {user} not allowed to see collection {collection_id}",
-            user=str(user),
+            "User {user_email} not allowed to see collection {collection_id}",
+            user_email=str(user),
             collection_id=collection_id,
         )
         raise NoPermissionException(
@@ -132,8 +132,8 @@ def check_user_is_member_of_collection(
 
     if is_manager_of_collection and user_collection.role != Role.MANAGER:
         struct_logger.info(
-            "User {user} must be a manager for this request to see collection {collection_id}",
-            user=str(user),
+            "User {user_email} must be a manager for this request to see collection {collection_id}",
+            user_email=str(user),
             collection_id=collection_id,
         )
         raise NoPermissionException(
@@ -141,8 +141,8 @@ def check_user_is_member_of_collection(
         )
 
     struct_logger.info(
-        "user {user} has access to {collection_id} as they are a {role}",
-        user=str(user),
+        "user {user_email} has access to {collection_id} as they are a {role}",
+        user_email=str(user),
         collection_id=collection_id,
         role=user_collection.role,
     )

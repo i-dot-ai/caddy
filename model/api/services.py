@@ -165,10 +165,10 @@ def get_resources_by_collection_id(
         total = session.scalar(count_statement)
 
         logger.info(
-            "Retrieved collection {collection_id} resources ({resource_count}) for user {user_id}",
+            "Retrieved collection {collection_id} resources ({resource_count}) for user {user_email}",
             collection_id=collection.id,
             resource_count=total,
-            user_id=user.id,
+            user_email=str(user),
         )
 
         if session.get(
@@ -218,8 +218,8 @@ def create_new_collection(
 ) -> Collection:
     if not is_user_admin_user(user):
         logger.info(
-            "User {user} tried to create a collection {collection_name} without being an admin",
-            user=user.email,
+            "User {user_email} tried to create a collection {collection_name} without being an admin",
+            user_email=str(user),
             collection_name=new_collection.name,
         )
         raise NoPermissionException(error_code=403, message="User needs to be an admin")
@@ -248,9 +248,9 @@ def create_new_collection(
     session.refresh(collection)
 
     logger.info(
-        "Collection {collection_name} created by user {user}",
+        "Collection {collection_name} created by user {user_email}",
         collection_name=collection.name,
-        user=user.email,
+        user_email=str(user),
     )
 
     return collection
@@ -287,8 +287,8 @@ def get_user_collections(
         permissions = get_collection_permissions_for_user(user, collection, session)
         if CollectionPermissionEnum.VIEW not in permissions:
             logger.error(
-                "User {user} does not have permission to view {collection}",
-                user=str(user),
+                "User {user_email} does not have permission to view {collection}",
+                user_email=str(user),
                 collection=collection.id,
             )
             raise NoPermissionException(
@@ -338,9 +338,9 @@ def update_collection_by_id(
         session.refresh(collection)
 
         logger.info(
-            "Collection {collection_name} updated by user {user}",
+            "Collection {collection_name} updated by user {user_email}",
             collection_name=collection.name,
-            user=user.email,
+            user_email=str(user),
         )
         return CollectionDto(
             id=collection.id,
@@ -441,11 +441,11 @@ def create_resource_from_file(
         )
 
         logger.info(
-            "Resource created from file upload. File name: {file_name}. File type: {file_type}. File size (bytes): {file_size}. User: {user}. Processing time (ms): {processing_time}.",
+            "Resource created from file upload. File name: {file_name}. File type: {file_type}. File size (bytes): {file_size}. User: {user_email}. Processing time (ms): {processing_time}.",
             file_name=file.filename,
             file_type=file.content_type,
             file_size=file.size,
-            user=user,
+            user_email=str(user),
             processing_time=processing_time,
         )
         if session.get(
@@ -528,9 +528,9 @@ async def create_resource_from_urls(
             value=(scrape_processing_time + processing_total).total_seconds() * 1000,
         )
         logger.info(
-            "Resource created from url scrape. URl count: {url_count}. User: {user}. Processing time (ms): {processing_time}.",
+            "Resource created from url scrape. URl count: {url_count}. User: {user_email}. Processing time (ms): {processing_time}.",
             url_count=len(urls),
-            user=user,
+            user_email=str(user),
             processing_time=(scrape_processing_time + processing_total).total_seconds()
             * 1000,
         )
@@ -636,10 +636,10 @@ def get_documents_for_resource_by_id(
     total = session.exec(count_statement).one()
 
     logger.info(
-        "{total} document(s) for resource {resource_id} retrieved by user {user}",
+        "{total} document(s) for resource {resource_id} retrieved by user {user_email}",
         total=total,
         resource_id=resource_id,
-        user=str(user),
+        user_email=str(user),
     )
 
     return Chunks(
@@ -767,9 +767,9 @@ def get_collection_user_roles_by_id(
         count_statement = func.count(UserCollection.user_id)
         total = session.exec(count_statement).scalar()
         logger.info(
-            "Retrieved user roles for collection {collection_id} for user {user}. {total} user(s) retrieved",
+            "Retrieved user roles for collection {collection_id} for user {user_email}. {total} user(s) retrieved",
             collection_id=collection_id,
-            user=str(user),
+            user_email=str(user),
             total=total,
         )
         return UserRoleList(
@@ -823,9 +823,9 @@ def create_user_role_on_collection(
         session.commit()
         session.refresh(user_collection)
         logger.info(
-            "Role {role} for user {user} created on collection {collection_id}",
+            "Role {role} for user {user_email} created on collection {collection_id}",
             role=user_role.role,
-            user=str(user_to_add),
+            user_email=str(user_to_add),
             collection_id=collection_id,
         )
         return user_collection
@@ -864,9 +864,9 @@ def delete_user_role_from_collection(
             session.delete(user_role)
             session.commit()
             logger.info(
-                "User role for collection {collection_id} deleted for user {user_id}",
+                "User role for collection {collection_id} deleted for user {user_email}",
                 collection_id=collection_id,
-                user_id=user_id,
+                user_email=str(user),
             )
             return True
         else:

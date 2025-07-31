@@ -62,7 +62,7 @@ def __validate_user_access(
         return None
 
     token = auth_header.removeprefix("Bearer ")
-    authorised_user = get_authorised_user(token)
+    authorised_user = get_authorised_user(token, logger=struct_logger)
     if not authorised_user:
         struct_logger.info(
             "user not authorised for roles: {roles}", roles=KEYCLOAK_ALLOWED_ROLES

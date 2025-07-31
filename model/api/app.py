@@ -1,5 +1,4 @@
 import contextlib
-import logging
 import time
 from typing import Annotated, AsyncIterator, Callable
 
@@ -8,7 +7,6 @@ from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import JSONResponse
-from i_dot_ai_utilities.logging.types.enrichment_types import ContextEnrichmentType
 from langchain.schema import Document
 from sqlmodel import Session, select
 from starlette.applications import Starlette
@@ -24,7 +22,6 @@ from api.search import search_collection
 from api.types import QueryRequest
 
 # Configure logging
-logging.basicConfig(level=logging.INFO)
 logger = config.get_logger(__name__)
 
 if config.sentry_dsn:
@@ -74,15 +71,6 @@ app.add_middleware(
 
 @app.exception_handler(404)
 async def not_found_handler(request: Request, _):
-    logger.refresh_context(
-        context_enrichers=[
-            {
-                "type": ContextEnrichmentType.FASTAPI,
-                "object": request,
-            }
-        ]
-    )
-
     logger.warning("Page not found")
     return JSONResponse(
         status_code=404,
