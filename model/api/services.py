@@ -708,11 +708,16 @@ def get_resource_by_id(
             )
         logger.info("Resource {resource_id} found ", resource_id=resource_id)
         resource_dto = Resource.model_validate(resource)
+
+        if session.get(
+            UserCollection, {"collection_id": collection_id, "user_id": user.id}
+        ):
+            use_file_name = True
+        else:
+            use_file_name = False
         return ResourceDto(
             id=resource_dto.id,
-            filename=str(resource_dto.id)
-            if is_user_admin_user(user)
-            else resource_dto.filename,
+            filename=resource_dto.filename if use_file_name else str(resource_dto.id),
             created_at=resource_dto.created_at,
             content_type=resource_dto.content_type,
             permissions=permissions,
