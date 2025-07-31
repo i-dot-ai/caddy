@@ -50,7 +50,7 @@ const users = await getUsers(collectionId || '', Astro.request.headers.get('x-am
             { users?.map((user) =>
               <tr class="govuk-table__row">
                 <td class="govuk-table__cell">{ user.user_email }</td>
-                <td class="govuk-table__cell">{ user.role }</td>
+                <td class="govuk-table__cell">{ user.role === 'manager' ? 'Admin' : 'User' }</td>
                 { (collection.permissions.includes(CollectionPermission.MANAGE_USERS) || collectionsData.is_admin) &&
                   <td class="govuk-table__cell">
                     <span class="govuk-!-display-flex" style="gap: 10px 20px;">

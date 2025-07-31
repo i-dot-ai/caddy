@@ -43,9 +43,10 @@ const userData = await (async () => {
         <input type="hidden" value={ userData?.user_email } name="emailAddress"/>
         <div class="govuk-form-group">
           <label class="govuk-label" for="role">Role</label>
-          <select class="govuk-select" id="role" name="role">
-            <option value="member" selected={ userData?.role === 'member' }>Member</option>
-            <option value="manager" selected={ userData?.role === 'manager' }>Manager</option>
+          <div id="role-hint" class="govuk-hint">Users can view resources. Admins can view, add and remove resources as well as edit users.</div>
+          <select class="govuk-select" id="role" name="role" aria-describedby="role-hint">
+            <option value="member" selected={ userData?.role === 'member' }>User</option>
+            <option value="manager" selected={ userData?.role === 'manager' }>Admin</option>
           </select>
         </div>
         <button class="govuk-button">Update user</button>
