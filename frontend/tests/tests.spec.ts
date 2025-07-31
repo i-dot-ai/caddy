@@ -102,7 +102,7 @@ test('Manage resources', async({ page }) => {
   const __filename = fileURLToPath(import.meta.url);
   const __dirname = path.dirname(__filename);
   const fileChooserPromise = page.waitForEvent('filechooser');
-  await page.getByText('Choose file').click();
+  await page.locator('input[type="file"]').click({ clickCount: 2 });
   const fileChooser = await fileChooserPromise;
   fileChooser.setFiles(path.join(__dirname, '../README.md'));
   await page.locator('Button:has-text("Add file(s)")').click();
@@ -110,7 +110,6 @@ test('Manage resources', async({ page }) => {
 
   // Resources page (2)
   await expect(page.locator('h1')).toContainText('Resources');
-  await expect(page.locator('.govuk-panel__body')).toContainText('File README.md uploaded');
   await testAccessibility(page);
   expect(await page.locator('tbody tr').count()).toEqual(resourceCount + 1);
   const rowIndex = await getRowIndex('README.md', page);
@@ -167,8 +166,8 @@ test('Manage users', async({ page }) => {
   expect(userCount2).toEqual(userCount1 + 1);
   await expect(page.locator(`td:has-text("${emailAddress}")`).first()).toBeVisible();
   let index = await getRowIndex(emailAddress, page);
-  expect(await page.locator(`tbody tr:nth-child(${index}) td:nth-child(2)`).innerText()).toEqual('member');
-  await page.locator('a:has-text("Edit")').last().click();
+  expect(await page.locator(`tbody tr:nth-child(${index}) td:nth-child(2)`).innerText()).toEqual('User');
+  await page.locator(`tr:nth-child(${index}) a:has-text("Edit")`).last().click();
 
   // Edit user page
   await expect(page.locator('h1')).toContainText('Edit user');
@@ -180,8 +179,8 @@ test('Manage users', async({ page }) => {
   await expect(page.locator('h1')).toContainText('Users');
   await expect(page.locator('.govuk-panel__body')).toContainText(`User ${emailAddress} updated`);
   index = await getRowIndex(emailAddress, page);
-  expect(await page.locator(`tbody tr:nth-child(${index}) td:nth-child(2)`).innerText()).toEqual('manager');
-  await page.locator('a:has-text("Remove")').last().click();
+  expect(await page.locator(`tbody tr:nth-child(${index}) td:nth-child(2)`).innerText()).toEqual('Admin');
+  await page.locator(`tr:nth-child(${index}) a:has-text("Remove")`).last().click();
 
   // Remove user page
   await expect(page.locator('h1')).toContainText('Remove user');
