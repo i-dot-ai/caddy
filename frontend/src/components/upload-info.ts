@@ -6,7 +6,7 @@ const UploadInfo = class extends HTMLElement {
 
   connectedCallback() {
 
-    this.fileInput = document.querySelector(`#${this.getAttribute('input-id')}`);
+    this.fileInput = document.querySelector(`[name="${this.getAttribute('input-name')}"]`);
     this.form = this.fileInput?.closest('form') as HTMLFormElement | null;
 
     this.form?.addEventListener('submit', async(evt) => {
