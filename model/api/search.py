@@ -12,12 +12,12 @@ from api.models import Resource
 def build_document(document: Document, collection_id, session):
     resource = session.get(Resource, document.metadata["resource_id"])
 
+    if not resource:
+        return document
+
     if resource.url:
         document.metadata["url"] = resource.url
     else:
-        url = config.resource_url_template.format(
-            collection_id=collection_id, resource_id=resource.id
-        )
         s3_client = config.s3_client
 
         s3_url = s3_client.generate_presigned_url(
@@ -28,8 +28,7 @@ def build_document(document: Document, collection_id, session):
             },
             ExpiresIn=3600,
         )
-        document.metadata["url"] = url
-        document.metadata["download_url"] = s3_url
+        document.metadata["url"] = s3_url
 
     return document
 
