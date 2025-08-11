@@ -73,17 +73,20 @@ def get_resource_permissions_for_user(
     )
     results = session.exec(stmt).first()
     if not results:
-        if is_user_admin_user(user):
-            return [ResourcePermissionEnum.VIEW, ResourcePermissionEnum.DELETE]
-        return []
-    if results.role == Role.MANAGER:
-        return [
-            ResourcePermissionEnum.VIEW,
-            ResourcePermissionEnum.READ_CONTENTS,
-            ResourcePermissionEnum.DELETE,
-        ]
-    if results.role == Role.MEMBER:
-        return [ResourcePermissionEnum.VIEW, ResourcePermissionEnum.READ_CONTENTS]
+        return (
+            []
+            if not is_user_admin_user(user)
+            else [ResourcePermissionEnum.VIEW, ResourcePermissionEnum.DELETE]
+        )
+    else:
+        if results.role == Role.MANAGER or is_user_admin_user(user):
+            return [
+                ResourcePermissionEnum.VIEW,
+                ResourcePermissionEnum.READ_CONTENTS,
+                ResourcePermissionEnum.DELETE,
+            ]
+        if results.role == Role.MEMBER:
+            return [ResourcePermissionEnum.VIEW, ResourcePermissionEnum.READ_CONTENTS]
 
 
 def check_user_is_member_of_collection(
