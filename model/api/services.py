@@ -100,9 +100,9 @@ def __process_resource(
             url=url,
             created_by=user,
         )
-        session.add(resource)
-        session.commit()
-        session.refresh(resource)
+    session.add(resource)
+    session.commit()
+    session.refresh(resource)
 
     if not url and type(content) is bytes:
         # Assume the file is a File, not URL, so it can be uploaded to S3
