@@ -1,12 +1,19 @@
 from diagrams import Cluster, Diagram, Edge
+from diagrams.alibabacloud.application import OpenSearch
 from diagrams.aws.compute import ECS
-from diagrams.aws.database import Aurora, AuroraInstance
+from diagrams.aws.database import Aurora
 from diagrams.aws.general import Users
 from diagrams.aws.integration import SimpleNotificationServiceSnsTopic
-from diagrams.aws.management import AutoScaling, Cloudwatch, CloudwatchAlarm
+from diagrams.aws.management import (
+    AutoScaling,
+    Cloudwatch,
+    CloudwatchAlarm,
+    ParameterStore,
+)
 from diagrams.aws.network import ELB
-from diagrams.aws.security import WAF, Cognito, Guardduty, SecretsManager
+from diagrams.aws.security import WAF
 from diagrams.aws.storage import S3
+from diagrams.gcp.devtools import ContainerRegistry
 
 graph_attr = {
     "fontsize": "14",
@@ -25,8 +32,15 @@ with Diagram(
     with Cluster("I.AI dev account"):  # noqa: SIM117
         with Cluster("eu-west-2"):
             with Cluster("VPC"):
-                with Cluster("Account wide security"):
-                    guard_duty = Guardduty("GuardDuty")
+                with Cluster("Keycloak"):
+                    keycloak = ECS("Keycloak")
+
+                with Cluster("Vector store"):
+                    opensearch = OpenSearch("Opensearch")
+
+                with Cluster("Image repo"):
+                    ecr = ContainerRegistry("ECR")
+
                 with Cluster("Private subnet") as private_subnet:
                     waf = WAF("WAF")
 
@@ -34,9 +48,8 @@ with Diagram(
                         sns_topic = SimpleNotificationServiceSnsTopic("SNS")
 
                     with Cluster("ECS"):
-                        frontend = ECS("Frontend")
-
-                        backend = ECS("Backend")
+                        frontend = ECS("Admin site")
+                        backend = ECS("Backend & MCP Server")
 
                     with Cluster("Autoscaling"):
                         usage_scaling_group = AutoScaling("Usage scaling")
@@ -49,38 +62,43 @@ with Diagram(
                         s3 = S3("AWS S3 bucket")
 
                     with Cluster("Secret storage"):
-                        secrets = SecretsManager("AWS secrets manager")
+                        ssm = ParameterStore("AWS parameter store")
 
                     with Cluster("App logs/metrics"):
                         cloudwatch = Cloudwatch("CloudWatch logs")
 
                     with Cluster("Persistent storage"):
                         rds = Aurora("Aurora postgresql")
-                        rds - AuroraInstance("Instance 1")
 
                 with Cluster("Public subnet"):
                     alb = ELB("Application load balancer")
-                    cognito = Cognito("Cognito")
 
     users = Users("User")
 
-    users >> cognito
+    users >> alb
 
-    cognito >> alb >> waf >> backend
+    alb >> keycloak >> alb
+
+    alb >> waf >> backend
     backend >> s3
-    backend >> secrets
+    backend >> ssm
     backend >> cloudwatch
 
     backend >> Edge() << rds
+
+    ecr >> backend
+    ecr >> frontend
 
     backend >> sns_topic
     usage_scaling_group >> backend
     peaktime_scaling_group >> backend
     cloudwatch_alarms >> backend
 
-    cognito >> alb >> waf >> frontend
+    backend >> Edge() << opensearch
+
+    alb >> waf >> frontend
     frontend >> s3
-    frontend >> secrets
+    frontend >> ssm
     frontend >> cloudwatch
     usage_scaling_group >> frontend
     peaktime_scaling_group >> frontend

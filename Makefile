@@ -11,6 +11,10 @@ build_model:
 	make docker_login_public && \
 	docker compose build
 
+.PHONY: generate_aws_diagram
+generate_aws_diagram:
+	cd model && poetry run python ../terraform/diagram_script.py
+
 run_model:
 	cd model && docker compose up -d --wait
 
@@ -50,10 +54,6 @@ model_run_tests:
 
 scraper_run:
 	@cd scraper && poetry run python run_scrape.py
-
-.PHONY: generate_aws_diagram
-generate_aws_diagram:
-	poetry run python terraform/diagram_script.py
 
 # Docker
 REPO_POSTFIX = $(if $(findstring /,$(service)),$(notdir $(service)),$(service))
