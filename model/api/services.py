@@ -80,16 +80,29 @@ def __process_resource(
     url: str | None = None,
 ) -> tuple[Resource, timedelta]:
     process_time_start = utc_now()
-    resource = Resource(
-        collection_id=collection_id,
-        filename=resource_name,
-        content_type=content_type,
-        url=url,
-        created_by=user,
-    )
-    session.add(resource)
-    session.commit()
-    session.refresh(resource)
+    existing_resource = None
+    if url:
+        statement = (
+            select(Resource)
+            .where(Resource.collection_id == collection_id)
+            .where(Resource.url == url)
+        )
+        existing_resource = session.exec(statement).first()
+    if existing_resource:
+        resource = existing_resource
+        resource.created_at = utc_now()
+        resource.created_by = user
+    else:
+        resource = Resource(
+            collection_id=collection_id,
+            filename=resource_name,
+            content_type=content_type,
+            url=url,
+            created_by=user,
+        )
+        session.add(resource)
+        session.commit()
+        session.refresh(resource)
 
     if not url and type(content) is bytes:
         # Assume the file is a File, not URL, so it can be uploaded to S3
