@@ -49,19 +49,6 @@ const { collection, error } = await getCollection(collectionId || '', Astro.requ
         <button class={ 'govuk-button plausible-event-name=Add+Files plausible-event-collection=' + collection.name }>Add file(s)</button>
       </form>
 
-      <div class="govuk-notification-banner govuk-!-margin-top-7" role="region" aria-labelledby="govuk-notification-banner-title" data-module="govuk-notification-banner">
-        <div class="govuk-notification-banner__header">
-          <h2 class="govuk-notification-banner__title" id="govuk-notification-banner-title">
-            Important
-          </h2>
-        </div>
-        <div class="govuk-notification-banner__content">
-          <p class="govuk-notification-banner__heading">
-            Uploading a URL that already exists in this collection will result in it being overwritten.
-          </p>
-        </div>
-      </div>
-
       <form method="post" action="/api/add-urls/" enctype="multipart/form-data">
         <input type="hidden" value={ collectionId } name="collection"/>
         <div class="govuk-form-group">
@@ -70,6 +57,13 @@ const { collection, error } = await getCollection(collectionId || '', Astro.requ
           </h2>
           <div id="add-urls-hint" class="govuk-hint">Add one URL per line</div>
           <textarea class="govuk-textarea" id="add-urls" name="addUrls" rows="5" aria-describedby="add-urls-hint"></textarea>
+        </div>
+        <div class="govuk-warning-text">
+          <span class="govuk-warning-text__icon" aria-hidden="true">!</span>
+          <strong class="govuk-warning-text__text">
+            <span class="govuk-visually-hidden">Important</span>
+            Uploading a URL that already exists in this collection will result in it being overwritten.
+          </strong>
         </div>
         <button class="govuk-button">Add URL(s)</button>
       </form>
