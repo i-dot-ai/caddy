@@ -49,19 +49,17 @@ const { collection, error } = await getCollection(collectionId || '', Astro.requ
         <button class={ 'govuk-button plausible-event-name=Add+Files plausible-event-collection=' + collection.name }>Add file(s)</button>
       </form>
 
-      { collectionsData.is_admin &&
-        <form method="post" action="/api/add-urls/" enctype="multipart/form-data">
-          <input type="hidden" value={ collectionId } name="collection"/>
-          <div class="govuk-form-group">
-            <h2 class="govuk-label-wrapper govuk-!-margin-top-7">
-              <label class="govuk-label govuk-label--m" for="add-urls">Add URL(s)</label>
-            </h2>
-            <div id="add-urls-hint" class="govuk-hint">Add one URL per line</div>
-            <textarea class="govuk-textarea" id="add-urls" name="addUrls" rows="5" aria-describedby="add-urls-hint"></textarea>
-          </div>
-          <button class="govuk-button">Add URL(s)</button>
-        </form>
-      }
+      <form method="post" action="/api/add-urls/" enctype="multipart/form-data">
+        <input type="hidden" value={ collectionId } name="collection"/>
+        <div class="govuk-form-group">
+          <h2 class="govuk-label-wrapper govuk-!-margin-top-7">
+            <label class="govuk-label govuk-label--m" for="add-urls">Add URL(s)</label>
+          </h2>
+          <div id="add-urls-hint" class="govuk-hint">Add one URL per line</div>
+          <textarea class="govuk-textarea" id="add-urls" name="addUrls" rows="5" aria-describedby="add-urls-hint"></textarea>
+        </div>
+        <button class="govuk-button">Add URL(s)</button>
+      </form>
 
       <upload-info input-name="fileUpload1" collection={ collectionId }></upload-info>
 
