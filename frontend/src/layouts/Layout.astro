@@ -79,5 +79,29 @@ const isAdmin = await Astro.session?.get('isAdmin');
 			}
 		</style>
 
+		{/* Sortable tables */}
+		<style is:global>
+			th[data-sortable] button {
+				background-color: transparent;
+				border: 0;
+				cursor: pointer;
+				font-size: inherit;
+				font-weight: bold;
+				padding: 0;
+			}
+			th[aria-sort="ascending"]::after {
+				content: "▲";
+			}
+			th[aria-sort="descending"]::after {
+				content: "▼";
+			}
+			th[aria-sort]::after {
+				bottom: 1px;
+				font-size: 0.875rem;
+				margin-left: 0.5rem;
+				position: relative;
+			}
+		</style>
+
 	</body>
 </html>

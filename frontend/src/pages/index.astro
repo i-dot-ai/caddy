@@ -44,47 +44,49 @@ const chatLink = (() => {
       { collections.length ?
 
         <div style="overflow-x: auto; width: 100%;">
-          <table class="govuk-table">
-            <caption class="govuk-visually-hidden">My collections</caption>
-            <thead class="govuk-table__head">
-              <tr class="govuk-table__row">
-                <th scope="col" class="govuk-table__header">Name</th>
-                <th scope="col" class="govuk-table__header">Actions</th>
-              </tr>
-            </thead>
-            <tbody class="govuk-table__body">
-              { collections.map((collection) =>
+          <sortable-table>
+            <table class="govuk-table">
+              <caption class="govuk-visually-hidden">My collections</caption>
+              <thead class="govuk-table__head">
                 <tr class="govuk-table__row">
-                  <td class="govuk-table__cell">
-                    <span>{ collection.name }</span>
-                    { collection.description &&
-                      <span class="govuk-!-display-block govuk-!-margin-top-2 govuk-!-margin-bottom-1 govuk-body-s">{ collection.description }</span>
-                    }
-                  </td>
-                  <td class="govuk-table__cell">
-                    <span class="govuk-!-display-flex" style="gap: 10px 20px;">
-                      <a class="govuk-body-s govuk-!-margin-bottom-0" href={ `/collections/${collection.id}/resources` }>
-                        Resources<span class="govuk-visually-hidden"> for { collection.name }</span>
-                      </a>
-                      <a class="govuk-body-s govuk-!-margin-bottom-0" href={ `/collections/${collection.id}/users` }>
-                        Users<span class="govuk-visually-hidden"> for { collection.name }</span>
-                      </a>
-                      { collection.permissions.includes(CollectionPermission.EDIT) &&
-                        <a class="govuk-body-s govuk-!-margin-bottom-0" href={ `/collections/${collection.id}/edit/` }>
-                          Edit<span class="govuk-visually-hidden"> { collection.name }</span>
-                        </a>
-                      }
-                      { collection.permissions.includes(CollectionPermission.DELETE) &&
-                        <a class="govuk-body-s govuk-!-margin-bottom-0" href={ `/collections/${collection.id}/delete` }>
-                          Delete<span class="govuk-visually-hidden"> { collection.name }</span>
-                        </a>
-                      }
-                    </span>
-                  </td>
+                  <th scope="col" class="govuk-table__header" aria-sort="ascending" data-sortable="true">Name</th>
+                  <th scope="col" class="govuk-table__header">Actions</th>
                 </tr>
-              )}
-            </tbody>
-          </table>
+              </thead>
+              <tbody class="govuk-table__body">
+                { collections.map((collection) =>
+                  <tr class="govuk-table__row">
+                    <td class="govuk-table__cell">
+                      <span>{ collection.name }</span>
+                      { collection.description &&
+                        <span class="govuk-!-display-block govuk-!-margin-top-2 govuk-!-margin-bottom-1 govuk-body-s">{ collection.description }</span>
+                      }
+                    </td>
+                    <td class="govuk-table__cell">
+                      <span class="govuk-!-display-flex" style="gap: 10px 20px;">
+                        <a class="govuk-body-s govuk-!-margin-bottom-0" href={ `/collections/${collection.id}/resources` }>
+                          Resources<span class="govuk-visually-hidden"> for { collection.name }</span>
+                        </a>
+                        <a class="govuk-body-s govuk-!-margin-bottom-0" href={ `/collections/${collection.id}/users` }>
+                          Users<span class="govuk-visually-hidden"> for { collection.name }</span>
+                        </a>
+                        { collection.permissions.includes(CollectionPermission.EDIT) &&
+                          <a class="govuk-body-s govuk-!-margin-bottom-0" href={ `/collections/${collection.id}/edit/` }>
+                            Edit<span class="govuk-visually-hidden"> { collection.name }</span>
+                          </a>
+                        }
+                        { collection.permissions.includes(CollectionPermission.DELETE) &&
+                          <a class="govuk-body-s govuk-!-margin-bottom-0" href={ `/collections/${collection.id}/delete` }>
+                            Delete<span class="govuk-visually-hidden"> { collection.name }</span>
+                          </a>
+                        }
+                      </span>
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </sortable-table>
         </div>
 
       :
@@ -94,3 +96,5 @@ const chatLink = (() => {
   </div>
 
 </Layout>
+
+<script src="@components/sortable-table.ts"></script>

@@ -33,7 +33,7 @@ const dateOptions: Intl.DateTimeFormatOptions = {
       }
     </td>
     <td class="govuk-table__cell">{ resource.content_type }</td>
-    <td class="govuk-table__cell">
+    <td class="govuk-table__cell" data-sort={resource.created_at}>
       <span class="govuk-!-display-inline-block">{ resource.created_at ? `${new Date(resource.created_at).toLocaleDateString('en-GB', dateOptions) }, ` : '-' }</span>
       <span class="govuk-!-display-inline-block">{ resource.created_at ? new Date(resource.created_at).toLocaleTimeString() : '' }</span>
     </td>

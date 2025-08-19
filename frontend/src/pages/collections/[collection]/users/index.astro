@@ -35,43 +35,47 @@ const users = await getUsers(collectionId || '', Astro.request.headers.get('x-am
       }
 
       <div style="overflow-x: auto; width: 100%;">
-        <table class="govuk-table">
-          <caption class="govuk-visually-hidden">Files</caption>
-          <thead class="govuk-table__head">
-            <tr class="govuk-table__row">
-              <th scope="col" class="govuk-table__header">Email address</th>
-              <th scope="col" class="govuk-table__header">Role</th>
-              { (collection.permissions.includes(CollectionPermission.MANAGE_USERS) || collectionsData.is_admin) &&
-                <th scope="col" class="govuk-table__header">Actions</th>
-              }
-            </tr>
-          </thead>
-          <tbody class="govuk-table__body">
-            { users?.map((user) =>
+        <sortable-table>
+          <table class="govuk-table">
+            <caption class="govuk-visually-hidden">Files</caption>
+            <thead class="govuk-table__head">
               <tr class="govuk-table__row">
-                <td class="govuk-table__cell">{ user.user_email }</td>
-                <td class="govuk-table__cell">{ user.role === 'manager' ? 'Admin' : 'User' }</td>
+                <th scope="col" class="govuk-table__header" aria-sort="ascending" data-sortable="true">Email address</th>
+                <th scope="col" class="govuk-table__header" data-sortable="true">Role</th>
                 { (collection.permissions.includes(CollectionPermission.MANAGE_USERS) || collectionsData.is_admin) &&
-                  <td class="govuk-table__cell">
-                    <span class="govuk-!-display-flex" style="gap: 10px 20px;">
-                      <a class="govuk-body-s govuk-!-margin-bottom-0" href={ `users/${user.user_id}/edit` }>
-                        Edit
-                        <span class="govuk-visually-hidden"> { user.user_email }</span>
-                      </a>
-                      <a class="govuk-body-s govuk-!-margin-bottom-0" href={ `users/${user.user_id}/remove` }>
-                        Remove
-                        <span class="govuk-visually-hidden"> { user.user_email }</span>
-                      </a>
-                    </span>
-                  </td>
+                  <th scope="col" class="govuk-table__header">Actions</th>
                 }
               </tr>
-            )}
-          </tbody>
-        </table>
+            </thead>
+            <tbody class="govuk-table__body">
+              { users?.map((user) =>
+                <tr class="govuk-table__row">
+                  <td class="govuk-table__cell">{ user.user_email }</td>
+                  <td class="govuk-table__cell">{ user.role === 'manager' ? 'Admin' : 'User' }</td>
+                  { (collection.permissions.includes(CollectionPermission.MANAGE_USERS) || collectionsData.is_admin) &&
+                    <td class="govuk-table__cell">
+                      <span class="govuk-!-display-flex" style="gap: 10px 20px;">
+                        <a class="govuk-body-s govuk-!-margin-bottom-0" href={ `users/${user.user_id}/edit` }>
+                          Edit
+                          <span class="govuk-visually-hidden"> { user.user_email }</span>
+                        </a>
+                        <a class="govuk-body-s govuk-!-margin-bottom-0" href={ `users/${user.user_id}/remove` }>
+                          Remove
+                          <span class="govuk-visually-hidden"> { user.user_email }</span>
+                        </a>
+                      </span>
+                    </td>
+                  }
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </sortable-table>
       </div>
 
     </div>
   </div>
 
 </Layout>
+
+<script src="@components/sortable-table.ts"></script>
