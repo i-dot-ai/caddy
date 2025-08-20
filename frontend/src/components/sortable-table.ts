@@ -1,3 +1,12 @@
+/**
+ * Makes tables sortable
+ * Wrap the table inside <sortable-table> <sortable-table>
+ * Add the data-sortable attribute to any <th> elements that can allow sorting
+ * Optional: Add a default aria-sort="ascending" attribute to any column that is sorted by default on page load
+ * Optional: The default sorting runs on the visible text for that column. You can override this by providing a data-sort attribute on a <td>, e.g. useful for dates/times
+ */
+
+
 const SortableTable = class extends HTMLElement {
 
   connectedCallback() {

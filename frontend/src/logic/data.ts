@@ -123,6 +123,7 @@ export enum ResourcePermission {
 
 export interface ResourceDetail {
   id: string,
+  url?: string,
   filename?: string,
   content_type: string,
   created_at?: string,

@@ -93,10 +93,10 @@ test('Manage resources', async({ page }) => {
   await expect(page.locator('h1')).toContainText('Resources');
   await expect(page.locator(`p:has-text("${collectionName}")`)).toBeVisible();
   const resourceCount = await page.locator('tbody tr').count();
-  await page.locator('a:has-text("Upload file")').click();
+  await page.locator('a:has-text("Add resource")').click();
 
   // Upload page
-  await expect(page.locator('h1')).toContainText('Upload');
+  await expect(page.locator('h1')).toContainText('Add resource(s)');
   await expect(page.getByText(collectionName)).toBeVisible();
   await testAccessibility(page);
   const __filename = fileURLToPath(import.meta.url);

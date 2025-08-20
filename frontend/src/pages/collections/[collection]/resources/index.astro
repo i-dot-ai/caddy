@@ -7,7 +7,7 @@ const PAGE_SIZE = 50;
 
 const token = Astro.request.headers.get('x-amzn-oidc-accesstoken');
 
-let { collectionsData } = await getCollections(Astro.request.headers.get('x-amzn-oidc-accesstoken'));
+let { collectionsData } = await getCollections(token);
 
 const { collection: collectionId } = Astro.params;
 const { collection, error } = await getCollection(collectionId || '', token);
@@ -40,7 +40,7 @@ const resourcesData = await getResources(collectionId || '', 1, PAGE_SIZE, token
           <p><strong>Collection:</strong> { collection.name }</p>
 
       { (collection.permissions.includes(CollectionPermission.MANAGE_RESOURCES) || collectionsData.is_admin) &&
-        <a class="govuk-button govuk-!-margin-top-2" href="resources/add">Upload file(s)</a>
+        <a class="govuk-button govuk-!-margin-top-2" href="resources/add">Add resource(s)</a>
       }
 
           <p class="govuk-body-l govuk-!-margin-top-5">Showing { resourcesData.total } resources</p>
