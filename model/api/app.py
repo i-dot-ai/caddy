@@ -8,6 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import JSONResponse
 from langchain.schema import Document
+from sqlalchemy import text
 from sqlmodel import Session, select
 from starlette.applications import Starlette
 
@@ -27,6 +28,8 @@ logger = config.get_logger(__name__)
 if config.sentry_dsn:
     sentry_sdk.init(config.sentry_dsn, environment=config.env)
 
+db_client = config.get_database()
+
 
 @contextlib.asynccontextmanager
 async def lifespan(
@@ -35,6 +38,16 @@ async def lifespan(
     """Context manager for session manager."""
     async with session_manager.run():
         logger.info("Application started with StreamableHTTP session manager!")
+
+        try:
+            engine = db_client
+            with engine.connect() as connection:
+                connection.execute(text("SELECT 1"))
+            logger.info("Database connection validated successfully!")
+        except Exception as e:
+            logger.exception("Database connection validation failed")
+            raise RuntimeError(f"Failed to connect to database: {e}")
+
         try:
             yield
         finally:
@@ -64,9 +77,7 @@ app.add_middleware(
 )
 
 # Add trusted host middleware
-app.add_middleware(
-    TrustedHostMiddleware, allowed_hosts=["*"]
-)  # Configure with your domains
+app.add_middleware(TrustedHostMiddleware, allowed_hosts=["*"])
 
 
 @app.exception_handler(404)
