@@ -1,16 +1,20 @@
 ---
 import Layout from '@layouts/Layout.astro';
-import { getCollections, getCollection } from '@logic/data.ts';
+import { getCollections, getCollection, getResources } from '@logic/data.ts';
 
-let { collectionsData } = await getCollections(Astro.request.headers.get('x-amzn-oidc-accesstoken'));
+const token = Astro.request.headers.get('x-amzn-oidc-accesstoken');
+
+let { collectionsData } = await getCollections(token);
 
 const { collection: collectionId } = Astro.params;
 
-const { collection, error } = await getCollection(collectionId || '', Astro.request.headers.get('x-amzn-oidc-accesstoken'));
+const { collection, error } = await getCollection(collectionId || '', token);
+
+const resourcesData = await getResources(collectionId || '', 1, 9999, token);
 
 ---
 
-<Layout title={'Upload to ' + collection.name } error={ error }>
+<Layout title={'Add resources to ' + collection.name } error={ error }>
 
   <nav class="govuk-breadcrumbs govuk-!-margin-bottom-6" aria-label="Breadcrumb">
     <ol class="govuk-breadcrumbs__list">
@@ -30,7 +34,7 @@ const { collection, error } = await getCollection(collectionId || '', Astro.requ
   <div class="govuk-grid-row upload-page">
     <div class="govuk-grid-column-full">
 
-      <h1 class="govuk-heading-l">Upload</h1>
+      <h1 class="govuk-heading-l">Add resource(s)</h1>
 
       <p><strong>Collection:</strong> { collection.name }</p>
 
@@ -56,15 +60,17 @@ const { collection, error } = await getCollection(collectionId || '', Astro.requ
             <label class="govuk-label govuk-label--m" for="add-urls">Add URL(s)</label>
           </h2>
           <div id="add-urls-hint" class="govuk-hint">Add one URL per line</div>
-          <textarea class="govuk-textarea" id="add-urls" name="addUrls" rows="5" aria-describedby="add-urls-hint"></textarea>
+          <textarea class="govuk-textarea" id="add-urls" name="addUrls" rows="5" aria-describedby="add-urls-hint duplicates-warning"></textarea>
         </div>
-        <div class="govuk-warning-text">
-          <span class="govuk-warning-text__icon" aria-hidden="true">!</span>
-          <strong class="govuk-warning-text__text">
-            <span class="govuk-visually-hidden">Important</span>
-            Uploading a URL that already exists in this collection will result in it being overwritten.
-          </strong>
-        </div>
+        <duplicate-urls id="duplicates-warning" data-textarea="add-urls" data-existing-urls={ JSON.stringify(resourcesData.resources.filter(resource => resource.url).map(resource => resource.url) ) }>
+          <div class="govuk-warning-text">
+            <span class="govuk-warning-text__icon" aria-hidden="true">!</span>
+            <strong class="govuk-warning-text__text">
+              <span class="govuk-visually-hidden">Important</span>
+              Uploading a URL that already exists in this collection will result in it being overwritten.
+            </strong>
+          </div>
+        </duplicate-urls>
         <button class="govuk-button">Add URL(s)</button>
       </form>
 
@@ -76,7 +82,8 @@ const { collection, error } = await getCollection(collectionId || '', Astro.requ
 </Layout>
 
 
-<script src="../../../../components/upload-info.ts"></script>
+<script src="@components/duplicate-urls.ts"></script>
+<script src="@components/upload-info.ts"></script>
 
 
 <style is:global>
