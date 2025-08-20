@@ -1,12 +1,21 @@
 from diagrams import Cluster, Diagram, Edge
+from diagrams.alibabacloud.application import OpenSearch
 from diagrams.aws.compute import ECS
-from diagrams.aws.database import Aurora, AuroraInstance
+from diagrams.aws.database import Aurora
 from diagrams.aws.general import Users
 from diagrams.aws.integration import SimpleNotificationServiceSnsTopic
-from diagrams.aws.management import AutoScaling, Cloudwatch, CloudwatchAlarm
+from diagrams.aws.management import (
+    AutoScaling,
+    Cloudwatch,
+    CloudwatchAlarm,
+    ParameterStore,
+)
 from diagrams.aws.network import ELB
-from diagrams.aws.security import WAF, Cognito, Guardduty, SecretsManager
+from diagrams.aws.security import WAF
 from diagrams.aws.storage import S3
+from diagrams.azure.ml import AzureOpenAI
+from diagrams.gcp.devtools import ContainerRegistry
+from diagrams.generic.blank import Blank
 
 graph_attr = {
     "fontsize": "14",
@@ -25,18 +34,60 @@ with Diagram(
     with Cluster("I.AI dev account"):  # noqa: SIM117
         with Cluster("eu-west-2"):
             with Cluster("VPC"):
-                with Cluster("Account wide security"):
-                    guard_duty = Guardduty("GuardDuty")
-                with Cluster("Private subnet") as private_subnet:
+                with Cluster("Keycloak"):
+                    keycloak = ECS("Keycloak")
+
+                with Cluster("Vector store"):
+                    opensearch = OpenSearch("Opensearch")
+
+                with Cluster("Image repo"):
+                    ecr = ContainerRegistry("ECR")
+
+                with Cluster(
+                    "LLM gateway private subnet"
+                ) as llm_gateway_private_subnet:
+                    llm_gateway_waf = WAF("WAF")
+
+                    with Cluster("ECS"):
+                        llm_gateway_ecs = ECS("LLM gateway")
+
+                with Cluster("LLM gateway public subnet"):
+                    llm_gateway_alb = ELB("Application load balancer")
+
+                with Cluster("Gov-ai-client private subnet") as gov_ai_private_subnet:
+                    gov_waf = WAF("WAF")
+
+                    with Cluster("SNS"):
+                        gov_sns_topic = SimpleNotificationServiceSnsTopic("SNS")
+
+                    with Cluster("ECS"):
+                        gov_frontend = ECS("Gov AI client")
+
+                    with Cluster("Autoscaling"):
+                        gov_usage_scaling_group = AutoScaling("Usage scaling")
+                        gov_peaktime_scaling_group = AutoScaling("Peak time scaling")
+
+                    with Cluster("Observability"):
+                        gov_cloudwatch_alarms = CloudwatchAlarm("Service monitoring")
+
+                    with Cluster("Secret storage"):
+                        gov_ssm = ParameterStore("AWS parameter store")
+
+                    with Cluster("App logs/metrics"):
+                        gov_cloudwatch = Cloudwatch("CloudWatch logs")
+
+                with Cluster("GovAI public subnet"):
+                    gov_alb = ELB("Application load balancer")
+
+                with Cluster("Caddy private subnet") as caddy_private_subnet:
                     waf = WAF("WAF")
 
                     with Cluster("SNS"):
                         sns_topic = SimpleNotificationServiceSnsTopic("SNS")
 
                     with Cluster("ECS"):
-                        frontend = ECS("Frontend")
-
-                        backend = ECS("Backend")
+                        frontend = ECS("Admin site")
+                        backend = ECS("Backend & MCP Server")
 
                     with Cluster("Autoscaling"):
                         usage_scaling_group = AutoScaling("Usage scaling")
@@ -49,38 +100,98 @@ with Diagram(
                         s3 = S3("AWS S3 bucket")
 
                     with Cluster("Secret storage"):
-                        secrets = SecretsManager("AWS secrets manager")
+                        ssm = ParameterStore("AWS parameter store")
 
                     with Cluster("App logs/metrics"):
                         cloudwatch = Cloudwatch("CloudWatch logs")
 
                     with Cluster("Persistent storage"):
                         rds = Aurora("Aurora postgresql")
-                        rds - AuroraInstance("Instance 1")
 
-                with Cluster("Public subnet"):
+                with Cluster("Caddy public subnet"):
                     alb = ELB("Application load balancer")
-                    cognito = Cognito("Cognito")
+
+    with Cluster("External LLM providers"):
+        with Cluster("OpenAI"):
+            oa = AzureOpenAI("OpenAI")
+        with Cluster("Gemini"):
+            gemini = Blank("Gemini")
+        with Cluster("Other LLM"):
+            other = Blank("Other")
+
+    with Cluster("External MCP tools"):
+        with Cluster("GovUK Acronyms"):
+            acronyms = Blank("Acronyms")
+        with Cluster("GovUK Search"):
+            search = Blank("Search")
+        with Cluster("Other LLM"):
+            mcp_other = Blank("Other")
 
     users = Users("User")
 
-    users >> cognito
+    users >> alb
 
-    cognito >> alb >> waf >> backend
+    users >> gov_alb
+
+    users >> llm_gateway_alb
+
+    llm_gateway_alb >> llm_gateway_waf
+
+    llm_gateway_waf >> llm_gateway_ecs
+
+    llm_gateway_ecs >> oa
+    llm_gateway_ecs >> gemini
+    llm_gateway_ecs >> other
+
+    oa >> acronyms
+    oa >> search
+    oa >> mcp_other
+
+    gemini >> acronyms
+    gemini >> search
+    gemini >> mcp_other
+
+    other >> acronyms
+    other >> search
+    other >> mcp_other
+
+    alb >> keycloak >> alb
+
+    gov_alb >> keycloak >> gov_alb
+
+    llm_gateway_alb >> keycloak >> llm_gateway_alb
+
+    gov_frontend >> llm_gateway_ecs
+
+    gov_alb >> gov_waf >> gov_frontend
+    gov_frontend >> gov_ssm
+    gov_frontend >> gov_cloudwatch
+    gov_frontend >> gov_sns_topic
+    gov_usage_scaling_group >> gov_frontend
+    gov_peaktime_scaling_group >> gov_frontend
+    gov_cloudwatch_alarms >> gov_frontend
+
+    alb >> waf >> backend
     backend >> s3
-    backend >> secrets
+    backend >> ssm
     backend >> cloudwatch
 
     backend >> Edge() << rds
+
+    ecr >> backend
+    ecr >> frontend
+    ecr >> gov_frontend
 
     backend >> sns_topic
     usage_scaling_group >> backend
     peaktime_scaling_group >> backend
     cloudwatch_alarms >> backend
 
-    cognito >> alb >> waf >> frontend
+    backend >> Edge() << opensearch
+
+    alb >> waf >> frontend
     frontend >> s3
-    frontend >> secrets
+    frontend >> ssm
     frontend >> cloudwatch
     usage_scaling_group >> frontend
     peaktime_scaling_group >> frontend
