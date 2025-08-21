@@ -12,7 +12,7 @@ const makeRequest = async(endPoint: string, keycloakToken: string | null, option
   let error = '';
   const headers: { [key: string]: string } = {
     'x-external-access-token': process.env['BACKEND_TOKEN'] || '',
-    Authorization: keycloakToken || process.env['KEYCLOAK_TOKEN'] || '',
+    Authorization: keycloakToken || '',
   };
   if (options?.contentType) {
     headers['Content-Type'] = options?.contentType;

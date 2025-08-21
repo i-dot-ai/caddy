@@ -12,6 +12,8 @@ embedding_model = load_embedding_model(os.environ["EMBEDDING_MODEL"])
 
 disable_auth_signature_verification = os.environ["DISABLE_AUTH_SIGNATURE_VERIFICATION"]
 auth_provider_public_key = os.environ["AUTH_PROVIDER_PUBLIC_KEY"]
+oidc_issuer = os.environ.get("OIDC_ISSUER")
+oidc_audience = os.environ.get("OIDC_AUDIENCE")
 sentry_dsn = os.environ["SENTRY_DSN"]
 
 session = boto3.Session(region_name=os.environ["OPENSEARCH_AWS_REGION"])
@@ -43,7 +45,6 @@ s3_client = boto3.client("s3")
 
 data_s3_bucket = os.environ["DATA_S3_BUCKET"]
 
-keycloak_allowed_roles = json.loads(os.environ["KEYCLOAK_ALLOWED_ROLES"])
 
 environment = os.environ["ENVIRONMENT"]
 
@@ -60,7 +61,8 @@ config = CaddyConfig(
     app_name="caddy",
     disable_auth_signature_verification=disable_auth_signature_verification,
     auth_provider_public_key=auth_provider_public_key,
+    oidc_issuer=oidc_issuer,
+    oidc_audience=oidc_audience,
     sentry_dsn=sentry_dsn,
-    keycloak_allowed_roles=keycloak_allowed_roles,
     git_sha=os.getenv("GIT_SHA"),
 )

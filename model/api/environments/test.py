@@ -12,6 +12,8 @@ embedding_model = load_embedding_model(os.environ["EMBEDDING_MODEL"])
 
 disable_auth_signature_verification = os.environ["DISABLE_AUTH_SIGNATURE_VERIFICATION"]
 auth_provider_public_key = os.environ["AUTH_PROVIDER_PUBLIC_KEY"]
+oidc_issuer = os.environ.get("OIDC_ISSUER")
+oidc_audience = os.environ.get("OIDC_AUDIENCE")
 
 opensearch_kwargs = {
     "hosts": [
@@ -40,7 +42,6 @@ s3_client = boto3.client(
 
 data_s3_bucket = "test-bucket"
 
-keycloak_allowed_roles = json.loads(os.environ["KEYCLOAK_ALLOWED_ROLES"])
 
 resource_url_template = "http://localhost:8000/collections/{collection_id}/resources/{resource_id}/documents"
 
@@ -56,6 +57,7 @@ config = CaddyConfig(
     app_name="caddy_model",
     disable_auth_signature_verification=disable_auth_signature_verification,
     auth_provider_public_key=auth_provider_public_key,
-    keycloak_allowed_roles=keycloak_allowed_roles,
+    oidc_issuer=oidc_issuer,
+    oidc_audience=oidc_audience,
     git_sha=os.getenv("GIT_SHA", "test"),  # tests can override if they want
 )

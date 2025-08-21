@@ -38,10 +38,12 @@ def __get_decoded_jwt(
             jwt_token,
             pem_public_key,
             algorithms=["RS256"],
-            audience="account",
+            audience=config.oidc_audience,
+            issuer=config.oidc_issuer if verify_signature else None,
             options={
                 "verify_signature": verify_signature,
                 "verify_exp": verify_signature,
+                "verify_iss": verify_signature and config.oidc_issuer is not None,
             },
         )
     except jwt.ExpiredSignatureError:
@@ -57,9 +59,10 @@ def __get_decoded_jwt(
 
 def get_authorised_user(auth_header: str, logger: StructuredLogger) -> EmailStr | None:
     """
-    Takes a Keycloak JWT (auth token) as input and returns the user's email address and associated roles.
-    Use this function to identify the logged-in user, and which roles they are assigned by Keycloak.
-    Also validates that the token has come from Keycloak for security reasons. Validation should always be true unless running locally.
+    Takes an OIDC JWT (auth token) as input and returns the user's email address.
+    Use this function to identify the logged-in user from any OIDC provider (Keycloak, Dex, Auth0, etc.).
+    Also validates that the token has come from the configured OIDC provider for security reasons. 
+    Validation should always be true unless running locally.
     """
 
     if auth_header is None:
@@ -76,13 +79,5 @@ def get_authorised_user(auth_header: str, logger: StructuredLogger) -> EmailStr 
         error_msg = "No email found in token"
         logger.error(error_msg)
         raise ValueError(error_msg)
-
-    realm_access = token_content.get("realm_access")
-    if not realm_access:
-        error_msg = "Realm access not found in token"
-        logger.error(error_msg)
-        raise ValueError(error_msg)
-
-    # We have decided not to check Keycloak roles (any Keycloak role is allowed)
 
     return email

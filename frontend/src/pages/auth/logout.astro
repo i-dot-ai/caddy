@@ -1,0 +1,27 @@
+---
+// Handle logout - clear session and redirect to OIDC provider logout
+const dexIssuer = 'http://localhost:5556';
+const clientId = 'bifrost-client';
+
+// Clear the session
+await Astro.session.destroy();
+
+// In production, you might want to also logout from the OIDC provider
+// For Dex, we can redirect to a logout endpoint if available, or just redirect to login
+// For Keycloak, you'd redirect to: ${keycloakIssuer}/protocol/openid-connect/logout
+
+const isProduction = process.env.ENVIRONMENT !== 'local';
+
+if (isProduction) {
+  // Production: Redirect to Keycloak logout
+  const keycloakIssuer = process.env.OIDC_ISSUER || '';
+  const logoutUrl = new URL(`${keycloakIssuer}/protocol/openid-connect/logout`);
+  logoutUrl.searchParams.set('client_id', process.env.OIDC_AUDIENCE || '');
+  logoutUrl.searchParams.set('post_logout_redirect_uri', `${Astro.url.origin}/auth/login`);
+  
+  return Astro.redirect(logoutUrl.toString());
+} else {
+  // Local: Just redirect to login (Dex doesn't have a standard logout endpoint)
+  return Astro.redirect('/auth/login');
+}
+---

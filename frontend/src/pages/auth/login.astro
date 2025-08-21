@@ -1,0 +1,15 @@
+---
+// Redirect to Dex for authentication
+const dexIssuer = 'http://localhost:5556'; // Use actual running port
+const clientId = 'bifrost-client';
+const redirectUri = `${Astro.url.origin}/auth/callback`;
+
+const authUrl = new URL(`${dexIssuer}/auth`);
+authUrl.searchParams.set('response_type', 'code');
+authUrl.searchParams.set('client_id', clientId);
+authUrl.searchParams.set('redirect_uri', redirectUri);
+authUrl.searchParams.set('scope', 'openid email profile');
+authUrl.searchParams.set('state', crypto.randomUUID());
+
+return Astro.redirect(authUrl.toString());
+---

@@ -1,0 +1,50 @@
+---
+// Handle OAuth callback from Dex
+const url = new URL(Astro.request.url);
+const code = url.searchParams.get('code');
+const state = url.searchParams.get('state');
+
+if (!code) {
+  return new Response('Authorization failed: No code received', { status: 400 });
+}
+
+const dexIssuer = 'http://localhost:5556';
+const clientId = 'bifrost-client';
+const clientSecret = 'bifrost-secret';
+const redirectUri = `${Astro.url.origin}/auth/callback`;
+
+try {
+  // Exchange authorization code for tokens
+  const tokenResponse = await fetch(`${dexIssuer}/token`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+    body: new URLSearchParams({
+      grant_type: 'authorization_code',
+      code,
+      redirect_uri: redirectUri,
+      client_id: clientId,
+      client_secret: clientSecret,
+    }),
+  });
+
+  if (!tokenResponse.ok) {
+    const errorText = await tokenResponse.text();
+    console.error('Token exchange failed:', errorText);
+    return new Response(`Token exchange failed: ${errorText}`, { status: 400 });
+  }
+
+  const tokens = await tokenResponse.json();
+  
+  // Store the access token in the session
+  await Astro.session.set('accessToken', tokens.access_token);
+  await Astro.session.set('idToken', tokens.id_token);
+  
+  // Redirect to the home page
+  return Astro.redirect('/');
+} catch (error) {
+  console.error('Authentication error:', error);
+  return new Response(`Authentication failed: ${error.message}`, { status: 500 });
+}
+---

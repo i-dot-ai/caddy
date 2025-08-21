@@ -25,9 +25,10 @@ class CaddyConfig:
         app_name="caddy_model",
         disable_auth_signature_verification=False,
         auth_provider_public_key="none",
+        oidc_issuer=None,
+        oidc_audience=None,
         sentry_dsn=None,
         s3_prefix="app_data",
-        keycloak_allowed_roles=None,
         git_sha=None,
     ):
         self.opensearch_kwargs = opensearch_kwargs
@@ -38,8 +39,9 @@ class CaddyConfig:
         self.app_name = app_name
         self.disable_auth_signature_verification = disable_auth_signature_verification
         self.auth_provider_public_key = auth_provider_public_key
+        self.oidc_issuer = oidc_issuer
+        self.oidc_audience = oidc_audience or "account"
         self.sqlalchemy_url = sqlalchemy_url
-        self.keycloak_allowed_roles = keycloak_allowed_roles or []
         self.s3_client = s3_client
         self.data_s3_bucket = data_s3_bucket
         self.s3_prefix = s3_prefix
