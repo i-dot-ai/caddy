@@ -1,3 +1,8 @@
+/**
+ * Shows files being uploaded along with their current status
+ */
+
+
 const UploadInfo = class extends HTMLElement {
 
   private form: HTMLFormElement | null = null;
