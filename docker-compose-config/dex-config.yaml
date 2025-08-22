@@ -20,7 +20,7 @@ staticClients:
   - 'http://localhost:4323/auth/callback'
   - 'http://localhost:4322/auth/callback'
   name: 'Caddy OAuth2 Client'
-  secret: caddy-secret
+  secret: caddy-secret  # pragma: allowlist secret
 
 enablePasswordDB: true
 staticPasswords:
