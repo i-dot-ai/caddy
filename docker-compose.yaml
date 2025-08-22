@@ -157,6 +157,7 @@ services:
       frontend:
         condition: service_healthy
 
+
   dex:
     image: dexidp/dex:v2.39.1
     ports:
