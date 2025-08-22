@@ -14,7 +14,7 @@ const makeRequest = async(endPoint: string, authToken: string | null, options?: 
     'x-external-access-token': process.env['BACKEND_TOKEN'] || '',
     Authorization: authToken || '',
   };
-  
+
   if (options?.contentType) {
     headers['Content-Type'] = options?.contentType;
   }

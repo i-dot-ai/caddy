@@ -23,7 +23,7 @@ export async function onRequest(context, next) {
   try {
 
     // In production, ALB injects the token. Locally, get from session
-    let token = context.request.headers.get('x-amzn-oidc-accesstoken') || await context.session?.get('accessToken');
+    const token = context.request.headers.get('x-amzn-oidc-accesstoken') || await context.session?.get('accessToken');
 
     if (!token) {
       console.error(`No auth token found in headers when accessing ${pathname}`);
@@ -37,8 +37,8 @@ export async function onRequest(context, next) {
 
     // Is this user an admin user? Used to determine whether to add analytics. Permissions are handled through the API.
     await context.session?.set('isAdmin', process.env.ADMIN_USERS?.includes(parsedToken.email));
-    
-    // Store the validated token for API calls  
+
+    // Store the validated token for API calls
     await context.session?.set('accessToken', token);
 
     return next();
