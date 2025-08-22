@@ -10,7 +10,6 @@ from api.embedding_models import load_embedding_model
 
 embedding_model = load_embedding_model(os.environ["EMBEDDING_MODEL"])
 
-disable_auth_signature_verification = os.environ["DISABLE_AUTH_SIGNATURE_VERIFICATION"]
 auth_provider_public_key = os.environ["AUTH_PROVIDER_PUBLIC_KEY"]
 oidc_issuer = os.environ.get("OIDC_ISSUER")
 oidc_audience = os.environ.get("OIDC_AUDIENCE")
@@ -59,7 +58,6 @@ config = CaddyConfig(
     resource_url_template=resource_url_template,
     env=environment,
     app_name="caddy",
-    disable_auth_signature_verification=disable_auth_signature_verification,
     auth_provider_public_key=auth_provider_public_key,
     oidc_issuer=oidc_issuer,
     oidc_audience=oidc_audience,

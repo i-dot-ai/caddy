@@ -48,7 +48,6 @@ config = CaddyConfig(
     resource_url_template=resource_url_template,
     env="local",
     app_name="caddy",
-    disable_auth_signature_verification=True,
     auth_provider_public_key="None",
     oidc_issuer=os.environ.get("OIDC_ISSUER"),
     oidc_audience=os.environ.get("OIDC_AUDIENCE"),

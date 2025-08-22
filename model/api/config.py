@@ -23,7 +23,6 @@ class CaddyConfig:
         opensearch_url_pipeline="hybrid_search_pipeline",
         env="local",
         app_name="caddy_model",
-        disable_auth_signature_verification=False,
         auth_provider_public_key="none",
         oidc_issuer=None,
         oidc_audience=None,
@@ -37,7 +36,6 @@ class CaddyConfig:
         self.env = env.upper()
         self.sentry_dsn = sentry_dsn
         self.app_name = app_name
-        self.disable_auth_signature_verification = disable_auth_signature_verification
         self.auth_provider_public_key = auth_provider_public_key
         self.oidc_issuer = oidc_issuer
         self.oidc_audience = oidc_audience or "account"

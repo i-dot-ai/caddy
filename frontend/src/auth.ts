@@ -8,7 +8,9 @@ export async function parseAuthToken(header: string) {
     return null;
   }
 
-  const tokenContent = await getDecodedJwt(header, false);
+  // Always verify JWT signatures in production; only disable for local development
+  const shouldVerifySignature = process.env.ENVIRONMENT !== 'local' && process.env.ENVIRONMENT !== 'test';
+  const tokenContent = await getDecodedJwt(header, shouldVerifySignature);
   if (!tokenContent) {
     return null;
   }

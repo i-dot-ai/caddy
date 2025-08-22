@@ -1,10 +1,11 @@
 ---
-// Redirect to Dex for authentication
-const dexIssuer = 'http://localhost:5556'; // Use actual running port
-const clientId = 'bifrost-client';
+// OAuth2 agnostic authentication redirect
+const oidcIssuer = process.env.OIDC_ISSUER;
+const clientId = process.env.OIDC_AUDIENCE;
 const redirectUri = `${Astro.url.origin}/auth/callback`;
 
-const authUrl = new URL(`${dexIssuer}/auth`);
+// Build OAuth2 authorization URL - works for both Keycloak and Dex
+const authUrl = new URL(`${oidcIssuer}/auth`);
 authUrl.searchParams.set('response_type', 'code');
 authUrl.searchParams.set('client_id', clientId);
 authUrl.searchParams.set('redirect_uri', redirectUri);

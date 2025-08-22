@@ -8,14 +8,16 @@ await Astro.session.destroy();
 
 // In production, you might want to also logout from the OIDC provider
 // For Dex, we can redirect to a logout endpoint if available, or just redirect to login
-// For Keycloak, you'd redirect to: ${keycloakIssuer}/protocol/openid-connect/logout
+// OAuth2 provider-agnostic logout handling
+// For Keycloak: ${oidcIssuer}/protocol/openid-connect/logout
+// For Dex: ${oidcIssuer}/auth/logout (if supported, otherwise redirect to login)
 
 const isProduction = process.env.ENVIRONMENT !== 'local';
 
 if (isProduction) {
-  // Production: Redirect to Keycloak logout
-  const keycloakIssuer = process.env.OIDC_ISSUER || '';
-  const logoutUrl = new URL(`${keycloakIssuer}/protocol/openid-connect/logout`);
+  // Production: Redirect to OAuth2 provider logout
+  const oidcIssuer = process.env.OIDC_ISSUER || '';
+  const logoutUrl = new URL(`${oidcIssuer}/protocol/openid-connect/logout`);
   logoutUrl.searchParams.set('client_id', process.env.OIDC_AUDIENCE || '');
   logoutUrl.searchParams.set('post_logout_redirect_uri', `${Astro.url.origin}/auth/login`);
   

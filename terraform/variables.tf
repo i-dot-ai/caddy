@@ -176,11 +176,6 @@ variable "BACKEND_TOKEN" {
   description = "Token to connect backend to frontend"
 }
 
-variable "disable_auth_signature_verification" {
-  type = bool
-  default = false
-  description = "should auth signature be disabled"
-}
 
 variable "keycloak_allowed_roles" {
   type = list(string)

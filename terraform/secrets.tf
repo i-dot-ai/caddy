@@ -91,10 +91,6 @@ locals {
       value = jsonencode(var.SENTRY_AUTH_TOKEN)
     },
     {
-      name  = "DISABLE_AUTH_SIGNATURE_VERIFICATION"
-      value = var.disable_auth_signature_verification
-    },
-    {
       name  = "AUTH_PROVIDER_PUBLIC_KEY"
       value = data.aws_ssm_parameter.auth_provider_public_key.value
     },
