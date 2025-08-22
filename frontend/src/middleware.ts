@@ -36,11 +36,10 @@ export async function onRequest(context, next) {
     }
 
     // Is this user an admin user? Used to determine whether to add analytics. Permissions are handled through the API.
-    const adminUsers = process.env.ADMIN_USERS?.split(',') || [];
-    await context.session?.set('isAdmin', adminUsers.includes(parsedToken.email));
+    await context.session?.set('isAdmin', process.env.ADMIN_USERS?.includes(parsedToken.email));
     
-    // Store the validated token for API calls
-    await context.session?.set('authToken', token);
+    // Store the validated token for API calls  
+    await context.session?.set('accessToken', token);
 
     return next();
   } catch(error) {

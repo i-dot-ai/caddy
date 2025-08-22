@@ -14,6 +14,7 @@ const makeRequest = async(endPoint: string, authToken: string | null, options?: 
     'x-external-access-token': process.env['BACKEND_TOKEN'] || '',
     Authorization: authToken || '',
   };
+  
   if (options?.contentType) {
     headers['Content-Type'] = options?.contentType;
   }
@@ -74,7 +75,7 @@ export const getCollections = async(authToken: string | null) => {
 
 export const getCollection = async(collectionId: string, authToken: string | null) => {
   let { collectionsData, error } = await getCollections(authToken); /* eslint prefer-const: "off" */
-  const collection = collectionsData.collections.find((item: Collection) => item.id === collectionId) as Collection;
+  const collection = collectionsData.collections?.find((item: Collection) => item.id === collectionId) as Collection;
   if (typeof collection === 'undefined') {
     error = 'Collection not found';
   }

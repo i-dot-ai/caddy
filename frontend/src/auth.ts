@@ -39,7 +39,7 @@ async function getDecodedJwt(header: string, verifyJwtSource: boolean) {
         // Verify with signature
         const { payload } = await jwtVerify(header, publicKey, {
           algorithms: ['RS256'],
-          audience: process.env.OIDC_AUDIENCE || 'account',
+          audience: process.env.OIDC_AUDIENCE,
           issuer: process.env.OIDC_ISSUER,
         });
 

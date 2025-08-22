@@ -3,7 +3,8 @@ import Layout from '@layouts/Layout.astro';
 import { getCollection } from '@logic/data.ts';
 
 const { collection: collectionId, user: userId } = Astro.params;
-const { collection, error } = await getCollection(collectionId || '', Astro.request.headers.get('x-amzn-oidc-accesstoken'));
+const token = await Astro.session.get('accessToken');
+const { collection, error } = await getCollection(collectionId || '', token);
 ---
 
 <Layout title={ 'Delete collection - ' + collection.name } error={ error }>

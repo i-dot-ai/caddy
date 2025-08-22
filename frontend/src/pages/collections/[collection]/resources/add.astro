@@ -2,7 +2,7 @@
 import Layout from '@layouts/Layout.astro';
 import { getCollections, getCollection, getResources } from '@logic/data.ts';
 
-const token = Astro.request.headers.get('x-amzn-oidc-accesstoken');
+const token = await Astro.session.get('accessToken');
 
 let { collectionsData } = await getCollections(token);
 

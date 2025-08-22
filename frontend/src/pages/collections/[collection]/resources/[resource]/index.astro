@@ -4,8 +4,9 @@ import { getResourceDetails, getResourceFragments } from '@logic/data.ts';
 import LitWrapper from '@components/lit-wrapper.astro';
 
 const { collection: collectionId, resource: resourceId } = Astro.params;
-const resource = await getResourceDetails(collectionId || '', resourceId || '', Astro.request.headers.get('x-amzn-oidc-accesstoken'));
-const fragments = await getResourceFragments(collectionId || '', resourceId || '', Astro.request.headers.get('x-amzn-oidc-accesstoken'));
+const token = await Astro.session.get('accessToken');
+const resource = await getResourceDetails(collectionId || '', resourceId || '', token);
+const fragments = await getResourceFragments(collectionId || '', resourceId || '', token);
 
 ---
 

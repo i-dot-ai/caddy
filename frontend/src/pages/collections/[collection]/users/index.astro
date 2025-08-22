@@ -2,11 +2,12 @@
 import Layout from '@layouts/Layout.astro';
 import { getCollections, getCollection, getUsers, CollectionPermission } from '@logic/data.ts';
 
-let { collectionsData } = await getCollections(Astro.request.headers.get('x-amzn-oidc-accesstoken'));
+const token = await Astro.session.get('accessToken');
+let { collectionsData } = await getCollections(token);
 
 const { collection: collectionId } = Astro.params;
-const { collection, error } = await getCollection(collectionId || '', Astro.request.headers.get('x-amzn-oidc-accesstoken'));
-const users = await getUsers(collectionId || '', Astro.request.headers.get('x-amzn-oidc-accesstoken'));
+const { collection, error } = await getCollection(collectionId || '', token);
+const users = await getUsers(collectionId || '', token);
 
 ---
 

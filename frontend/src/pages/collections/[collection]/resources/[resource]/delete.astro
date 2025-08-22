@@ -3,7 +3,8 @@ import Layout from '@layouts/Layout.astro';
 import { getResourceDetails } from '@logic/data.ts';
 
 const { collection: collectionId, resource: resourceId } = Astro.params;
-const resource = await getResourceDetails(collectionId || '', resourceId || '', Astro.request.headers.get('x-amzn-oidc-accesstoken'));
+const token = await Astro.session.get('accessToken');
+const resource = await getResourceDetails(collectionId || '', resourceId || '', token);
 
 ---
 
