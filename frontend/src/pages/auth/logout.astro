@@ -1,7 +1,7 @@
 ---
 // Handle logout - clear session and redirect to OIDC provider logout
 const dexIssuer = 'http://localhost:5556';
-const clientId = 'bifrost-client';
+const clientId = 'caddy-client';
 
 // Clear the session
 await Astro.session.destroy();

@@ -13,14 +13,14 @@ oauth2:
   skipApprovalScreen: true
 
 staticClients:
-- id: bifrost-client
+- id: caddy-client
   redirectURIs:
   - 'http://localhost:8080/callback'
   - 'http://localhost:3000/callback'
   - 'http://localhost:4323/auth/callback'
   - 'http://localhost:4322/auth/callback'
   name: 'Caddy OAuth2 Client'
-  secret: bifrost-secret
+  secret: caddy-secret
 
 enablePasswordDB: true
 staticPasswords:
