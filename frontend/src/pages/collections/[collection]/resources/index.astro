@@ -5,7 +5,7 @@ import { getCollections, getCollection, getResources, CollectionPermission} from
 
 const PAGE_SIZE = 50;
 
-const token = Astro.request.headers.get('x-amzn-oidc-accesstoken');
+const token = await Astro.session.get('accessToken');
 
 let { collectionsData } = await getCollections(token);
 

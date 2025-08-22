@@ -1,0 +1,55 @@
+---
+// Handle OAuth2 callback from any OIDC provider (Keycloak, Dex, etc.)
+const url = new URL(Astro.request.url);
+const code = url.searchParams.get('code');
+const state = url.searchParams.get('state');
+
+if (!code) {
+  return new Response('Authorization failed: No code received', { status: 400 });
+}
+
+// OAuth2 provider configuration - works with both Keycloak and Dex
+const oidcIssuer = process.env.OIDC_ISSUER;
+const clientId = process.env.OIDC_AUDIENCE;
+const clientSecret = process.env.OAUTH2_CLIENT_SECRET;
+const redirectUri = `${Astro.url.origin}/auth/callback`;
+
+if (!oidcIssuer) {
+  return new Response('OIDC_ISSUER environment variable not set', { status: 500 });
+}
+
+try {
+  // Exchange authorization code for tokens
+  const tokenResponse = await fetch(`${oidcIssuer}/token`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+    body: new URLSearchParams({
+      grant_type: 'authorization_code',
+      code,
+      redirect_uri: redirectUri,
+      client_id: clientId,
+      client_secret: clientSecret,
+    }),
+  });
+
+  if (!tokenResponse.ok) {
+    const errorText = await tokenResponse.text();
+    console.error('Token exchange failed:', errorText);
+    return new Response(`Token exchange failed: ${errorText}`, { status: 400 });
+  }
+
+  const tokens = await tokenResponse.json();
+  
+  // Store the access token in the session
+  await Astro.session.set('accessToken', tokens.access_token);
+  await Astro.session.set('idToken', tokens.id_token);
+  
+  // Redirect to the home page
+  return Astro.redirect('/');
+} catch (error) {
+  console.error('Authentication error:', error);
+  return new Response(`Authentication failed: ${error.message}`, { status: 500 });
+}
+---

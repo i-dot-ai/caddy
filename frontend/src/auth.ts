@@ -8,7 +8,9 @@ export async function parseAuthToken(header: string) {
     return null;
   }
 
-  const tokenContent = await getDecodedJwt(header, false);
+  // Always verify JWT signatures in production; only disable for local development
+  const shouldVerifySignature = process.env.ENVIRONMENT !== 'local' && process.env.ENVIRONMENT !== 'test';
+  const tokenContent = await getDecodedJwt(header, shouldVerifySignature);
   if (!tokenContent) {
     return null;
   }
@@ -19,17 +21,8 @@ export async function parseAuthToken(header: string) {
     return null;
   }
 
-  const realmAccess = tokenContent.realm_access;
-  if (!realmAccess) {
-    console.error('No realm access information found in token');
-    return null;
-  }
-
-  const roles = tokenContent.realm_access.roles || [];
-
   return {
     email,
-    roles,
   };
 }
 
@@ -46,7 +39,8 @@ async function getDecodedJwt(header: string, verifyJwtSource: boolean) {
         // Verify with signature
         const { payload } = await jwtVerify(header, publicKey, {
           algorithms: ['RS256'],
-          audience: 'account',
+          audience: process.env.OIDC_AUDIENCE,
+          issuer: process.env.OIDC_ISSUER,
         });
 
         decodedToken = payload;

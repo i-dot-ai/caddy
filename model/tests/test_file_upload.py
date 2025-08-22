@@ -21,11 +21,18 @@ def test_file_upload(client, tmp_path, admin_user):
         with open(file_path, "w") as f:
             f.write(f"Test content for {filename}")
 
+    token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhbGljZUBleGFtcGxlLmNvbSIsImVtYWlsIjoiYWxpY2VAZXhhbXBsZS5jb20ifQ.mock-signature"  # pragma: allowlist secret
     with (
         # make "requests" use the TestClient
         mock.patch("requests.delete", make_test_client_method(client, "delete")),
         mock.patch("requests.post", make_test_client_method(client, "post")),
         mock.patch("requests.get", make_test_client_method(client, "get")),
+        # mock the token property since requests.post is mocked
+        mock.patch.object(
+            type(admin_user),
+            "token",
+            new_callable=lambda: mock.PropertyMock(return_value=f"Bearer {token}"),
+        ),
     ):
         # when I run the FileUpload against that dir
         upload = FileUpload(

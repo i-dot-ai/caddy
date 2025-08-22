@@ -26,7 +26,6 @@ mcp_server = Server("Caddy MCP server")
 
 metric_writer = config.get_metrics_writer()
 
-KEYCLOAK_ALLOWED_ROLES = config.keycloak_allowed_roles
 
 # Context variable to store current user email
 _current_user_email: contextvars.ContextVar[str | None] = contextvars.ContextVar(
@@ -51,11 +50,6 @@ class ToolResponse(BaseModel):
 def __validate_user_access(
     request: Request, struct_logger: StructuredLogger
 ) -> EmailStr | None:
-    if config.env == "LOCAL":
-        if config.admin_users:
-            return config.admin_users[0]
-        raise ValueError("local env selected but no ADMIN_USERS set")
-
     auth_header = request.headers.get("Authorization")
     if not auth_header:
         struct_logger.info("auth_header not found")
@@ -64,9 +58,7 @@ def __validate_user_access(
     token = auth_header.removeprefix("Bearer ")
     authorised_user = get_authorised_user(token, logger=struct_logger)
     if not authorised_user:
-        struct_logger.info(
-            "user not authorised for roles: {roles}", roles=KEYCLOAK_ALLOWED_ROLES
-        )
+        struct_logger.info("user not authorised")
         return None
     return authorised_user
 

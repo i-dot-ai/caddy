@@ -1,0 +1,59 @@
+issuer: http://localhost:5556
+
+storage:
+  type: memory
+
+web:
+  http: 0.0.0.0:5556
+
+telemetry:
+  http: 0.0.0.0:5558
+
+oauth2:
+  skipApprovalScreen: true
+  passwordConnector: local  # pragma: allowlist secret
+
+staticClients:
+- id: caddy-client
+  redirectURIs:
+  - 'http://localhost:8080/callback'
+  - 'http://localhost:3000/callback'
+  - 'http://localhost:4323/auth/callback'
+  - 'http://localhost:4322/auth/callback'
+  name: 'Caddy OAuth2 Client'
+  secret: caddy-secret  # pragma: allowlist secret
+  grantTypes:
+  - authorization_code
+  - refresh_token
+  - password
+  responseTypes:
+  - code
+  - token
+
+enablePasswordDB: true
+staticPasswords:
+- email: "admin@example.com"
+  # bcrypt hash of the string "password": $(echo password | htpasswd -BinC 10 admin | cut -d: -f2)
+  hash: "$2a$10$2b2cU8CPhOTaGrs1HRQuAueS7JTT5ZHsHSzYiFPm1leZck7Mc8T4W"
+  username: "admin"
+  userID: "08a8684b-db88-4b73-90a9-3cd1661f5466"
+
+- email: "test@example.com"
+  hash: "$2a$10$2b2cU8CPhOTaGrs1HRQuAueS7JTT5ZHsHSzYiFPm1leZck7Mc8T4W"
+  username: "test"
+  userID: "41331323-6f44-45e6-b3b9-0c8b77e6c062"
+
+- email: "admin-user@example.com"
+  hash: "$2a$10$2b2cU8CPhOTaGrs1HRQuAueS7JTT5ZHsHSzYiFPm1leZck7Mc8T4W"
+  username: "admin-user"
+  userID: "99999999-9999-9999-9999-999999999999"
+
+- email: "alice@example.com"
+  hash: "$2a$10$2b2cU8CPhOTaGrs1HRQuAueS7JTT5ZHsHSzYiFPm1leZck7Mc8T4W"
+  username: "alice@example.com"
+  userID: "00000000-0000-0000-0000-000000000001"
+
+- email: "bob@example.com"
+  hash: "$2a$10$2b2cU8CPhOTaGrs1HRQuAueS7JTT5ZHsHSzYiFPm1leZck7Mc8T4W"
+  username: "bob@example.com"
+  userID: "00000000-0000-0000-0000-000000000002"

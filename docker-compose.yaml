@@ -157,6 +157,24 @@ services:
       frontend:
         condition: service_healthy
 
+
+  dex:
+    image: dexidp/dex:v2.39.1
+    ports:
+      - "5556:5556"
+    volumes:
+      - ./docker-compose-config/dex-config.yaml:/etc/dex/config.yaml:ro
+    command: ["dex", "serve", "/etc/dex/config.yaml"]
+    networks:
+      - caddy-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:5556/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
 volumes:
   opensearch_data:
   postgres_data:

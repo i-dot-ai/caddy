@@ -3,7 +3,8 @@ import 'dotenv/config';
 import Layout from '@layouts/Layout.astro';
 import {CollectionPermission, getCollections } from '@logic/data.ts';
 
-let { collectionsData, error } = await getCollections(Astro.request.headers.get('x-amzn-oidc-accesstoken'));
+const authToken = await Astro.session.get('accessToken');
+let { collectionsData, error } = await getCollections(authToken);
 
 const collections = collectionsData.collections?.sort((a, b) => {
   return a.name > b.name ? 1 : -1;

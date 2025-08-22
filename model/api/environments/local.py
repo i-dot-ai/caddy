@@ -1,4 +1,3 @@
-import json
 import os
 
 import boto3
@@ -36,7 +35,6 @@ s3_client = boto3.client(
 
 data_s3_bucket = os.environ["DATA_S3_BUCKET"]
 
-keycloak_allowed_roles = json.loads(os.environ["KEYCLOAK_ALLOWED_ROLES"])
 
 resource_url_template = "http://localhost:8000/collections/{collection_id}/resources/{resource_id}/documents"
 
@@ -49,8 +47,8 @@ config = CaddyConfig(
     resource_url_template=resource_url_template,
     env="local",
     app_name="caddy",
-    disable_auth_signature_verification=True,
     auth_provider_public_key="None",
-    keycloak_allowed_roles=keycloak_allowed_roles,
+    oidc_issuer=os.environ.get("OIDC_ISSUER"),
+    oidc_audience=os.environ.get("OIDC_AUDIENCE"),
     git_sha="local",
 )

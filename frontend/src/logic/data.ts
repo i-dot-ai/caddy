@@ -6,14 +6,15 @@ if (!backendHost) {
 }
 
 
-const makeRequest = async(endPoint: string, keycloakToken: string | null, options?: { method?: 'GET' | 'POST' | 'DELETE' | 'PUT'; body?: string | FormData; contentType?: string }) => {
+const makeRequest = async(endPoint: string, authToken: string | null, options?: { method?: 'GET' | 'POST' | 'DELETE' | 'PUT'; body?: string | FormData; contentType?: string }) => {
 
   let response;
   let error = '';
   const headers: { [key: string]: string } = {
     'x-external-access-token': process.env['BACKEND_TOKEN'] || '',
-    Authorization: keycloakToken || process.env['KEYCLOAK_TOKEN'] || '',
+    Authorization: authToken || '',
   };
+
   if (options?.contentType) {
     headers['Content-Type'] = options?.contentType;
   }
@@ -64,17 +65,17 @@ interface Collections {
   is_admin: boolean,
 }
 
-export const getCollections = async(keycloakToken: string | null) => {
-  const { json, error } = await makeRequest('/collections', keycloakToken);
+export const getCollections = async(authToken: string | null) => {
+  const { json, error } = await makeRequest('/collections', authToken);
   const collectionsData = (json as unknown as Collections) || { collections: [], is_admin: false };
 
   return { collectionsData, error };
 };
 
 
-export const getCollection = async(collectionId: string, keycloakToken: string | null) => {
-  let { collectionsData, error } = await getCollections(keycloakToken); /* eslint prefer-const: "off" */
-  const collection = collectionsData.collections.find((item: Collection) => item.id === collectionId) as Collection;
+export const getCollection = async(collectionId: string, authToken: string | null) => {
+  let { collectionsData, error } = await getCollections(authToken); /* eslint prefer-const: "off" */
+  const collection = collectionsData.collections?.find((item: Collection) => item.id === collectionId) as Collection;
   if (typeof collection === 'undefined') {
     error = 'Collection not found';
   }
@@ -82,8 +83,8 @@ export const getCollection = async(collectionId: string, keycloakToken: string |
 };
 
 
-export const updateCollection = async(collectionId: string, name: string, description: string, keycloakToken: string | null) => {
-  const { json } = await makeRequest(`/collections/${collectionId}`, keycloakToken, {
+export const updateCollection = async(collectionId: string, name: string, description: string, authToken: string | null) => {
+  const { json } = await makeRequest(`/collections/${collectionId}`, authToken, {
     method: 'PUT',
     body: JSON.stringify({
       name: name,
@@ -95,8 +96,8 @@ export const updateCollection = async(collectionId: string, name: string, descri
 };
 
 
-export const addCollection = async(name: string, description: string, keycloakToken: string | null) => {
-  const { json } = await makeRequest('/collections', keycloakToken, {
+export const addCollection = async(name: string, description: string, authToken: string | null) => {
+  const { json } = await makeRequest('/collections', authToken, {
     method: 'POST',
     body: JSON.stringify({
       name: name,
@@ -108,8 +109,8 @@ export const addCollection = async(name: string, description: string, keycloakTo
 };
 
 
-export const deleteCollection = async(collectionId: string, keycloakToken: string | null) => {
-  const { json } = await makeRequest(`/collections/${collectionId}`, keycloakToken, {
+export const deleteCollection = async(collectionId: string, authToken: string | null) => {
+  const { json } = await makeRequest(`/collections/${collectionId}`, authToken, {
     method: 'DELETE',
   });
   return json;
@@ -137,14 +138,14 @@ interface ResourceList {
   page: number,
   resources: ResourceDetail[],
 }
-export const getResources = async(collectionId: string, page: number, itemsPerPage: number, keycloakToken: string | null) => {
-  const { json } = await makeRequest(`/collections/${collectionId}/resources?page=${page}&page_size=${itemsPerPage}`, keycloakToken);
+export const getResources = async(collectionId: string, page: number, itemsPerPage: number, authToken: string | null) => {
+  const { json } = await makeRequest(`/collections/${collectionId}/resources?page=${page}&page_size=${itemsPerPage}`, authToken);
   return json as unknown as ResourceList;
 };
 
 
-export const getResourceDetails = async(collectionId: string, resourceId: string, keycloakToken: string | null) => {
-  const { json } = await makeRequest(`/collections/${collectionId}/resources/${resourceId}`, keycloakToken);
+export const getResourceDetails = async(collectionId: string, resourceId: string, authToken: string | null) => {
+  const { json } = await makeRequest(`/collections/${collectionId}/resources/${resourceId}`, authToken);
   return json as unknown as ResourceDetail;
 };
 
@@ -154,14 +155,14 @@ interface ResourceFragment {
     page_content: string,
   }[],
 }
-export const getResourceFragments = async(collectionId: string, resourceId: string, keycloakToken: string | null) => {
-  const { json } = await makeRequest(`/collections/${collectionId}/resources/${resourceId}/documents`, keycloakToken);
+export const getResourceFragments = async(collectionId: string, resourceId: string, authToken: string | null) => {
+  const { json } = await makeRequest(`/collections/${collectionId}/resources/${resourceId}/documents`, authToken);
   return (json as ResourceFragment).documents;
 };
 
 
-export const uploadFile = async(collectionId: string, body: FormData, keycloakToken: string | null) => {
-  const { json } = await makeRequest(`/collections/${collectionId}/resources`, keycloakToken, {
+export const uploadFile = async(collectionId: string, body: FormData, authToken: string | null) => {
+  const { json } = await makeRequest(`/collections/${collectionId}/resources`, authToken, {
     method: 'POST',
     body: body,
   });
@@ -169,8 +170,8 @@ export const uploadFile = async(collectionId: string, body: FormData, keycloakTo
 };
 
 
-export const addUrls = async(collectionId: string, urls: string[], keycloakToken: string | null) => {
-  const { json } = await makeRequest(`/collections/${collectionId}/resources/urls`, keycloakToken, {
+export const addUrls = async(collectionId: string, urls: string[], authToken: string | null) => {
+  const { json } = await makeRequest(`/collections/${collectionId}/resources/urls`, authToken, {
     method: 'POST',
     body: JSON.stringify(urls),
     contentType: 'application/json',
@@ -179,8 +180,8 @@ export const addUrls = async(collectionId: string, urls: string[], keycloakToken
 };
 
 
-export const deleteFile = async(collectionId: string, resourceId: string, keycloakToken: string | null) => {
-  const { json } = await makeRequest(`/collections/${collectionId}/resources/${resourceId}`, keycloakToken, {
+export const deleteFile = async(collectionId: string, resourceId: string, authToken: string | null) => {
+  const { json } = await makeRequest(`/collections/${collectionId}/resources/${resourceId}`, authToken, {
     method: 'DELETE',
   });
   return json;
@@ -194,14 +195,14 @@ interface User {
   user_email: string,
   role: 'member' | 'manager',
 }
-export const getUsers = async(collectionId: string, keycloakToken: string | null) => {
-  const { json } = await makeRequest(`/collections/${collectionId}/users?page_size=1000`, keycloakToken);
+export const getUsers = async(collectionId: string, authToken: string | null) => {
+  const { json } = await makeRequest(`/collections/${collectionId}/users?page_size=1000`, authToken);
   return json.user_roles as User[];
 };
 
 
-export const addUser = async(collectionId: string, body: FormData, keycloakToken: string | null) => {
-  const { json } = await makeRequest(`/collections/${collectionId}/users`, keycloakToken, {
+export const addUser = async(collectionId: string, body: FormData, authToken: string | null) => {
+  const { json } = await makeRequest(`/collections/${collectionId}/users`, authToken, {
     method: 'POST',
     body: JSON.stringify(body),
     contentType: 'application/json',
@@ -210,8 +211,8 @@ export const addUser = async(collectionId: string, body: FormData, keycloakToken
 };
 
 
-export const removeUser = async(collectionId: string, userId: string, keycloakToken: string | null) => {
-  const { json } = await makeRequest(`/collections/${collectionId}/users/${userId}`, keycloakToken, {
+export const removeUser = async(collectionId: string, userId: string, authToken: string | null) => {
+  const { json } = await makeRequest(`/collections/${collectionId}/users/${userId}`, authToken, {
     method: 'DELETE',
   });
   return json;

@@ -3,10 +3,11 @@ import Layout from '@layouts/Layout.astro';
 import { getCollection, getUsers } from '@logic/data.ts';
 
 const { collection: collectionId, user: userId } = Astro.params;
-const { collection, error } = await getCollection(collectionId || '', Astro.request.headers.get('x-amzn-oidc-accesstoken'));
+const token = await Astro.session.get('accessToken');
+const { collection, error } = await getCollection(collectionId || '', token);
 
 const userData = await (async () => {
-  const users = await getUsers(collectionId || '', Astro.request.headers.get('x-amzn-oidc-accesstoken'));
+  const users = await getUsers(collectionId || '', token);
   return users.find((item) => item.user_id === userId);
 })();
 
