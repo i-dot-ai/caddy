@@ -22,11 +22,12 @@ run_backend:
 	cd model && poetry run python -m uvicorn api.app:app --reload
 
 run_tests:
-	docker compose up -d opensearch postgres minio --wait && \
+	docker compose up -d opensearch postgres minio dex --wait && \
 	cd model && poetry install && poetry run pytest --cov=tests -v --cov-report=term-missing --cov-fail-under=60
 
 setup_local_postgres:
 	psql -f model/scripts/postgres-init.sql
+
 
 run:
 	# will run with local client by default

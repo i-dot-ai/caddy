@@ -1,8 +1,9 @@
+import os
 from datetime import datetime
 from typing import Any, Self
 from uuid import UUID, uuid4
 
-import jwt
+import requests
 from pgvector.sqlalchemy import Vector
 from pydantic import BaseModel, EmailStr
 from pytz import utc
@@ -12,30 +13,6 @@ from sqlmodel import Field, Relationship, Session, SQLModel, select
 from api.config import EMBEDDING_DIMENSION
 from api.environment import config
 from api.types import CollectionBase, PaginatedResponse, ResourceBase, Role
-
-
-def user_token(user):
-    """
-    Return a dummy JWT from cognito to allow for local testing.
-    """
-    jwt_dict = {
-        "sub": "90429234-4031-7077-b9ba-60d1af121245",
-        "email": user.email,
-        "aud": "account",
-        "exp": 1727262399,
-        "realm_access": {"roles": []},
-        "resource_access": {"account": {"roles": ["view-profile"]}},
-    }
-    jwt_headers = {
-        "typ": "JWT",
-        "kid": "1234947a-59d3-467c-880c-f005c6941ffg",
-        "alg": "HS256",
-        "iss": "https://keycloak-dev.ai.cabinetoffice.gov.uk/realms/i_ai",
-        "client": "323jd0nindova3squ5ln665432",
-        "signer": "arn:aws:elasticloadbalancing:eu-west-2:acc:loadbalancer/app/alb/99jd250a03e75des",
-        "exp": 1727262399,
-    }
-    return f"Bearer {jwt.encode(jwt_dict, "secret", algorithm="HS256", headers=jwt_headers)}"
 
 
 def utc_now() -> datetime:
@@ -55,7 +32,18 @@ class User(SQLModel, table=True):
 
     @property
     def token(self):
-        return user_token(self)
+        token_url = os.environ["OIDC_ISSUER"] + "/token"
+        data = {
+            "grant_type": "password",
+            "client_id": os.environ["OIDC_AUDIENCE"],
+            "client_secret": os.environ["OAUTH2_CLIENT_SECRET"],
+            "username": self.email,
+            "password": "password",  # pragma: allowlist secret
+            "scope": "openid email profile",
+        }
+        response = requests.post(token_url, data=data)
+        response.raise_for_status()
+        return response.json()["access_token"]
 
     def __str__(self):
         return self.email
