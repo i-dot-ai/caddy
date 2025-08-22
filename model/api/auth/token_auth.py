@@ -61,7 +61,7 @@ def get_authorised_user(auth_header: str, logger: StructuredLogger) -> EmailStr 
     """
     Takes an OIDC JWT (auth token) as input and returns the user's email address.
     Use this function to identify the logged-in user from any OIDC provider (Keycloak, Dex, Auth0, etc.).
-    Also validates that the token has come from the configured OIDC provider for security reasons. 
+    Also validates that the token has come from the configured OIDC provider for security reasons.
     Validation should always be true unless running locally.
     """
 
