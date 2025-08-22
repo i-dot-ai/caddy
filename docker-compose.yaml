@@ -1,20 +1,20 @@
 services:
-#  nginx:
-#    image: nginx:alpine
-#    ports:
-#      - "8080:80"    # model
-#      - "8081:81"    # client
-#      - "8082:82"    # frontend
-#    volumes:
-#      - ./docker-compose-config/nginx.conf:/etc/nginx/nginx.conf:ro
-#      - ./docker-compose-config/user-switcher.conf:/etc/nginx/user-switcher.conf:ro
-#    depends_on:
-#      - model
-#      - frontend
-##      - client
-#    networks:
-#      - caddy-net
-#    restart: unless-stopped
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "8080:80"    # model
+      - "8081:81"    # client
+      - "8082:82"    # frontend
+    volumes:
+      - ./docker-compose-config/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./docker-compose-config/user-switcher.conf:/etc/nginx/user-switcher.conf:ro
+    depends_on:
+      - model
+      - frontend
+      - client
+    networks:
+      - caddy-net
+    restart: unless-stopped
 
   model:
     build:
@@ -139,14 +139,23 @@ services:
       start_period: 60s
       start_interval: 1s
 
-#  client:
-#    image: public.ecr.aws/idotai/gov-ai-client:068ee7adce7c62c6836239c57415d517cf870dd5
-#    container_name: gov-ai-client
-#    expose:
-#      - "8081"
-#    env_file: "docker-compose-config/.env"
-#    networks:
-#      - caddy-net
+  client:
+    image: public.ecr.aws/idotai/gov-ai-client:068ee7adce7c62c6836239c57415d517cf870dd5
+    container_name: gov-ai-client
+    expose:
+      - "8081"
+    env_file: "docker-compose-config/.env"
+    networks:
+      - caddy-net
+
+  welcome:
+    restart: no
+    build:
+      context: docker-compose-config
+      dockerfile: welcome.Dockerfile
+    depends_on:
+      frontend:
+        condition: service_healthy
 
   dex:
     image: dexidp/dex:v2.39.1
@@ -164,15 +173,6 @@ services:
       timeout: 5s
       retries: 3
       start_period: 10s
-
-  welcome:
-    restart: no
-    build:
-      context: docker-compose-config
-      dockerfile: welcome.Dockerfile
-    depends_on:
-      frontend:
-        condition: service_healthy
 
 volumes:
   opensearch_data:
