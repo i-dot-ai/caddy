@@ -1,3 +1,4 @@
+import os
 from datetime import timedelta
 from io import BytesIO
 from urllib.parse import urlparse
@@ -8,6 +9,7 @@ from i_dot_ai_utilities.logging.structured_logger import StructuredLogger
 from langchain_core.documents import Document
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from markitdown import MarkItDown
+from openai import AzureOpenAI
 from sqlalchemy import func
 from sqlmodel import Session, select
 
@@ -49,6 +51,32 @@ from api.types import (
 
 metric_writer = config.get_metrics_writer()
 md = MarkItDown()
+
+
+def _recover_formatting(text: str) -> str:
+    if os.environ["ENVIRONMENT"].upper() == "TEST":
+        return text
+
+    prompt = """your job is to interpret plain text and recover the formatting that has been lost.
+        * use markdown
+        * do not change the text itself
+        """
+
+    client = AzureOpenAI(
+        api_key=os.environ["AZURE_OPENAI_API_KEY"],
+        api_version="2024-10-21",
+        azure_endpoint=os.environ["AZURE_OPENAI_ENDPOINT"],
+    )
+
+    response = client.chat.completions.create(
+        messages=[
+            {"role": "system", "content": prompt},
+            {"role": "user", "content": text},
+        ],
+        model="gpt-4o-mini",
+    )
+
+    return response.choices[0].message.content
 
 
 def _split_text(text: str) -> list[Document]:
@@ -120,7 +148,8 @@ def __process_resource(
         s3_content = BytesIO(s3_object["Body"].read())
         content = md.convert(s3_content).text_content
 
-    documents = _split_text(content)
+    markdown_content = _recover_formatting(content)
+    documents = _split_text(markdown_content)
 
     embeddings = config.embedding_model.embed_documents(
         [d.page_content for d in documents]
