@@ -1,17 +1,14 @@
 ---
 import Layout from '@layouts/Layout.astro';
 import { getResourceDetails, getResourceFragments, getSingleResource } from '@logic/data.ts';
-import LitWrapper from '@components/lit-wrapper.astro';
 
 const { collection: collectionId, resource: resourceId } = Astro.params;
 const token = await Astro.session.get('accessToken');
 const resource = await getResourceDetails(collectionId || '', resourceId || '', token);
 const document = await getSingleResource(collectionId || '', resourceId || '', token);
-
 ---
 
-<Layout title={ resource.filename || resource.id }>
-
+<Layout title={resource.filename || resource.id}>
   <nav class="govuk-breadcrumbs govuk-!-margin-bottom-6" aria-label="Breadcrumb">
     <ol class="govuk-breadcrumbs__list">
       <li class="govuk-breadcrumbs__list-item">
@@ -26,19 +23,105 @@ const document = await getSingleResource(collectionId || '', resourceId || '', t
     </ol>
   </nav>
 
-
   <div class="govuk-grid-row">
     <div class="govuk-grid-column-full">
-
       <h1 class="govuk-heading-l">Resource details</h1>
+      <p><strong>Resource:</strong> {resource.filename || resource.id}</p>
 
-      <p><strong>Resource:</strong> { resource.filename || resource.id }</p>
+      <div class="tiptap-container">
+        <div id="tiptap-editor">
+          <div id="editor"></div>
+        </div>
+        <div class="editor-actions">
+          <button id="save-btn" class="govuk-button">Save Changes</button>
+          <button id="cancel-btn" class="govuk-button govuk-button--secondary govuk-!-margin-left-2">Cancel</button>
+        </div>
+      </div>
 
-      <LitWrapper>
-        <markdown-converter class="govuk-!-display-block govuk-!-padding-5 govuk-!-margin-top-5" style="border: 1px solid #b1b4b6;" content={ document.page_content }></markdown-converter>
-      </LitWrapper>
+      <div id="markdown-content" style="display: none;">{document.page_content}</div>
 
+      <style>
+        .tiptap-container {
+          margin-top: 2rem;
+          border: 1px solid #e1e5e9;
+          border-radius: 6px;
+          background: white;
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+
+        .editor-actions {
+          padding: 12px;
+          border-top: 1px solid #e1e5e9;
+          background-color: #f8f9fa;
+        }
+
+        .tiptap-toolbar {
+          border-bottom: 1px solid #e1e5e9;
+          padding: 8px 12px;
+          background-color: #f8f9fa;
+          display: flex;
+          flex-wrap: wrap;
+          gap: 4px;
+          position: sticky;
+          top: 0;
+          z-index: 10;
+        }
+        
+        .toolbar-group {
+          display: flex;
+          gap: 2px;
+        }
+        
+        .toolbar-separator {
+          width: 1px;
+          background-color: #e1e5e9;
+          margin: 4px 8px;
+        }
+        
+        .tiptap-toolbar button {
+          background: none;
+          border: none;
+          border-radius: 4px;
+          color: #374151;
+          cursor: pointer;
+          font-size: 14px;
+          font-weight: 500;
+          padding: 6px 8px;
+          transition: all 0.15s ease;
+          min-width: 32px;
+          height: 32px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+        
+        .tiptap-toolbar button:hover {
+          background-color: #e5e7eb;
+          color: #111827;
+        }
+        
+        .tiptap-toolbar button.active {
+          background-color: #374151;
+          color: white;
+        }
+        
+        .tiptap-toolbar button:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+
+        .tiptap-editor-content {
+          min-height: 200px;
+          padding: 16px;
+          outline: none;
+          font-size: 16px;
+          line-height: 1.6;
+          color: #374151;
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+      </style>
+
+      <script type="module" src="../../../../../../src/components/tiptap-editor.ts"></script>
     </div>
   </div>
-
 </Layout>
