@@ -161,6 +161,15 @@ export const getResourceFragments = async(collectionId: string, resourceId: stri
 };
 
 
+interface SingleResource {
+  page_content: string,
+}
+export const getSingleResource = async(collectionId: string, resourceId: string, authToken: string | null) => {
+  const { json } = await makeRequest(`/collections/${collectionId}/resources/${resourceId}/single-document`, authToken);
+  return json as SingleResource;
+};
+
+
 export const uploadFile = async(collectionId: string, body: FormData, authToken: string | null) => {
   const { json } = await makeRequest(`/collections/${collectionId}/resources`, authToken, {
     method: 'POST',

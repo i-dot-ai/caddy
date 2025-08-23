@@ -1,12 +1,12 @@
 ---
 import Layout from '@layouts/Layout.astro';
-import { getResourceDetails, getResourceFragments } from '@logic/data.ts';
+import { getResourceDetails, getResourceFragments, getSingleResource } from '@logic/data.ts';
 import LitWrapper from '@components/lit-wrapper.astro';
 
 const { collection: collectionId, resource: resourceId } = Astro.params;
 const token = await Astro.session.get('accessToken');
 const resource = await getResourceDetails(collectionId || '', resourceId || '', token);
-const fragments = await getResourceFragments(collectionId || '', resourceId || '', token);
+const document = await getSingleResource(collectionId || '', resourceId || '', token);
 
 ---
 
@@ -34,15 +34,9 @@ const fragments = await getResourceFragments(collectionId || '', resourceId || '
 
       <p><strong>Resource:</strong> { resource.filename || resource.id }</p>
 
-      { fragments?.map((chunk) =>
-        <LitWrapper>
-          <markdown-converter class="govuk-!-display-block govuk-!-padding-5 govuk-!-margin-top-5" style="border: 1px solid #b1b4b6;" content={ chunk.page_content }></markdown-converter>
-        </LitWrapper>
-      )}
-
-      { !fragments?.length &&
-        <p class="govuk-!-margin-top-7">There is no text data for this resource.</p>
-      }
+      <LitWrapper>
+        <markdown-converter class="govuk-!-display-block govuk-!-padding-5 govuk-!-margin-top-5" style="border: 1px solid #b1b4b6;" content={ document.page_content }></markdown-converter>
+      </LitWrapper>
 
     </div>
   </div>
