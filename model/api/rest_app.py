@@ -262,6 +262,25 @@ def get_resource_single_document(
         return Document(page_content=page_content)
 
 
+@router.put(
+    "/collections/{collection_id}/resources/{resource_id}/single-document",
+    status_code=200,
+    tags=["resources"],
+)
+def save_resource_single_document(
+    collection_id: UUID,
+    resource_id: UUID,
+    page_content: str,
+    session: Annotated[Session, Depends(get_session)],
+    user: Annotated[User, Depends(get_current_user)],
+    logger: StructuredLogger = Depends(get_logger(__name__)),
+) -> bool:
+    """get a documents belonging to a resource"""
+    __set_logger_context(logger, user)
+    # TODO complete this
+    return True
+
+
 @router.delete(
     "/collections/{collection_id}/resources/{resource_id}",
     status_code=200,

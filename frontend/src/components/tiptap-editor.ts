@@ -17,9 +17,28 @@ export class TiptapEditor {
 
   private toolbar: HTMLElement | null = null;
 
+  private collectionId: string;
+
+  private resourceId: string;
+
   constructor(private container: HTMLElement, private initialContent: string) {
     this.originalContent = initialContent;
+    this.extractIds();
     this.init();
+  }
+
+  private extractIds() {
+    // Extract collection and resource IDs from the current URL path
+    const pathParts = window.location.pathname.split('/');
+    const collectionsIndex = pathParts.indexOf('collections');
+    const resourcesIndex = pathParts.indexOf('resources');
+
+    if (collectionsIndex !== -1 && resourcesIndex !== -1) {
+      this.collectionId = pathParts[collectionsIndex + 1];
+      this.resourceId = pathParts[resourcesIndex + 1];
+    } else {
+      throw new Error('Unable to extract collection and resource IDs from URL');
+    }
   }
 
   private async init() {
@@ -106,51 +125,65 @@ export class TiptapEditor {
 
     const toolbar = document.createElement('div');
     toolbar.className = 'tiptap-toolbar';
+
+    // Add inline styles to ensure proper toolbar appearance
+    toolbar.style.cssText = `
+      border-bottom: 1px solid #e5e7eb;
+      padding: 8px 12px;
+      background-color: #f8fafc;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    `;
+
     toolbar.innerHTML = `
-      <div class="toolbar-group">
-        <button type="button" data-command="undo" title="Undo">↶</button>
-        <button type="button" data-command="redo" title="Redo">↷</button>
+      <div class="toolbar-group" style="display: flex; gap: 2px; background: white; border: 1px solid #e5e7eb; border-radius: 6px; padding: 4px;">
+        <button type="button" data-command="undo" title="Undo" style="background: none; border: none; border-radius: 4px; padding: 6px 8px; cursor: pointer; font-size: 14px; color: #374151; transition: all 0.15s ease; min-width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;">↶</button>
+        <button type="button" data-command="redo" title="Redo" style="background: none; border: none; border-radius: 4px; padding: 6px 8px; cursor: pointer; font-size: 14px; color: #374151; transition: all 0.15s ease; min-width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;">↷</button>
       </div>
       
-      <div class="toolbar-separator"></div>
+      <div class="toolbar-separator" style="width: 1px; background: #e5e7eb; margin: 4px 8px;"></div>
       
-      <div class="toolbar-group">
-        <button type="button" data-command="bold" title="Bold (Ctrl+B)"><strong>B</strong></button>
-        <button type="button" data-command="italic" title="Italic (Ctrl+I)"><em>I</em></button>
-        <button type="button" data-command="strikethrough" title="Strikethrough"><s>S</s></button>
-        <button type="button" data-command="code" title="Inline Code">&lt;/&gt;</button>
+      <div class="toolbar-group" style="display: flex; gap: 2px; background: white; border: 1px solid #e5e7eb; border-radius: 6px; padding: 4px;">
+        <button type="button" data-command="bold" title="Bold (Ctrl+B)" style="background: none; border: none; border-radius: 4px; padding: 6px 8px; cursor: pointer; font-size: 14px; color: #374151; transition: all 0.15s ease; min-width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;"><strong>B</strong></button>
+        <button type="button" data-command="italic" title="Italic (Ctrl+I)" style="background: none; border: none; border-radius: 4px; padding: 6px 8px; cursor: pointer; font-size: 14px; color: #374151; transition: all 0.15s ease; min-width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;"><em>I</em></button>
+        <button type="button" data-command="strikethrough" title="Strikethrough" style="background: none; border: none; border-radius: 4px; padding: 6px 8px; cursor: pointer; font-size: 14px; color: #374151; transition: all 0.15s ease; min-width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;"><s>S</s></button>
+        <button type="button" data-command="code" title="Inline Code" style="background: none; border: none; border-radius: 4px; padding: 6px 8px; cursor: pointer; font-size: 14px; color: #374151; transition: all 0.15s ease; min-width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;">&lt;/&gt;</button>
       </div>
 
-      <div class="toolbar-separator"></div>
+      <div class="toolbar-separator" style="width: 1px; background: #e5e7eb; margin: 4px 8px;"></div>
 
-      <div class="toolbar-group">
-        <button type="button" data-command="h1" title="Heading 1">H1</button>
-        <button type="button" data-command="h2" title="Heading 2">H2</button>
-        <button type="button" data-command="h3" title="Heading 3">H3</button>
+      <div class="toolbar-group" style="display: flex; gap: 2px; background: white; border: 1px solid #e5e7eb; border-radius: 6px; padding: 4px;">
+        <button type="button" data-command="h1" title="Heading 1" style="background: none; border: none; border-radius: 4px; padding: 6px 8px; cursor: pointer; font-size: 14px; color: #374151; transition: all 0.15s ease; min-width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;">H1</button>
+        <button type="button" data-command="h2" title="Heading 2" style="background: none; border: none; border-radius: 4px; padding: 6px 8px; cursor: pointer; font-size: 14px; color: #374151; transition: all 0.15s ease; min-width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;">H2</button>
+        <button type="button" data-command="h3" title="Heading 3" style="background: none; border: none; border-radius: 4px; padding: 6px 8px; cursor: pointer; font-size: 14px; color: #374151; transition: all 0.15s ease; min-width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;">H3</button>
       </div>
 
-      <div class="toolbar-separator"></div>
+      <div class="toolbar-separator" style="width: 1px; background: #e5e7eb; margin: 4px 8px;"></div>
 
-      <div class="toolbar-group">
-        <button type="button" data-command="bulletList" title="Bullet List">• List</button>
-        <button type="button" data-command="orderedList" title="Numbered List">1. List</button>
-        <button type="button" data-command="taskList" title="Task List">☑ Tasks</button>
+      <div class="toolbar-group" style="display: flex; gap: 2px; background: white; border: 1px solid #e5e7eb; border-radius: 6px; padding: 4px;">
+        <button type="button" data-command="bulletList" title="Bullet List" style="background: none; border: none; border-radius: 4px; padding: 6px 8px; cursor: pointer; font-size: 14px; color: #374151; transition: all 0.15s ease; min-width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;">• List</button>
+        <button type="button" data-command="orderedList" title="Numbered List" style="background: none; border: none; border-radius: 4px; padding: 6px 8px; cursor: pointer; font-size: 14px; color: #374151; transition: all 0.15s ease; min-width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;">1. List</button>
+        <button type="button" data-command="taskList" title="Task List" style="background: none; border: none; border-radius: 4px; padding: 6px 8px; cursor: pointer; font-size: 14px; color: #374151; transition: all 0.15s ease; min-width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;">☑ Tasks</button>
       </div>
 
-      <div class="toolbar-separator"></div>
+      <div class="toolbar-separator" style="width: 1px; background: #e5e7eb; margin: 4px 8px;"></div>
 
-      <div class="toolbar-group">
-        <button type="button" data-command="blockquote" title="Quote">❝</button>
-        <button type="button" data-command="codeBlock" title="Code Block">{ }</button>
-        <button type="button" data-command="horizontalRule" title="Horizontal Line">―</button>
+      <div class="toolbar-group" style="display: flex; gap: 2px; background: white; border: 1px solid #e5e7eb; border-radius: 6px; padding: 4px;">
+        <button type="button" data-command="blockquote" title="Quote" style="background: none; border: none; border-radius: 4px; padding: 6px 8px; cursor: pointer; font-size: 14px; color: #374151; transition: all 0.15s ease; min-width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;">❝</button>
+        <button type="button" data-command="codeBlock" title="Code Block" style="background: none; border: none; border-radius: 4px; padding: 6px 8px; cursor: pointer; font-size: 14px; color: #374151; transition: all 0.15s ease; min-width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;">{ }</button>
+        <button type="button" data-command="horizontalRule" title="Horizontal Line" style="background: none; border: none; border-radius: 4px; padding: 6px 8px; cursor: pointer; font-size: 14px; color: #374151; transition: all 0.15s ease; min-width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;">―</button>
       </div>
 
-      <div class="toolbar-separator"></div>
+      <div class="toolbar-separator" style="width: 1px; background: #e5e7eb; margin: 4px 8px;"></div>
 
-      <div class="toolbar-group">
-        <button type="button" data-command="link" title="Add Link">🔗</button>
-        <button type="button" data-command="image" title="Add Image">🖼</button>
-        <button type="button" data-command="table" title="Insert Table">⊞</button>
+      <div class="toolbar-group" style="display: flex; gap: 2px; background: white; border: 1px solid #e5e7eb; border-radius: 6px; padding: 4px;">
+        <button type="button" data-command="link" title="Add Link" style="background: none; border: none; border-radius: 4px; padding: 6px 8px; cursor: pointer; font-size: 14px; color: #374151; transition: all 0.15s ease; min-width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;">🔗</button>
+        <button type="button" data-command="image" title="Add Image" style="background: none; border: none; border-radius: 4px; padding: 6px 8px; cursor: pointer; font-size: 14px; color: #374151; transition: all 0.15s ease; min-width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;">🖼</button>
+        <button type="button" data-command="table" title="Insert Table" style="background: none; border: none; border-radius: 4px; padding: 6px 8px; cursor: pointer; font-size: 14px; color: #374151; transition: all 0.15s ease; min-width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;">⊞</button>
       </div>
     `;
 
@@ -163,6 +196,23 @@ export class TiptapEditor {
       const target = e.target as HTMLButtonElement;
       if (target.tagName === 'BUTTON') {
         this.handleToolbarCommand(target.dataset.command as string);
+      }
+    });
+
+    // Add hover effects to toolbar buttons
+    toolbar.addEventListener('mouseover', (e) => {
+      const target = e.target as HTMLButtonElement;
+      if (target.tagName === 'BUTTON') {
+        target.style.backgroundColor = '#e5e7eb';
+        target.style.color = '#111827';
+      }
+    });
+
+    toolbar.addEventListener('mouseout', (e) => {
+      const target = e.target as HTMLButtonElement;
+      if (target.tagName === 'BUTTON' && !target.classList.contains('active')) {
+        target.style.backgroundColor = 'transparent';
+        target.style.color = '#374151';
       }
     });
   }
@@ -270,9 +320,17 @@ export class TiptapEditor {
     };
 
     Object.entries(commands).forEach(([command, isActive]) => {
-      const button = this.toolbar?.querySelector(`[data-command="${command}"]`);
+      const button = this.toolbar?.querySelector(`[data-command="${command}"]`) as HTMLButtonElement;
       if (button) {
-        button.classList.toggle('active', isActive);
+        if (isActive) {
+          button.classList.add('active');
+          button.style.backgroundColor = '#374151';
+          button.style.color = 'white';
+        } else {
+          button.classList.remove('active');
+          button.style.backgroundColor = 'transparent';
+          button.style.color = '#374151';
+        }
       }
     });
   }
@@ -290,19 +348,66 @@ export class TiptapEditor {
     }
   }
 
-  private saveContent() {
+  private async saveContent() {
     if (!this.editor) return;
+
+    const saveBtn = this.container.querySelector('#save-btn') as HTMLButtonElement;
+    if (!saveBtn) return;
+
+    // Show loading state
+    const originalText = saveBtn.textContent;
+    saveBtn.disabled = true;
+    saveBtn.textContent = 'Saving...';
 
     try {
       const html = this.editor.getHTML();
       const markdown = this.convertHTMLToMarkdown(html);
 
-      // Here you would typically send the markdown to your backend
-      console.log('Saving content:', markdown);
-      alert('Content saved successfully!');
+      const response = await fetch(`/collections/${this.collectionId}/resources/${this.resourceId}/single-document`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          page_content: markdown,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
+        throw new Error(errorData.message || `Server error: ${response.status}`);
+      }
+
+      // Update original content to reflect the saved state
+      this.originalContent = markdown;
+
+      // Show success feedback
+      saveBtn.textContent = 'Saved!';
+      saveBtn.classList.add('govuk-button--success');
+
+      // Reset button after 2 seconds
+      setTimeout(() => {
+        saveBtn.textContent = originalText;
+        saveBtn.classList.remove('govuk-button--success');
+        saveBtn.disabled = false;
+      }, 2000);
+
     } catch(error) {
       console.error('Failed to save content:', error);
-      alert('Failed to save content');
+
+      // Show error state
+      saveBtn.textContent = 'Save Failed';
+      saveBtn.classList.add('govuk-button--warning');
+
+      // Reset button after 3 seconds
+      setTimeout(() => {
+        saveBtn.textContent = originalText;
+        saveBtn.classList.remove('govuk-button--warning');
+        saveBtn.disabled = false;
+      }, 3000);
+
+      // Show error message to user
+      alert(`Failed to save: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
