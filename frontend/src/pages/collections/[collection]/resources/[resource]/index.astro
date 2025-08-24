@@ -28,8 +28,8 @@ const document = await getSingleResource(collectionId || '', resourceId || '', t
       <h1 class="govuk-heading-l">Resource details</h1>
       <p><strong>Resource:</strong> {resource.filename || resource.id}</p>
 
-      <div class="tiptap-container">
-        <div id="tiptap-editor">
+      <div class="milkdown-container">
+        <div id="milkdown-editor">
           <div id="editor"></div>
         </div>
         <div class="editor-actions">
@@ -41,12 +41,13 @@ const document = await getSingleResource(collectionId || '', resourceId || '', t
       <div id="markdown-content" style="display: none;">{document.page_content}</div>
 
       <style>
-        /* Minimal container styling only */
-        .tiptap-container {
+        /* Minimal container styling - let Crepe handle editor styles */
+        .milkdown-container {
           margin-top: 2rem;
           border: 1px solid #e1e5e9;
           border-radius: 6px;
           background: white;
+          overflow: hidden;
         }
 
         .editor-actions {
@@ -55,31 +56,31 @@ const document = await getSingleResource(collectionId || '', resourceId || '', t
           background-color: #f8f9fa;
         }
 
-        /* Sticky toolbar - minimal styling */
-        .tiptap-toolbar {
-          position: sticky;
-          top: 0;
-          z-index: 10;
-        }
-
-        /* Button states for save feedback only */
-        .govuk-button--success {
+        /* Use existing govuk button styles */
+        .editor-actions .govuk-button--success {
           background-color: #00703c !important;
           border-color: #00703c !important;
         }
         
-        .govuk-button--warning {
+        .editor-actions .govuk-button--warning {
           background-color: #d4351c !important;
           border-color: #d4351c !important;
         }
         
-        .govuk-button:disabled {
+        .editor-actions .govuk-button:disabled {
           opacity: 0.6;
           cursor: not-allowed;
         }
-      </style>
 
-      <script type="module" src="../../../../../../src/components/tiptap-editor.ts"></script>
+        /* Minimal editor container */
+        #milkdown-editor {
+          min-height: 300px;
+        }
+      </style>
+      
+      <!-- Remove external CSS - we'll apply styles inline to prevent conflicts -->
+
+      <script type="module" src="../../../../../../src/components/milkdown-editor.ts"></script>
     </div>
   </div>
 </Layout>
