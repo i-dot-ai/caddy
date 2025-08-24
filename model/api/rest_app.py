@@ -270,7 +270,7 @@ def get_resource_single_document(
 def save_resource_single_document(
     collection_id: UUID,
     resource_id: UUID,
-    page_content: str,
+    document: Document,
     session: Annotated[Session, Depends(get_session)],
     user: Annotated[User, Depends(get_current_user)],
     logger: StructuredLogger = Depends(get_logger(__name__)),
@@ -278,6 +278,7 @@ def save_resource_single_document(
     """get a documents belonging to a resource"""
     __set_logger_context(logger, user)
     # TODO complete this
+    print(document)
     return True
 
 

@@ -1,9 +1,4 @@
-import 'dotenv/config';
-
-const backendHost = process.env['BACKEND_HOST'];
-if (!backendHost) {
-  throw new Error('BACKEND_HOST env var not set');
-}
+const backendHost = import.meta.env.BACKEND_HOST || '';
 
 
 const makeRequest = async(endPoint: string, authToken: string | null, options?: { method?: 'GET' | 'POST' | 'DELETE' | 'PUT'; body?: string | FormData; contentType?: string }) => {
@@ -11,7 +6,7 @@ const makeRequest = async(endPoint: string, authToken: string | null, options?: 
   let response;
   let error = '';
   const headers: { [key: string]: string } = {
-    'x-external-access-token': process.env['BACKEND_TOKEN'] || '',
+    'x-external-access-token': import.meta.env.BACKEND_TOKEN || '',
     Authorization: authToken || '',
   };
 
@@ -167,6 +162,18 @@ interface SingleResource {
 export const getSingleResource = async(collectionId: string, resourceId: string, authToken: string | null) => {
   const { json } = await makeRequest(`/collections/${collectionId}/resources/${resourceId}/single-document`, authToken);
   return json as SingleResource;
+};
+
+
+export const updateSingleResource = async(collectionId: string, resourceId: string, pageContent: string, authToken: string | null) => {
+  const { json, error } = await makeRequest(`/collections/${collectionId}/resources/${resourceId}/single-document`, authToken, {
+    method: 'PUT',
+    body: JSON.stringify({
+      page_content: pageContent,
+    }),
+    contentType: 'application/json',
+  });
+  return { json, error };
 };
 
 

@@ -336,22 +336,45 @@ export class TiptapEditor {
   }
 
   private setupEventListeners() {
-    const saveBtn = this.container.querySelector('#save-btn') as HTMLButtonElement;
-    const cancelBtn = this.container.querySelector('#cancel-btn') as HTMLButtonElement;
+    console.log('Setting up event listeners...');
+    console.log('Container:', this.container);
+
+    // Look for buttons in the parent container (tiptap-container)
+    const parentContainer = this.container.parentElement;
+    console.log('Parent container:', parentContainer);
+
+    const saveBtn = parentContainer?.querySelector('#save-btn') as HTMLButtonElement;
+    const cancelBtn = parentContainer?.querySelector('#cancel-btn') as HTMLButtonElement;
+
+    console.log('Save button found:', !!saveBtn, saveBtn);
+    console.log('Cancel button found:', !!cancelBtn, cancelBtn);
 
     if (saveBtn) {
-      saveBtn.addEventListener('click', () => this.saveContent());
+      console.log('Adding click listener to save button');
+      saveBtn.addEventListener('click', () => {
+        console.log('Save button clicked!');
+        this.saveContent();
+      });
+    } else {
+      console.error('Save button not found in parent container');
     }
 
     if (cancelBtn) {
-      cancelBtn.addEventListener('click', () => this.cancelChanges());
+      console.log('Adding click listener to cancel button');
+      cancelBtn.addEventListener('click', () => {
+        console.log('Cancel button clicked!');
+        this.cancelChanges();
+      });
+    } else {
+      console.error('Cancel button not found in parent container');
     }
   }
 
   private async saveContent() {
     if (!this.editor) return;
 
-    const saveBtn = this.container.querySelector('#save-btn') as HTMLButtonElement;
+    const parentContainer = this.container.parentElement;
+    const saveBtn = parentContainer?.querySelector('#save-btn') as HTMLButtonElement;
     if (!saveBtn) return;
 
     // Show loading state
@@ -363,7 +386,7 @@ export class TiptapEditor {
       const html = this.editor.getHTML();
       const markdown = this.convertHTMLToMarkdown(html);
 
-      const response = await fetch(`/collections/${this.collectionId}/resources/${this.resourceId}/single-document`, {
+      const response = await fetch(`/api/collections/${this.collectionId}/resources/${this.resourceId}/single-document`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -374,8 +397,8 @@ export class TiptapEditor {
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
-        throw new Error(errorData.message || `Server error: ${response.status}`);
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+        throw new Error(errorData.error || `Server error: ${response.status}`);
       }
 
       // Update original content to reflect the saved state
@@ -431,11 +454,26 @@ export class TiptapEditor {
 
 // Initialize the editor when the DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
+  console.log('DOMContentLoaded fired, initializing Tiptap editor...');
   const editorContainer = document.getElementById('tiptap-editor');
   const contentElement = document.getElementById('markdown-content');
 
+  console.log('Editor container found:', !!editorContainer);
+  console.log('Content element found:', !!contentElement);
+
   if (editorContainer && contentElement) {
     const content = contentElement.textContent || '';
-    new TiptapEditor(editorContainer, content);
+    console.log('Creating TiptapEditor with content length:', content.length);
+    try {
+      new TiptapEditor(editorContainer, content);
+      console.log('TiptapEditor created successfully');
+    } catch(error) {
+      console.error('Error creating TiptapEditor:', error);
+    }
+  } else {
+    console.error('Missing required elements:', {
+      editorContainer: !!editorContainer,
+      contentElement: !!contentElement,
+    });
   }
 });
