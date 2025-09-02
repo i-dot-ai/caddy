@@ -10,10 +10,11 @@ from diagrams.aws.management import (
     CloudwatchAlarm,
     ParameterStore,
 )
-from diagrams.aws.network import ELB
+from diagrams.aws.network import ELB, Route53
 from diagrams.aws.security import WAF
 from diagrams.aws.storage import S3
 from diagrams.azure.ml import AzureOpenAI
+from diagrams.aws.ml import Bedrock
 from diagrams.gcp.devtools import ContainerRegistry
 from diagrams.generic.blank import Blank
 
@@ -21,6 +22,8 @@ graph_attr = {
     "fontsize": "14",
     "bgcolor": "transparent",
     "splines": "ortho",
+    "beautify": "true",
+    "esep": "+6",
 }
 
 with Diagram(
@@ -32,6 +35,10 @@ with Diagram(
     graph_attr=graph_attr,
 ):
     with Cluster("I.AI dev account"):  # noqa: SIM117
+        route_53 = Route53("Route53")
+        gov_waf = WAF("WAF")
+        caddy_waf = WAF("WAF")
+
         with Cluster("eu-west-2"):
             with Cluster("VPC"):
                 with Cluster("Keycloak"):
@@ -46,17 +53,10 @@ with Diagram(
                 with Cluster(
                     "LLM gateway private subnet"
                 ) as llm_gateway_private_subnet:
-                    llm_gateway_waf = WAF("WAF")
-
                     with Cluster("ECS"):
                         llm_gateway_ecs = ECS("LLM gateway")
 
-                with Cluster("LLM gateway public subnet"):
-                    llm_gateway_alb = ELB("Application load balancer")
-
                 with Cluster("Gov-ai-client private subnet") as gov_ai_private_subnet:
-                    gov_waf = WAF("WAF")
-
                     with Cluster("SNS"):
                         gov_sns_topic = SimpleNotificationServiceSnsTopic("SNS")
 
@@ -80,8 +80,6 @@ with Diagram(
                     gov_alb = ELB("Application load balancer")
 
                 with Cluster("Caddy private subnet") as caddy_private_subnet:
-                    waf = WAF("WAF")
-
                     with Cluster("SNS"):
                         sns_topic = SimpleNotificationServiceSnsTopic("SNS")
 
@@ -116,8 +114,8 @@ with Diagram(
             oa = AzureOpenAI("OpenAI")
         with Cluster("Gemini"):
             gemini = Blank("Gemini")
-        with Cluster("Other LLM"):
-            other = Blank("Other")
+        with Cluster("Bedrock"):
+            bedrock = Bedrock("Bedrock")
 
     with Cluster("External MCP tools"):
         with Cluster("GovUK Acronyms"):
@@ -129,51 +127,40 @@ with Diagram(
 
     users = Users("User")
 
-    users >> alb
+    users >> route_53
 
-    users >> gov_alb
+    route_53 >> gov_waf
+    route_53 >> caddy_waf
 
-    users >> llm_gateway_alb
+    caddy_waf >> alb
 
-    llm_gateway_alb >> llm_gateway_waf
-
-    llm_gateway_waf >> llm_gateway_ecs
+    gov_waf >> gov_alb
 
     llm_gateway_ecs >> oa
     llm_gateway_ecs >> gemini
-    llm_gateway_ecs >> other
+    llm_gateway_ecs >> bedrock
 
-    oa >> acronyms
-    oa >> search
-    oa >> mcp_other
+    gov_frontend >> acronyms
+    gov_frontend >> search
+    gov_frontend >> mcp_other
 
-    gemini >> acronyms
-    gemini >> search
-    gemini >> mcp_other
+    alb >> Edge() << keycloak
 
-    other >> acronyms
-    other >> search
-    other >> mcp_other
-
-    alb >> keycloak >> alb
-
-    gov_alb >> keycloak >> gov_alb
-
-    llm_gateway_alb >> keycloak >> llm_gateway_alb
+    gov_alb >> Edge() << keycloak
 
     gov_frontend >> llm_gateway_ecs
 
-    gov_alb >> gov_waf >> gov_frontend
-    gov_frontend >> gov_ssm
+    gov_alb >> gov_frontend
+    gov_frontend - gov_ssm
     gov_frontend >> gov_cloudwatch
     gov_frontend >> gov_sns_topic
     gov_usage_scaling_group >> gov_frontend
     gov_peaktime_scaling_group >> gov_frontend
     gov_cloudwatch_alarms >> gov_frontend
 
-    alb >> waf >> backend
-    backend >> s3
-    backend >> ssm
+    alb >> backend
+    backend >> Edge() << s3
+    backend - ssm
     backend >> cloudwatch
 
     backend >> Edge() << rds
@@ -189,9 +176,8 @@ with Diagram(
 
     backend >> Edge() << opensearch
 
-    alb >> waf >> frontend
-    frontend >> s3
-    frontend >> ssm
+    alb >> frontend
+    frontend - ssm
     frontend >> cloudwatch
     usage_scaling_group >> frontend
     peaktime_scaling_group >> frontend
