@@ -81,7 +81,7 @@ def create_collection_handler(collection_slug: str):
 
     @mcp_server.call_tool()
     async def call_tool(
-        # query: str,
+        _: str,
         arguments: dict,
     ) -> list[types.TextContent | types.ImageContent | types.EmbeddedResource]:
         logger.refresh_context()
@@ -199,12 +199,12 @@ def create_collection_handler(collection_slug: str):
                 description=chosen_user_collection.collection.description,
                 inputSchema={
                     "type": "object",
-                    "required": ["keywords"],
+                    "required": ["query", "keywords"],
                     "properties": {
-                        # "query": {
-                        #     "type": "string",
-                        #     "description": "What do you want to search for?",
-                        # },
+                        "query": {
+                            "type": "string",
+                            "description": "What do you want to search for?",
+                        },
                         "keywords": {
                             "type": "array",
                             "description": (
