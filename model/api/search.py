@@ -53,9 +53,14 @@ async def search_collection(
         Documents: relevant documents
     """
 
-    pre_filter = {"match": {"metadata.collection_id.keyword": str(collection_id)}}
+    pre_filter = {
+        "bool": {
+            "filter": [{"term": {"metadata.collection_id.keyword": str(collection_id)}}]
+        }
+    }
+
     if keywords:
-        pre_filter["match"]["text"] = {"query": "\n".join(keywords)}
+        pre_filter["bool"]["must"] = [{"match": {"text": "\n".join(keywords)}}]
 
     vector_store = config.get_vector_store()
     results = vector_store.similarity_search(

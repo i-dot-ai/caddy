@@ -13,10 +13,7 @@ from sqlmodel import Session, select
 from starlette.applications import Starlette
 
 from api.environment import config, get_session
-from api.mcp_app import (
-    handle_streamable_http,
-    session_manager,
-)
+from api.mcp_app import create_collection_handler
 from api.models import Collection
 from api.rest_app import router
 from api.search import search_collection
@@ -30,30 +27,45 @@ if config.sentry_dsn:
 
 db_client = config.get_database()
 
+session_managers = []
+
 
 @contextlib.asynccontextmanager
 async def lifespan(
     _: Starlette,
 ) -> AsyncIterator[None]:
-    """Context manager for session manager."""
-    async with session_manager.run():
-        logger.info("Application started with StreamableHTTP session manager!")
+    """Context manager for session managers."""
 
-        try:
-            engine = db_client
-            with engine.connect() as connection:
-                connection.execute(text("SELECT 1"))
-            logger.info("Database connection validated successfully!")
-        except Exception as e:
-            logger.exception("Database connection validation failed")
-            raise RuntimeError(f"Failed to connect to database: {e}")
+    # Start all session managers
+    session_manager_contexts = []
+    for session_manager in session_managers:
+        context = session_manager.run()
+        await context.__aenter__()
+        session_manager_contexts.append(context)
 
-        try:
-            yield
-        finally:
-            logger.info("Application shutting down...")
+    logger.info(
+        f"Application started with {len(session_managers)} StreamableHTTP session managers!"
+    )
+
+    try:
+        engine = db_client
+        with engine.connect() as connection:
+            connection.execute(text("SELECT 1"))
+        logger.info("Database connection validated successfully!")
+    except Exception as e:
+        logger.exception("Database connection validation failed")
+        raise RuntimeError(f"Failed to connect to database: {e}")
+
+    try:
+        yield
+    finally:
+        logger.info("Application shutting down...")
+        # Shutdown all session managers
+        for context in reversed(session_manager_contexts):
+            await context.__aexit__(None, None, None)
 
 
+# Create the FastAPI app first
 app = FastAPI(
     title="Caddy Model API",
     description="API for CRUD and search operations",
@@ -62,10 +74,6 @@ app = FastAPI(
 )
 
 app.include_router(router)
-
-# Add MCP sub-app
-app.mount("/search", app=handle_streamable_http)
-
 
 # Add CORS middleware
 app.add_middleware(
@@ -78,6 +86,15 @@ app.add_middleware(
 
 # Add trusted host middleware
 app.add_middleware(TrustedHostMiddleware, allowed_hosts=["*"])
+
+# Setup collection handlers after app is created
+with Session(db_client) as connection:
+    statement = select(Collection)
+    all_collections = connection.exec(statement).all()
+    for collection in all_collections:
+        handler, session_manager = create_collection_handler(collection.slug)
+        session_managers.append(session_manager)
+        app.mount(f"/{collection.slug}", app=handler)
 
 
 @app.exception_handler(404)
