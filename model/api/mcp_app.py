@@ -21,11 +21,7 @@ from api.models import Collection, User, UserCollection
 from api.search import search_collection
 
 logger = config.get_logger(__name__)
-
-mcp_server = Server("Caddy MCP server")
-
 metric_writer = config.get_metrics_writer()
-
 KEYCLOAK_ALLOWED_ROLES = config.keycloak_allowed_roles
 
 # Context variable to store current user email
@@ -74,162 +70,204 @@ def __validate_user_access(
 def get_current_user() -> EmailStr:
     if user_email := _current_user_email.get():
         return user_email
-
     raise HTTPException(401, detail="Authentication required")
 
 
-@mcp_server.call_tool()
-async def call_tool(
-    name: str, arguments: dict
-) -> list[types.TextContent | types.ImageContent | types.EmbeddedResource]:
-    logger.refresh_context()
-    call_tool_start = datetime.now(UTC)
-    metric_writer.put_metric(
-        metric_name="tool_call_count",
-        value=1,
-        dimensions={
-            "tool_name": name,
-        },
-    )
+def create_collection_handler(collection_slug: str):
+    """Factory function to create a handler for a specific collection"""
 
-    user_email = get_current_user()
-    logger.info(
-        "Calling tool {name} with args {arguments} by user {user_email}",
-        name=name,
-        arguments=arguments,
-        user_email=user_email,
-    )
+    # Create a single MCP server for this collection
+    mcp_server = Server(f"Caddy MCP server - {collection_slug}")
 
-    with Session(config.get_database()) as session:
-        # Check if user is a member of this collection
-        statement = (
-            select(UserCollection)
-            .join(User)
-            .join(Collection)
-            .where(
-                User.email == user_email,
+    @mcp_server.call_tool()
+    async def call_tool(
+        # query: str,
+        arguments: dict,
+    ) -> list[types.TextContent | types.ImageContent | types.EmbeddedResource]:
+        logger.refresh_context()
+        call_tool_start = datetime.now(UTC)
+        metric_writer.put_metric(
+            metric_name="tool_call_count",
+            value=1,
+            dimensions={
+                "tool_name": collection_slug,
+                "collection": collection_slug,
+            },
+        )
+
+        user_email = get_current_user()
+
+        logger.info(
+            "Calling tool {name} with args {arguments} by user {user_email} for collection {collection_slug}",
+            name=collection_slug,
+            arguments=arguments,
+            user_email=user_email,
+            collection_slug=collection_slug,
+        )
+
+        with Session(config.get_database()) as session:
+            # Check if user has access to this specific collection
+            statement = (
+                select(UserCollection)
+                .join(User)
+                .join(Collection)
+                .where(
+                    User.email == user_email,
+                )
             )
-        )
-        user_collections = session.exec(statement).all()
-        matched_collection = next(
-            filter(
-                lambda user_collection: user_collection.collection.slug == name,
-                user_collections,
-            ),
-            None,
-        )
-        if not matched_collection:
-            raise HTTPException(
-                403, detail="User does not have access to this collection"
+            user_collections = session.exec(statement).all()
+            user_collection = next(
+                filter(
+                    lambda uc: uc.collection.slug == collection_slug,
+                    user_collections,
+                ),
+                None,
             )
 
-        documents = await search_collection(
-            matched_collection.collection_id,
-            query=arguments.get("query"),
-            keywords=arguments.get("keywords", []),
-            session=session,
+            if not user_collection:
+                raise HTTPException(
+                    403, detail="User does not have access to this collection"
+                )
+
+            documents = await search_collection(
+                user_collection.collection_id,
+                query=arguments.get("query"),
+                keywords=arguments.get("keywords", []),
+                session=session,
+            )
+
+        tool_call_end = datetime.now(UTC)
+        timer_result_ms = (tool_call_end - call_tool_start).total_seconds() * 1000
+        metric_writer.put_metric(
+            metric_name="tool_call_duration_ms",
+            value=timer_result_ms,
+            dimensions={
+                "tool_name": collection_slug,
+                "collection": collection_slug,
+            },
         )
-    tool_call_end = datetime.now(UTC)
-    timer_result_ms = (call_tool_start - tool_call_end).total_seconds() * 1000
-    metric_writer.put_metric(
-        metric_name="tool_call_duration_ms",
-        value=timer_result_ms,
-        dimensions={
-            "tool_name": name,
-        },
-    )
-    return [
-        types.TextContent(
-            type="text",
-            text=ToolResponse(documents=documents).model_dump_json(),
-        )
-    ]
+        return [
+            types.TextContent(
+                type="text",
+                text=ToolResponse(documents=documents).model_dump_json(),
+            )
+        ]
 
+    @mcp_server.list_tools()
+    async def list_tools() -> list[types.Tool]:
+        user_email = get_current_user()
 
-@mcp_server.list_tools()
-async def list_tools() -> list[types.Tool]:
-    user_email = get_current_user()
-
-    logger.refresh_context()
-    logger.info("Listing tools for user: {user_email}", user_email=user_email)
-
-    with Session(config.get_database()) as session:
-        expression = (
-            select(Collection)
-            .join(UserCollection)
-            .join(User)
-            .where(User.email == user_email)
+        logger.refresh_context()
+        logger.info(
+            "Listing tools for user: {user_email} for collection {collection_slug}",
+            user_email=user_email,
+            collection_slug=collection_slug,
         )
 
-        collections = session.exec(expression).all()
+        with Session(config.get_database()) as session:
+            # Get the specific collection this endpoint represents
+            statement = (
+                select(UserCollection)
+                .join(User)
+                .join(Collection)
+                .where(
+                    User.email == user_email,
+                )
+            )
+            user_collections = session.exec(statement).all()
+            chosen_user_collection = next(
+                filter(
+                    lambda user_collection: user_collection.collection.slug
+                    == collection_slug,
+                    user_collections,
+                ),
+                None,
+            )
 
-    return [
-        types.Tool(
-            name=collection.slug,
-            description=collection.description,
-            inputSchema={
-                "type": "object",
-                "required": ["query"],
-                "properties": {
-                    "query": {
-                        "type": "string",
-                        "description": "what do you want to search for?",
-                    },
-                    "keywords": {
-                        "type": "array",
-                        "description": "- Extract 3-5 specific terms that capture key issues or needs"
-                        "- Include amounts, dates, or specific services mentioned"
-                        "- Focus on actionable terms that could help find relevant documents"
-                        "- Avoid generic words or category names",
-                        "items": {"type": "string"},
+            if not chosen_user_collection:
+                logger.info(
+                    "User {user_email} does not have access to collection {collection_slug}",
+                    user_email=user_email,
+                    collection_slug=collection_slug,
+                )
+                return []
+
+        # Return a single tool called "call_tool"
+        return [
+            types.Tool(
+                name=chosen_user_collection.collection.name,
+                description=chosen_user_collection.collection.description,
+                inputSchema={
+                    "type": "object",
+                    "required": ["keywords"],
+                    "properties": {
+                        # "query": {
+                        #     "type": "string",
+                        #     "description": "What do you want to search for?",
+                        # },
+                        "keywords": {
+                            "type": "array",
+                            "description": (
+                                "Extract 3-5 specific terms that capture key issues or needs. "
+                                "Include amounts, dates, or specific services mentioned. "
+                                "Focus on actionable terms that could help find relevant documents. "
+                                "Avoid generic words or category names."
+                            ),
+                            "items": {"type": "string"},
+                        },
                     },
                 },
-            },
-            annotations={"title": f"Search {collection.name}"},
-        )
-        for collection in collections
-    ]
-
-
-# Create the session manager with true stateless mode
-session_manager = StreamableHTTPSessionManager(
-    app=mcp_server,
-    event_store=None,
-    json_response=True,
-    stateless=True,
-)
-
-
-async def handle_streamable_http(scope: Scope, receive: Receive, send: Send) -> None:
-    request = Request(scope, receive)
-    logger.refresh_context(
-        context_enrichers=[
-            {
-                "type": ContextEnrichmentType.FASTAPI,
-                "object": request,
-            }
+                annotations={
+                    "title": f"Search {chosen_user_collection.collection.name}"
+                },
+            )
         ]
-    )
-    user_email = __validate_user_access(request, logger)
-    if not user_email:
-        logger.info("User not authorized")
-        await send(
-            {
-                "type": "http.response.start",
-                "status": 401,
-                "headers": [
-                    [b"content-type", b"text/plain"],
-                ],
-            }
-        )
-        await send(
-            {
-                "type": "http.response.body",
-                "body": b"Not Found",
-            }
-        )
-        return
 
-    # Set user email in context for the duration of this request
-    async with current_user_email(user_email):
-        await session_manager.handle_request(scope, receive, send)
+    # Create session manager for this server
+    session_manager = StreamableHTTPSessionManager(
+        app=mcp_server,
+        event_store=None,
+        json_response=True,
+        stateless=True,
+    )
+
+    async def handle_collection_http(
+        scope: Scope, receive: Receive, send: Send
+    ) -> None:
+        request = Request(scope, receive)
+        logger.refresh_context(
+            context_enrichers=[
+                {
+                    "type": ContextEnrichmentType.FASTAPI,
+                    "object": request,
+                }
+            ]
+        )
+        user_email = __validate_user_access(request, logger)
+        if not user_email:
+            logger.info(
+                "User not authorized for collection {collection_slug}",
+                collection_slug=collection_slug,
+            )
+            await send(
+                {
+                    "type": "http.response.start",
+                    "status": 401,
+                    "headers": [
+                        [b"content-type", b"text/plain"],
+                    ],
+                }
+            )
+            await send(
+                {
+                    "type": "http.response.body",
+                    "body": b"Not Found",
+                }
+            )
+            return
+
+        # Set user email in context for the duration of this request
+        async with current_user_email(user_email):
+            await session_manager.handle_request(scope, receive, send)
+
+    return handle_collection_http, session_manager
