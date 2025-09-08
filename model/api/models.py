@@ -88,6 +88,8 @@ class Resource(ResourceBase, SQLModel, table=True):
 
 
 class ResourceVersion(SQLModel, table=True):
+    __tablename__ = "resource_version"
+
     id: UUID = Field(primary_key=True, default_factory=uuid4)
     created_at: datetime = Field(
         description="timestamp at which this resource was ingested into Caddy",
@@ -97,7 +99,7 @@ class ResourceVersion(SQLModel, table=True):
         foreign_key="user.id", default=None, ondelete="SET NULL"
     )
     created_by: User = Relationship()
-    text: str = Field(description="text extracted from file")
+    text: str = Field(description="text extracted from source")
     resource_id: UUID = Field(foreign_key="resource.id", ondelete="CASCADE", index=True)
     resource: Resource = Relationship()
 
@@ -108,8 +110,10 @@ class TextChunk(SQLModel, table=True):
         description="timestamp at which this chunk was ingested into Caddy",
         default_factory=utc_now,
     )
-    resource_id: UUID = Field(foreign_key="resource.id", ondelete="CASCADE", index=True)
-    resource: Resource = Relationship()
+    resource_version_id: UUID = Field(
+        foreign_key="resource_version.id", ondelete="CASCADE", index=True
+    )
+    resource_version: ResourceVersion = Relationship()
 
     text: str = Field(description="text extracted from file")
     embedding: Any = Field(sa_type=Vector(EMBEDDING_DIMENSION))
