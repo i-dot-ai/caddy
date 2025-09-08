@@ -85,4 +85,4 @@ def get_authorised_user(auth_header: str, logger: StructuredLogger) -> EmailStr 
 
     # We have decided not to check Keycloak roles (any Keycloak role is allowed)
 
-    return email
+    return email.lower()
