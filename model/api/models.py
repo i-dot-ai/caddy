@@ -65,6 +65,12 @@ class Collection(CollectionBase, SQLModel, table=True):
     id: UUID = Field(
         primary_key=True, description="id for collection", default_factory=uuid4
     )
+    custom_prompt: str | None = Field(
+        description="custom collection prompt",
+        min_length=32,
+        max_length=5096,
+        nullable=True,
+    )
     created_at: datetime | None = Field(default_factory=utc_now)
 
 

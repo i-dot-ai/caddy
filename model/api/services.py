@@ -314,6 +314,7 @@ def get_user_collections(
                 description=collection.description,
                 created_at=collection.created_at,
                 permissions=permissions,
+                custom_prompt=collection.custom_prompt,
             )
         )
 
@@ -361,6 +362,7 @@ def update_collection_by_id(
             description=collection.description,
             created_at=collection.created_at,
             permissions=permissions,
+            custom_prompt=collection.custom_prompt,
         )
     else:
         logger.info("Collection {collection_id} not found", collection_id=collection_id)

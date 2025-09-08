@@ -80,6 +80,14 @@ class CollectionDto(CollectionBase):
     created_at: datetime | None = Field(
         description="collection creation date", default=None
     )
+    custom_prompt: str | None = Field(
+        description="custom collection prompt",
+        min_length=32,
+        max_length=5096,
+        examples=[
+            "This is an exmaple prompt to tailor the LLM response to this collection"
+        ],
+    )
     permissions: list[CollectionPermissionEnum] = Field(
         description="Collection permission enum value(s)", default_factory=list
     )
