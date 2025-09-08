@@ -78,6 +78,93 @@ def get_current_user() -> EmailStr:
     raise HTTPException(401, detail="Authentication required")
 
 
+@mcp_server.get_prompt()
+async def handle_get_prompt(
+    name: str, arguments: dict[str, str] | None
+) -> types.GetPromptResult:
+    """Get a specific prompt by collection slug."""
+    logger.refresh_context()
+    metric_writer.put_metric(
+        metric_name="prompt_retrieve_count",
+        value=1,
+        dimensions={
+            "prompt_name": name,
+        },
+    )
+
+    user_email = get_current_user()
+    logger.info(
+        "Getting prompt {name} with args {arguments} by user {user_email}",
+        name=name,
+        arguments=arguments,
+        user_email=user_email,
+    )
+
+    with Session(config.get_database()) as session:
+        # Check if user is a member of this collection
+        statement = (
+            select(UserCollection)
+            .join(User)
+            .join(Collection)
+            .where(
+                User.email == user_email,
+            )
+        )
+        user_collections = session.exec(statement).all()
+        matched_collection = next(
+            filter(
+                lambda user_collection: user_collection.collection.slug == name,
+                user_collections,
+            ),
+            None,
+        )
+        if not matched_collection:
+            raise HTTPException(
+                403, detail="User does not have access to this collection"
+            )
+
+    return types.GetPromptResult(
+        description=matched_collection.collection.description,
+        messages=[
+            types.PromptMessage(
+                role="user",
+                content=types.TextContent(
+                    type="text", text=matched_collection.collection.custom_prompt
+                ),
+            )
+        ],
+    )
+
+
+@mcp_server.list_prompts()
+async def list_prompts() -> list[types.Prompt]:
+    """List available prompts."""
+    user_email = get_current_user()
+
+    logger.refresh_context()
+    logger.info("Listing prompts for user: {user_email}", user_email=user_email)
+
+    with Session(config.get_database()) as session:
+        expression = (
+            select(Collection)
+            .join(UserCollection)
+            .join(User)
+            .where(User.email == user_email)
+        )
+
+        collections = session.exec(expression).all()
+
+    return [
+        types.Prompt(
+            name=collection.slug,
+            description=collection.description,
+            arguments=[],
+        )
+        for collection in collections
+        if collection.custom_prompt is not None
+    ]
+
+
 @mcp_server.call_tool()
 async def call_tool(
     name: str, arguments: dict
