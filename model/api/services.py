@@ -818,10 +818,10 @@ def create_user_role_on_collection(
                 error_code=401, message="No permission to manage users"
             )
 
-        user_to_add = User.get_by_email(session, user_role.email)
+        user_to_add = User.get_by_email(session, user_role.email.lower())
 
         if not user_to_add:
-            user_to_add = User(email=user_role.email)
+            user_to_add = User(email=user_role.email.lower())
             session.add(user_to_add)
             session.commit()
             session.refresh(user_to_add)
