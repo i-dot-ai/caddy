@@ -3,6 +3,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
 from i_dot_ai_utilities.logging.structured_logger import StructuredLogger
+from langchain_core.documents import Document
 from markitdown import MarkItDown, MarkItDownException
 from sqlmodel import Session
 
@@ -136,6 +137,48 @@ def delete_collection(
         return result
 
 
+@router.put(
+    "/collections/{collection_id}/resources/{resource_id}",
+    status_code=201,
+    tags=["resources"],
+)
+def update_resource(
+    collection_id: UUID,
+    resource_id: UUID,
+    text_content: str,
+    session: Annotated[Session, Depends(get_session)],
+    user: Annotated[User, Depends(get_current_user)],
+    logger: StructuredLogger = Depends(get_logger(__name__)),
+) -> ResourceDto:
+    """
+    Endpoint to update a resource version content.
+
+    Args:
+        logger: The logger to use
+        session: DB session
+        user: The logged-in user from auth JWT or None
+        collection_id (str): The collection the resource belongs to
+        text_content: The text content to upload
+        resource_id: The resource to update
+
+    Returns:
+        Resource
+    """
+    try:
+        __set_logger_context(logger, user)
+        result = update_resource_content(
+            user, collection_id, resource_id, text_content, session, logger
+        )
+    except (NoPermissionException, ItemNotFoundException) as e:
+        raise HTTPException(status_code=e.error_code, detail=str(e))
+    except MarkItDownException:
+        raise HTTPException(
+            detail="An issue occurred processing this file", status_code=422
+        )
+    else:
+        return result
+
+
 @router.post(
     "/collections/{collection_id}/resources", status_code=201, tags=["resources"]
 )
@@ -234,6 +277,51 @@ def get_resource_documents(
         raise HTTPException(status_code=e.error_code, detail=str(e))
     else:
         return result
+
+
+@router.get(
+    "/collections/{collection_id}/resources/{resource_id}/single-document",
+    status_code=200,
+    tags=["resources"],
+)
+def get_resource_single_document(
+    collection_id: UUID,
+    resource_id: UUID,
+    session: Annotated[Session, Depends(get_session)],
+    user: Annotated[User, Depends(get_current_user)],
+    logger: StructuredLogger = Depends(get_logger(__name__)),
+) -> Document:
+    """get a documents belonging to a resource"""
+    try:
+        __set_logger_context(logger, user)
+        result = get_documents_for_resource_by_id(
+            user, collection_id, session, logger, resource_id, 1, 1000
+        )
+    except (NoPermissionException, ItemNotFoundException) as e:
+        raise HTTPException(status_code=e.error_code, detail=str(e))
+    else:
+        page_content = "\n\n".join(d.page_content for d in result.documents)
+        return Document(page_content=page_content)
+
+
+@router.put(
+    "/collections/{collection_id}/resources/{resource_id}/single-document",
+    status_code=200,
+    tags=["resources"],
+)
+def save_resource_single_document(
+    collection_id: UUID,
+    resource_id: UUID,
+    document: Document,
+    session: Annotated[Session, Depends(get_session)],
+    user: Annotated[User, Depends(get_current_user)],
+    logger: StructuredLogger = Depends(get_logger(__name__)),
+) -> bool:
+    """get a documents belonging to a resource"""
+    __set_logger_context(logger, user)
+    # TODO complete this
+    print(document)
+    return True
 
 
 @router.delete(

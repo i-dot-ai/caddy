@@ -63,7 +63,7 @@ def _split_text(text: str) -> list[Document]:
     """
     text_splitter = RecursiveCharacterTextSplitter(
         chunk_size=2048,
-        chunk_overlap=100,
+        chunk_overlap=0,
         length_function=len,
     )
     document = Document(text)
