@@ -137,6 +137,48 @@ def delete_collection(
         return result
 
 
+@router.put(
+    "/collections/{collection_id}/resources/{resource_id}",
+    status_code=201,
+    tags=["resources"],
+)
+def update_resource(
+    collection_id: UUID,
+    resource_id: UUID,
+    text_content: str,
+    session: Annotated[Session, Depends(get_session)],
+    user: Annotated[User, Depends(get_current_user)],
+    logger: StructuredLogger = Depends(get_logger(__name__)),
+) -> ResourceDto:
+    """
+    Endpoint to update a resource version content.
+
+    Args:
+        logger: The logger to use
+        session: DB session
+        user: The logged-in user from auth JWT or None
+        collection_id (str): The collection the resource belongs to
+        text_content: The text content to upload
+        resource_id: The resource to update
+
+    Returns:
+        Resource
+    """
+    try:
+        __set_logger_context(logger, user)
+        result = update_resource_content(
+            user, collection_id, resource_id, text_content, session, logger
+        )
+    except (NoPermissionException, ItemNotFoundException) as e:
+        raise HTTPException(status_code=e.error_code, detail=str(e))
+    except MarkItDownException:
+        raise HTTPException(
+            detail="An issue occurred processing this file", status_code=422
+        )
+    else:
+        return result
+
+
 @router.post(
     "/collections/{collection_id}/resources", status_code=201, tags=["resources"]
 )
