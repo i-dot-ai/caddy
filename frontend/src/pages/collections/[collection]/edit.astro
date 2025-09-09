@@ -43,10 +43,9 @@ const { collection, error } = await getCollection(collectionId || '', Astro.requ
           <label class="govuk-label" for="prompt">
             Custom prompt
             <strong class="govuk-tag">Experimental</strong>
-            <p>{ collection.custom_prompt }</p>
           </label>
           <div id="prompt-hint" class="govuk-hint" style="font-size: 1rem;">This will override the default system prompt in Gov AI Client</div>
-          <textarea class="govuk-textarea" id="prompt" name="prompt" rows="5" value={ collection.custom_prompt } aria-describedby="prompt-hint"></textarea>
+          <textarea class="govuk-textarea" id="prompt" name="prompt" rows="5" aria-describedby="prompt-hint">{ collection.custom_prompt }</textarea>
         </div>
         <button class="govuk-button">Update</button>
       </form>
