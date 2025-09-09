@@ -347,6 +347,7 @@ def update_collection_by_id(
             )
         collection.name = collection_details.name
         collection.description = collection_details.description
+        collection.custom_prompt = collection_details.custom_prompt
         session.add(collection)
         session.commit()
         session.refresh(collection)

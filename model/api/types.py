@@ -21,6 +21,12 @@ class CollectionBase(BaseModel):
         max_length=36,
         examples=["my-collection"],
     )
+    custom_prompt: str | None = Field(
+        description="custom collection prompt",
+        examples=[
+            "This is an example prompt to tailor the LLM response to this collection"
+        ],
+    )
     description: str = Field(description="used by LLM to choose tool suitability")
 
     @computed_field
@@ -79,14 +85,6 @@ class CollectionDto(CollectionBase):
     id: UUID
     created_at: datetime | None = Field(
         description="collection creation date", default=None
-    )
-    custom_prompt: str | None = Field(
-        description="custom collection prompt",
-        min_length=32,
-        max_length=5096,
-        examples=[
-            "This is an exmaple prompt to tailor the LLM response to this collection"
-        ],
     )
     permissions: list[CollectionPermissionEnum] = Field(
         description="Collection permission enum value(s)", default_factory=list
