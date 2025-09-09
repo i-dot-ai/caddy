@@ -58,7 +58,7 @@ def test_file_upload(client, tmp_path, admin_user, example_collection, filename)
         "https://www.gov.uk/claim-for-injury-received-while-serving",
     ],
 )
-def test_url_upload(client, tmp_path, admin_user, example_collection, url):
+def test_url_upload(client, admin_user, example_collection, url):
     response = client.post(
         f"/collections/{example_collection.id}/resources/urls",
         headers={"Authorization": admin_user.token},
