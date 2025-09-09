@@ -55,6 +55,7 @@ interface Collection {
   id: string,
   name: string,
   description: string,
+  custom_prompt?: string,
   created_at: Date,
   permissions: CollectionPermission[],
 }
@@ -82,12 +83,13 @@ export const getCollection = async(collectionId: string, keycloakToken: string |
 };
 
 
-export const updateCollection = async(collectionId: string, name: string, description: string, keycloakToken: string | null) => {
+export const updateCollection = async(collectionId: string, name: string, description: string, prompt: string, keycloakToken: string | null) => {
   const { json } = await makeRequest(`/collections/${collectionId}`, keycloakToken, {
     method: 'PUT',
     body: JSON.stringify({
       name: name,
       description: description,
+      custom_prompt: prompt,
     }),
     contentType: 'application/json',
   });
@@ -95,12 +97,13 @@ export const updateCollection = async(collectionId: string, name: string, descri
 };
 
 
-export const addCollection = async(name: string, description: string, keycloakToken: string | null) => {
+export const addCollection = async(name: string, description: string, prompt: string, keycloakToken: string | null) => {
   const { json } = await makeRequest('/collections', keycloakToken, {
     method: 'POST',
     body: JSON.stringify({
       name: name,
       description: description,
+      custom_prompt: prompt,
     }),
     contentType: 'application/json',
   });
