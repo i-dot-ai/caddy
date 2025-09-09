@@ -378,7 +378,11 @@ def test_create_collection(client, admin_user):
     collection_name = "my-collection"
     response = client.post(
         "/collections",
-        json={"name": collection_name, "description": "a collection"},
+        json={
+            "name": collection_name,
+            "description": "a collection",
+            "custom_prompt": "",
+        },
         headers={"Authorization": admin_user.token},
     )
     assert response.status_code == 201
@@ -397,7 +401,11 @@ def test_create_collection_401(client):
     collection_name = "my-collection"
     response = client.post(
         "/collections",
-        json={"name": collection_name, "description": "a collection"},
+        json={
+            "name": collection_name,
+            "description": "a collection",
+            "custom_prompt": "",
+        },
     )
     assert response.status_code == 401
 
@@ -406,7 +414,11 @@ def test_create_collection_same_name(client, collection_manager, example_collect
     # we can now create two collections with the same name
     response = client.post(
         "/collections",
-        json={"name": example_collection.name, "description": "a collection"},
+        json={
+            "name": example_collection.name,
+            "description": "a collection",
+            "custom_prompt": "",
+        },
         headers={"Authorization": collection_manager.user.token},
     )
     assert response.status_code == 422
@@ -427,28 +439,48 @@ def test_create_collection_invalid_name(
 ):
     response = client.post(
         "/collections",
-        json={"name": collection_name, "description": "a collection"},
+        json={
+            "name": collection_name,
+            "description": "a collection",
+            "custom_prompt": "A custom prompt",
+        },
         headers={"Authorization": admin_user.token},
     )
     assert response.status_code == 422
     assert response.json()["detail"][0]["msg"] == error_message
 
 
-def test_update_collection(client, example_collection, admin_user):
+@pytest.mark.parametrize(
+    "custom_prompt",
+    [
+        "A test prompt",
+        "",
+    ],
+)
+def test_update_collection(client, example_collection, admin_user, custom_prompt):
     response = client.put(
         f"/collections/{example_collection.id}",
-        json={"name": "new-name", "description": "new-description"},
+        json={
+            "name": "new-name",
+            "description": "new-description",
+            "custom_prompt": custom_prompt,
+        },
         headers={"Authorization": admin_user.token},
     )
     assert response.status_code == 200
     assert response.json()["name"] == "new-name"
     assert response.json()["description"] == "new-description"
+    assert response.json()["custom_prompt"] == custom_prompt
 
 
 def test_update_collection_403(client, admin_user):
     response = client.put(
         f"/collections/{uuid4()}",
-        json={"name": "new-name", "description": "new-description"},
+        json={
+            "name": "new-name",
+            "description": "new-description",
+            "custom_prompt": "",
+        },
         headers={"Authorization": admin_user.token},
     )
     assert response.status_code == 403
@@ -458,7 +490,11 @@ def test_update_collection_403(client, admin_user):
 def test_update_collection_401(client):
     response = client.put(
         f"/collections/{uuid4()}",
-        json={"name": "new-name", "description": "new-description"},
+        json={
+            "name": "new-name",
+            "description": "new-description",
+            "custom_prompt": "",
+        },
     )
     assert response.status_code == 401
 
