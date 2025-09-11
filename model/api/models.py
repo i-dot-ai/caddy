@@ -129,13 +129,17 @@ class UserRoleList(PaginatedResponse):
 
 def index_document(mapper, connection, target: TextChunk):
     """Index a document in Qdrant when a TextChunk is added to the database."""
-    print("Indexing documents...")
     asyncio.run(_async_index_document(target))
 
 
-def delete_document(mapper, connection, target: TextChunk):
-    """Delete documents from Qdrant when a TextChunk is removed from the database."""
+def delete_document(mapper, connection, target: Resource):
+    """Delete documents from Qdrant when a Resource is removed from the database."""
     asyncio.run(_async_delete_document(target))
+
+
+def delete_chunk_document(mapper, connection, target: TextChunk):
+    """Delete documents from Qdrant when a TextChunk is removed from the database."""
+    asyncio.run(_async_delete_document(target.resource))
 
 
 async def _async_index_document(target: TextChunk):
@@ -164,15 +168,27 @@ async def _async_index_document(target: TextChunk):
         )
 
 
-async def _async_delete_document(target: TextChunk):
+async def _async_delete_document(target: Resource):
     """Async helper to delete a single document from Qdrant."""
     async with config.get_qdrant_client() as client:
         await client.delete(
             collection_name=config.qdrant_collection_name,
-            points_selector=[str(target.id)],
+            points_selector=models.FilterSelector(
+                filter=models.Filter(
+                    must=[
+                        models.FieldCondition(
+                            key="resource_id",
+                            match=models.MatchValue(value=str(target.id)),
+                        )
+                    ]
+                )
+            ),
         )
 
 
 # Register SQLAlchemy events
+# Cascade deletions don't trigger these hooks when a Resource is deleted
+# So separate deletion hooks are required for TextChunk and Resource
 event.listen(TextChunk, "after_insert", index_document)
-event.listen(TextChunk, "after_delete", delete_document)
+event.listen(Resource, "after_delete", delete_document)
+event.listen(TextChunk, "after_delete", delete_chunk_document)
