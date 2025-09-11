@@ -29,6 +29,7 @@ def build_document(document: Document, collection_id, session):
             ExpiresIn=3600,
         )
         document.metadata["url"] = s3_url
+        document.metadata["created_at"] = resource.created_at.strftime("%H:%M %d-%m-%Y")
 
     return document
 
