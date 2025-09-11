@@ -1,3 +1,4 @@
+import asyncio
 from datetime import datetime
 from typing import Any, Self
 from uuid import UUID, uuid4
@@ -6,6 +7,7 @@ import jwt
 from pgvector.sqlalchemy import Vector
 from pydantic import BaseModel, EmailStr
 from pytz import utc
+from qdrant_client.http.models import models
 from sqlalchemy import event
 from sqlmodel import Field, Relationship, Session, SQLModel, select
 
@@ -125,37 +127,50 @@ class UserRoleList(PaginatedResponse):
     user_roles: list[UserCollectionWithEmail] | None = None
 
 
-# OpenSearch sync functions
 def index_document(mapper, connection, target: TextChunk):
-    doc = {
-        "vector_field": target.embedding,
-        "text": target.text,
-        "metadata": {
-            "created_at": target.resource.created_at,
-            "filename": target.resource.filename,
-            "content_type": target.resource.content_type,
-            "resource_id": str(target.resource.id),
-            "collection_id": str(target.resource.collection_id),
-        },
-    }
-    config.get_os_client().index(
-        index=config.os_index_name,
-        id=target.id,
-        body=doc,
-        refresh=config.env == "TEST",
-    )
+    """Index a document in Qdrant when a TextChunk is added to the database."""
+    print("Indexing documents...")
+    asyncio.run(_async_index_document(target))
 
 
 def delete_document(mapper, connection, target: TextChunk):
-    config.get_os_client().delete_by_query(
-        index=config.os_index_name,
-        body={
-            "query": {
-                "term",
-                {"metadata.collection_id.keyword": str(target.resource.collection_id)},
-            }
-        },
-    )
+    """Delete documents from Qdrant when a TextChunk is removed from the database."""
+    asyncio.run(_async_delete_document(target))
+
+
+async def _async_index_document(target: TextChunk):
+    """Async helper to index a document in Qdrant."""
+    print("Indexing document...")
+    async with config.get_qdrant_client() as client:
+        point = models.PointStruct(
+            id=str(target.id),
+            vector={
+                "text_dense": target.embedding,
+            },
+            payload={
+                "text": target.text,
+                "created_at": target.resource.created_at.isoformat()
+                if isinstance(target.resource.created_at, datetime)
+                else target.resource.created_at,
+                "filename": target.resource.filename,
+                "content_type": target.resource.content_type,
+                "resource_id": str(target.resource.id),
+                "collection_id": str(target.resource.collection_id),
+            },
+        )
+
+        await client.upsert(
+            collection_name=config.qdrant_collection_name, points=[point]
+        )
+
+
+async def _async_delete_document(target: TextChunk):
+    """Async helper to delete a single document from Qdrant."""
+    async with config.get_qdrant_client() as client:
+        await client.delete(
+            collection_name=config.qdrant_collection_name,
+            points_selector=[str(target.id)],
+        )
 
 
 # Register SQLAlchemy events
