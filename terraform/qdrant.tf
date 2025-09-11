@@ -36,6 +36,7 @@ module "qdrant" {
   autoscaling_maximum_target = 1
 
   environment_variables = {
+    "QDRANT_URL" = "http://${aws_service_discovery_service.service_discovery_service.name}.${aws_service_discovery_private_dns_namespace.private_dns_namespace.name}:${local.qdrant_port}",
     "QDRANT__LOG_LEVEL" = terraform.workspace == "prod" ? "warn" : "info"
     "QDRANT__SERVICE__HTTP_PORT" = tostring(local.qdrant_port)
 

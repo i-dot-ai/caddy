@@ -109,6 +109,10 @@ locals {
     {
       name = "ADMIN_USERS"
       value = var.ADMIN_USERS
+    },
+    {
+      name = "QDRANT__SERVICE__API_KEY",
+      value = random_password.qdrant_api_key.result
     }
   ]
 }
@@ -126,5 +130,18 @@ resource "aws_ssm_parameter" "env_secrets" {
     ignore_changes = [
       value,
     ]
+  }
+}
+
+resource "random_password" "qdrant_api_key" {
+  length           = 40
+  special          = true
+  min_special      = 5
+  override_special = "*{}<=()[]"
+  keepers = {
+    pass_version = 1
+  }
+  lifecycle {
+    ignore_changes = all
   }
 }
