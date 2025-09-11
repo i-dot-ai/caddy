@@ -21,6 +21,12 @@ class CollectionBase(BaseModel):
         max_length=36,
         examples=["my-collection"],
     )
+    custom_prompt: str | None = Field(
+        description="custom collection prompt",
+        examples=[
+            "This is an example prompt to tailor the LLM response to this collection"
+        ],
+    )
     description: str = Field(description="used by LLM to choose tool suitability")
 
     @computed_field

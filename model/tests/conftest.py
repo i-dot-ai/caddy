@@ -90,7 +90,9 @@ def client_fixture(database_transaction):
 
 @pytest.fixture
 def example_collection(database_transaction):
-    collection_db = Collection(name="my-collection", description="a collection")
+    collection_db = Collection(
+        name="my-collection", description="a collection", custom_prompt=""
+    )
     database_transaction.add(collection_db)
     database_transaction.commit()
     database_transaction.refresh(collection_db)
@@ -100,7 +102,7 @@ def example_collection(database_transaction):
 @pytest.fixture
 def another_example_collection(database_transaction):
     collection_db = Collection(
-        name="another-collection", description="another collection"
+        name="another-collection", description="another collection", custom_prompt=""
     )
     database_transaction.add(collection_db)
     database_transaction.commit()
