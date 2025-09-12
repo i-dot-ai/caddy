@@ -1,3 +1,5 @@
+import asyncio
+import threading
 from datetime import datetime
 from typing import Any, Self
 from uuid import UUID, uuid4
@@ -6,6 +8,7 @@ import jwt
 from pgvector.sqlalchemy import Vector
 from pydantic import BaseModel, EmailStr
 from pytz import utc
+from qdrant_client.http.models import models
 from sqlalchemy import event
 from sqlmodel import Field, Relationship, Session, SQLModel, select
 
@@ -125,39 +128,110 @@ class UserRoleList(PaginatedResponse):
     user_roles: list[UserCollectionWithEmail] | None = None
 
 
-# OpenSearch sync functions
 def index_document(mapper, connection, target: TextChunk):
-    doc = {
-        "vector_field": target.embedding,
-        "text": target.text,
-        "metadata": {
-            "created_at": target.resource.created_at,
-            "filename": target.resource.filename,
-            "content_type": target.resource.content_type,
-            "resource_id": str(target.resource.id),
-            "collection_id": str(target.resource.collection_id),
-        },
-    }
-    config.get_os_client().index(
-        index=config.os_index_name,
-        id=target.id,
-        body=doc,
-        refresh=config.env == "TEST",
-    )
+    """Index a document in Qdrant when a TextChunk is added to the database."""
+    if _is_in_pytest():
+        thread = threading.Thread(target=_sync_index_document, args=(target,))
+        thread.start()
+        thread.join()
+    else:
+        try:
+            loop = asyncio.get_running_loop()
+            loop.create_task(_async_index_document(target))
+        except RuntimeError:
+            asyncio.run(_async_index_document(target))
 
 
-def delete_document(mapper, connection, target: TextChunk):
-    config.get_os_client().delete_by_query(
-        index=config.os_index_name,
-        body={
-            "query": {
-                "term",
-                {"metadata.collection_id.keyword": str(target.resource.collection_id)},
-            }
-        },
-    )
+def delete_document(mapper, connection, target: Resource):
+    """Delete documents from Qdrant when a Resource is removed from the database."""
+    if _is_in_pytest():
+        thread = threading.Thread(target=_sync_delete_document, args=(target,))
+        thread.start()
+        thread.join()
+    else:
+        try:
+            loop = asyncio.get_running_loop()
+            loop.create_task(_async_delete_document(target))
+        except RuntimeError:
+            asyncio.run(_async_delete_document(target))
+
+
+def delete_chunk_document(mapper, connection, target: TextChunk):
+    """Delete documents from Qdrant when a TextChunk is removed from the database."""
+    if _is_in_pytest():
+        thread = threading.Thread(target=_sync_delete_document, args=(target.resource,))
+        thread.start()
+        thread.join()
+    else:
+        try:
+            loop = asyncio.get_running_loop()
+            loop.create_task(_async_delete_document(target.resource))
+        except RuntimeError:
+            asyncio.run(_async_delete_document(target.resource))
+
+
+def _is_in_pytest():
+    """Check if app is doing tests"""
+    return config.env.lower() == "test"
+
+
+def _sync_index_document(target):
+    """Sync wrapper for async index operation."""
+    asyncio.run(_async_index_document(target))
+
+
+def _sync_delete_document(target):
+    """Sync wrapper for async delete operation."""
+    asyncio.run(_async_delete_document(target))
+
+
+async def _async_index_document(target: TextChunk):
+    """Async helper to index a document in Qdrant."""
+    async with config.get_qdrant_client() as client:
+        point = models.PointStruct(
+            id=str(target.id),
+            vector={
+                "text_dense": target.embedding,
+            },
+            payload={
+                "text": target.text,
+                "created_at": target.resource.created_at.isoformat()
+                if isinstance(target.resource.created_at, datetime)
+                else target.resource.created_at,
+                "filename": target.resource.filename,
+                "content_type": target.resource.content_type,
+                "resource_id": str(target.resource.id),
+                "collection_id": str(target.resource.collection_id),
+                "chunk_id": str(target.id),
+            },
+        )
+
+        await client.upsert(
+            collection_name=config.qdrant_collection_name, points=[point]
+        )
+
+
+async def _async_delete_document(target: Resource):
+    """Async helper to delete a single document from Qdrant."""
+    async with config.get_qdrant_client() as client:
+        await client.delete(
+            collection_name=config.qdrant_collection_name,
+            points_selector=models.FilterSelector(
+                filter=models.Filter(
+                    must=[
+                        models.FieldCondition(
+                            key="resource_id",
+                            match=models.MatchValue(value=str(target.id)),
+                        )
+                    ]
+                )
+            ),
+        )
 
 
 # Register SQLAlchemy events
+# Cascade deletions don't trigger these hooks when a Resource is deleted
+# So separate deletion hooks are required for TextChunk and Resource
 event.listen(TextChunk, "after_insert", index_document)
-event.listen(TextChunk, "after_delete", delete_document)
+event.listen(Resource, "after_delete", delete_document)
+event.listen(TextChunk, "after_delete", delete_chunk_document)

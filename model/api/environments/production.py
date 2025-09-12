@@ -2,7 +2,6 @@ import json
 import os
 
 import boto3
-from opensearchpy import RequestsHttpConnection
 from requests_aws4auth import AWS4Auth
 
 from api.config import CaddyConfig
@@ -22,19 +21,6 @@ auth = AWS4Auth(
     refreshable_credentials=credentials,
 )
 
-opensearch_kwargs = {
-    "hosts": [
-        {"host": os.environ["OPENSEARCH_URL"], "port": os.environ["OPENSEARCH_PORT"]}
-    ],
-    "http_auth": auth,
-    "region": os.environ["OPENSEARCH_AWS_REGION"],
-    "connection_class": RequestsHttpConnection,
-    "timeout": 30,
-    "use_ssl": True,
-    "verify_certs": True,
-    "scheme": "https",
-}
-
 sqlalchemy_url = "postgresql+psycopg2://{POSTGRES_USER}:{POSTGRES_PASSWORD}@{POSTGRES_HOST}/{POSTGRES_DB}".format(
     **os.environ
 )
@@ -49,8 +35,12 @@ environment = os.environ["ENVIRONMENT"]
 
 resource_url_template = os.environ["RESOURCE_URL_TEMPLATE"]
 
+qdrant__service__api_key = os.environ["QDRANT__SERVICE__API_KEY"]
+qdrant_url = os.environ["QDRANT_URL"]
+
 config = CaddyConfig(
-    opensearch_kwargs=opensearch_kwargs,
+    qdrant__service__api_key=qdrant__service__api_key,
+    qdrant_url=qdrant_url,
     embedding_model=embedding_model,
     sqlalchemy_url=sqlalchemy_url,
     s3_client=s3_client,

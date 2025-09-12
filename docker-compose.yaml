@@ -31,7 +31,7 @@ services:
       start_interval: 1s
       retries: 10
     depends_on:
-      opensearch:
+      qdrant:
         condition: service_healthy
       postgres:
         condition: service_healthy
@@ -62,38 +62,19 @@ services:
       model:
         condition: service_healthy
 
-  opensearch:
-    build:
-      dockerfile: docker-compose-config/opensearch.Dockerfile
-    container_name: opensearch
-    environment:
-      - discovery.type=single-node
-      - OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m
-      - DISABLE_PERFORMANCE_ANALYZER_AGENT_CLI=true
-      - logger.level=ERROR
-      - bootstrap.memory_lock=true
+  qdrant:
+    image: qdrant/qdrant
     ports:
-      - "9200:9200"
-      - "9600:9600"
+      - '6333:6333'
+      - '6334:6334'
+    expose:
+      - 6333
+      - 6334
+      - 6335
+    env_file: .env
+    restart: always
     volumes:
-      - opensearch_data:/usr/share/opensearch/data
-    # ulimit values come from the opensearch Docker docs
-    ulimits:
-      memlock:
-        soft: -1
-        hard: -1
-      nofile:
-        soft: 65536
-        hard: 65536
-    healthcheck:
-      # we're happy to be yellow because green indicates replicas are up... and we don't have replicas!
-      test: curl --fail http://localhost:9200/_cluster/health?wait_for_status=yellow || exit 1
-      interval: 5s
-      timeout: 30s
-      retries: 10
-      start_period: 60s
-      start_interval: 1s
-    restart: unless-stopped
+      - qdrant_storage:/qdrant/storage:z
     networks:
       - caddy-net
 
@@ -158,8 +139,8 @@ services:
         condition: service_healthy
 
 volumes:
-  opensearch_data:
   postgres_data:
+  qdrant_storage:
   minio_data:
 
 networks:
