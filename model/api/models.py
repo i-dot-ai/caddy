@@ -1,4 +1,5 @@
 import asyncio
+import threading
 from datetime import datetime
 from typing import Any, Self
 from uuid import UUID, uuid4
@@ -129,22 +130,63 @@ class UserRoleList(PaginatedResponse):
 
 def index_document(mapper, connection, target: TextChunk):
     """Index a document in Qdrant when a TextChunk is added to the database."""
-    asyncio.run(_async_index_document(target))
+    if _is_in_pytest():
+        thread = threading.Thread(target=_sync_index_document, args=(target,))
+        thread.start()
+        thread.join()
+    else:
+        try:
+            loop = asyncio.get_running_loop()
+            loop.create_task(_async_index_document(target))
+        except RuntimeError:
+            asyncio.run(_async_index_document(target))
 
 
 def delete_document(mapper, connection, target: Resource):
     """Delete documents from Qdrant when a Resource is removed from the database."""
-    asyncio.run(_async_delete_document(target))
+    if _is_in_pytest():
+        thread = threading.Thread(target=_sync_delete_document, args=(target,))
+        thread.start()
+        thread.join()
+    else:
+        try:
+            loop = asyncio.get_running_loop()
+            loop.create_task(_async_delete_document(target))
+        except RuntimeError:
+            asyncio.run(_async_delete_document(target))
 
 
 def delete_chunk_document(mapper, connection, target: TextChunk):
     """Delete documents from Qdrant when a TextChunk is removed from the database."""
-    asyncio.run(_async_delete_document(target.resource))
+    if _is_in_pytest():
+        thread = threading.Thread(target=_sync_delete_document, args=(target.resource,))
+        thread.start()
+        thread.join()
+    else:
+        try:
+            loop = asyncio.get_running_loop()
+            loop.create_task(_async_delete_document(target.resource))
+        except RuntimeError:
+            asyncio.run(_async_delete_document(target.resource))
+
+
+def _is_in_pytest():
+    """Check if app is doing tests"""
+    return config.env.lower() == "test"
+
+
+def _sync_index_document(target):
+    """Sync wrapper for async index operation."""
+    asyncio.run(_async_index_document(target))
+
+
+def _sync_delete_document(target):
+    """Sync wrapper for async delete operation."""
+    asyncio.run(_async_delete_document(target))
 
 
 async def _async_index_document(target: TextChunk):
     """Async helper to index a document in Qdrant."""
-    print("Indexing document...")
     async with config.get_qdrant_client() as client:
         point = models.PointStruct(
             id=str(target.id),
