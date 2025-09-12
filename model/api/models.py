@@ -202,6 +202,7 @@ async def _async_index_document(target: TextChunk):
                 "content_type": target.resource.content_type,
                 "resource_id": str(target.resource.id),
                 "collection_id": str(target.resource.collection_id),
+                "chunk_id": str(target.id),
             },
         )
 
