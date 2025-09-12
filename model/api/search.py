@@ -126,8 +126,6 @@ async def search_collection(
         document = _qdrant_result_to_document(result_dict)
         documents.append(document)
 
-    build_document_for_collection = partial(
-        build_document, collection_id=collection_id, session=session
-    )
+    build_document_for_collection = partial(build_document, session=session)
 
     return list(map(build_document_for_collection, documents))
