@@ -3,6 +3,7 @@ from unittest.mock import patch
 from uuid import UUID
 
 import pytest
+import pytest_asyncio
 from fastapi.testclient import TestClient
 from pytest_postgresql.janitor import DatabaseJanitor
 from qdrant_client.http.models import models
@@ -26,16 +27,21 @@ from api.models import (
 CWD = os.path.dirname(os.path.abspath(__file__))
 
 
-@pytest.fixture(autouse=True)
+@pytest_asyncio.fixture(autouse=True)
 async def cleanup_opensearch_per_test():
     """Clean up qdrant documents after each test"""
     yield
     # Delete all documents from the test index
-    with config.get_qdrant_client() as qdrant_client:
+    async with config.get_qdrant_client() as qdrant_client:
         await qdrant_client.delete(
             collection_name=config.qdrant_collection_name,
             points_selector=models.FilterSelector(filter=models.Filter(must=[])),
         )
+
+
+@pytest_asyncio.fixture(scope="session", autouse=True)
+async def setup_qdrant_collection():
+    await config.initialize_qdrant_collections()
 
 
 @pytest.fixture(scope="session", autouse=True)

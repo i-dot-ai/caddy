@@ -61,6 +61,7 @@ build-backend = "poetry.core.masonry.api"
 minversion = "6.0"
 addopts = "-ra -q"
 testpaths = ["tests"]
+asyncio_mode = "auto"
 env = [
   "ENVIRONMENT=test"
 ]
