@@ -5,6 +5,7 @@ from uuid import UUID
 import pytest
 from fastapi.testclient import TestClient
 from pytest_postgresql.janitor import DatabaseJanitor
+from qdrant_client.http.models import models
 from sqlmodel import Session
 
 from alembic import command
@@ -26,13 +27,15 @@ CWD = os.path.dirname(os.path.abspath(__file__))
 
 
 @pytest.fixture(autouse=True)
-def cleanup_opensearch_per_test():
-    """Clean up OpenSearch documents after each test"""
+async def cleanup_opensearch_per_test():
+    """Clean up qdrant documents after each test"""
     yield
     # Delete all documents from the test index
-    config.get_os_client().delete_by_query(
-        index=config.os_index_name, body={"query": {"match_all": {}}}, refresh=True
-    )
+    with config.get_qdrant_client() as qdrant_client:
+        await qdrant_client.delete(
+            collection_name=config.qdrant_collection_name,
+            points_selector=models.FilterSelector(filter=models.Filter(must=[])),
+        )
 
 
 @pytest.fixture(scope="session", autouse=True)

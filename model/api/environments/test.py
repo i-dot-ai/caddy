@@ -32,12 +32,14 @@ keycloak_allowed_roles = json.loads(os.environ["KEYCLOAK_ALLOWED_ROLES"])
 resource_url_template = "http://localhost:8000/collections/{collection_id}/resources/{resource_id}/documents"
 
 
-qdrant__service__api_key = os.environ["QDRANT__SERVICE__API_KEY"]
+qdrant__service__api_key = os.environ.get("QDRANT__SERVICE__API_KEY", None)
 qdrant_url = os.environ["QDRANT_URL"]
+qdrant_collection_name = os.environ["QDRANT_COLLECTION_NAME"]
 
 config = CaddyConfig(
     qdrant__service__api_key=qdrant__service__api_key,
     qdrant_url=qdrant_url,
+    qdrant_collection_name=qdrant_collection_name,
     embedding_model=embedding_model,
     sqlalchemy_url=sqlalchemy_url,
     s3_client=s3_client,
