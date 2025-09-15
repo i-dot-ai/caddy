@@ -1,8 +1,8 @@
+import type { APIContext } from 'astro';
 import { deleteFile } from '@logic/data.ts';
-import type { EndpointParams } from './types';
 
 
-export async function POST({ request, redirect }: EndpointParams) {
+export async function POST({ request, redirect }: APIContext) {
 
   const data = await request.formData();
   const collectionId = data.get('collection')?.toString() || '';

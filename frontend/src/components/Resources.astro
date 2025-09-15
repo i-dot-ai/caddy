@@ -44,11 +44,61 @@ const timeOptions: Intl.DateTimeFormatOptions = {
     </td>
     { isManager &&
       <td class="govuk-table__cell">
-        <a class="govuk-body-s" href={ `/collections/${collectionId}/resources/${resource.id}/delete` }>
-          Delete
-          <span class="govuk-visually-hidden"> { resource.filename || resource.id }</span>
-        </a>
+        <span class="actions">
+          <a class="govuk-body-s govuk-!-margin-bottom-0" href={ `/collections/${collectionId}/resources/${resource.id}/delete` }>
+            Delete
+            <span class="govuk-visually-hidden"> { resource.filename || resource.id }</span>
+          </a>
+          { resource.url &&
+            <form method="post" action="/api/add-urls/?refresh=true" enctype="multipart/form-data">
+              <input type="hidden" name="collection" value={ collectionId } />
+              <input type="hidden" name="addUrls" value={ resource.url } />
+              <button class="actions__refresh govuk-link govuk-body-s">Refresh</button>
+            </form>   
+          }
+        </span>
       </td>
     }
   </tr>
 )}
+
+
+<style>
+  td a, td span {
+    max-width: 340px;
+    word-wrap: break-word;
+  }
+  @media (min-width: 641px) {
+    td a, td span {
+      max-width: 580px;
+    }
+  }
+  @media (min-width: 1021px) {
+    td a, td span {
+      max-width: 700px;
+    }
+  }
+
+  td:has(.actions) {
+    vertical-align: middle;
+  }
+  .actions {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px 10px;
+    margin-top: -3px;
+  }
+  .actions form {
+    margin-top: -3px;
+  }
+  .actions__refresh {
+    background-color: transparent;
+    border: 0;
+    color: var(--iai-pink);
+    cursor: pointer;
+    margin-bottom: 0;
+    
+    padding: 0;
+  }
+</style>

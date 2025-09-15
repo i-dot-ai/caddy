@@ -1,8 +1,8 @@
+import type { APIContext } from 'astro';
 import { addUrls } from '@logic/data.ts';
-import type { EndpointParams } from './types';
 
 
-export async function POST({ request, redirect }: EndpointParams) {
+export async function POST({ request, redirect, url }: APIContext) {
 
   const data = await request.formData();
   const collectionId = data.get('collection')?.toString() || '';
@@ -15,7 +15,8 @@ export async function POST({ request, redirect }: EndpointParams) {
 
   await addUrls(collectionId, urls, request.headers.get('x-amzn-oidc-accesstoken'));
 
-  const notification = `<strong>${urls.length}</strong> URL${urls.length === 1 ? '' : 's'} added to collection`;
+  const isRefresh = url.searchParams.get('refresh') === 'true';
+  const notification = `<strong>${urls.length}</strong> URL${urls.length === 1 ? '' : 's'} ${isRefresh ? 'refreshed' : 'added to collection'}`;
 
   return redirect(`/collections/${collectionId}?notification=${encodeURI(notification)}`, 303);
 
