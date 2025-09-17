@@ -90,18 +90,7 @@ async def search_collection(
     if keywords:
         for kw in keywords:
             should_conditions.extend(
-                [
-                    models.FieldCondition(
-                        key="text", match=models.MatchText(text=kw.lower())
-                    ),
-                    models.FieldCondition(
-                        key="text", match=models.MatchText(text=kw.upper())
-                    ),
-                    models.FieldCondition(
-                        key="text", match=models.MatchText(text=kw.capitalize())
-                    ),
-                    models.FieldCondition(key="text", match=models.MatchText(text=kw)),
-                ]
+                models.FieldCondition(key="text", match=models.MatchText(text=kw))
             )
 
     query_filter = models.Filter(must=must_conditions) if must_conditions else None
