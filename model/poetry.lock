@@ -4432,6 +4432,7 @@ files = [
 ]
 
 [package.dependencies]
+fastembed = {version = ">=0.7,<0.8", optional = true, markers = "extra == \"fastembed\""}
 grpcio = ">=1.41.0"
 httpx = {version = ">=0.20.0", extras = ["http2"]}
 numpy = [
@@ -5797,4 +5798,4 @@ cffi = ["cffi (>=1.11)"]
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.12"
-content-hash = "b199d98994442ce0a964bcfcec6f8e82907b523a79256d97836ec34c2ae54b0e"
+content-hash = "921a54c3d960ca3b99096d8ceeb762c7f55ff7ef3737e6a3d5472fa74176bced"

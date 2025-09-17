@@ -122,15 +122,14 @@ def __process_resource(
 
     documents = _split_text(content)
 
-    embeddings = config.embedding_model.embed_documents(
-        [d.page_content for d in documents]
-    )
+    embedder = config.get_embedding_handler()
+    embeddings = list(embedder.embed([d.page_content for d in documents]))
 
     for order, (document, embedding) in enumerate(zip(documents, embeddings)):
         text_chunk = TextChunk(
             text=document.page_content,
             order=order,
-            resource=resource,
+            resource_id=resource.id,
             embedding=embedding,
         )
         session.add(text_chunk)

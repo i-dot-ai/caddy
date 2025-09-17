@@ -2,6 +2,7 @@ import contextlib
 import os
 from collections.abc import AsyncGenerator
 
+from fastembed import TextEmbedding
 from i_dot_ai_utilities.logging.structured_logger import StructuredLogger
 from i_dot_ai_utilities.logging.types.enrichment_types import ExecutionEnvironmentType
 from i_dot_ai_utilities.logging.types.log_output_format import LogOutputFormat
@@ -199,3 +200,7 @@ class CaddyConfig:
             environment=self.env,
             logger=self.get_logger(__name__),
         )
+
+    @staticmethod
+    def get_embedding_handler() -> TextEmbedding:
+        return TextEmbedding()

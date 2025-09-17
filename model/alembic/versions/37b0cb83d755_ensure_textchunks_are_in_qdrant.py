@@ -51,7 +51,7 @@ async def check_and_create_qdrant_points():
             print(f"Found {len(missing_chunks)} missing chunks to create")
 
             if missing_chunks:
-                await create_missing_points(client, missing_chunks)
+                await create_missing_points(client, missing_chunks, session)
                 print(f"Successfully created {len(missing_chunks)} missing points")
             else:
                 print("All chunks already exist in Qdrant")
@@ -102,7 +102,7 @@ async def get_existing_chunk_ids(client: AsyncQdrantClient) -> set[str]:
 
 
 async def create_missing_points(
-    client: AsyncQdrantClient, missing_chunks: list[TextChunk]
+    client: AsyncQdrantClient, missing_chunks: list[TextChunk], session: Session
 ):
     """Create Qdrant points for missing TextChunks."""
 
@@ -110,6 +110,14 @@ async def create_missing_points(
 
     for chunk in missing_chunks:
         try:
+            embedding_handler = config.get_embedding_handler()
+            regenerated_embedding = list(embedding_handler.embed(chunk.text))
+            chunk.embedding = regenerated_embedding
+
+            session.add(chunk)
+            session.commit()
+            session.refresh(chunk)
+
             embedding_vector = (
                 list(chunk.embedding)
                 if hasattr(chunk.embedding, "__iter__")
