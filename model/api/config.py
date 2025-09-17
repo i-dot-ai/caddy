@@ -7,6 +7,7 @@ from i_dot_ai_utilities.logging.types.enrichment_types import ExecutionEnvironme
 from i_dot_ai_utilities.logging.types.log_output_format import LogOutputFormat
 from i_dot_ai_utilities.metrics.cloudwatch import CloudwatchEmbeddedMetricsWriter
 from qdrant_client import AsyncQdrantClient, models
+from qdrant_client.http.models import TextIndexType
 from sqlmodel import create_engine
 
 EMBEDDING_DIMENSION = 1024
@@ -117,8 +118,39 @@ class CaddyConfig:
                         )
                     ),
                 )
+
+                # Add index for text search
+                await client.create_payload_index(
+                    collection_name=self.qdrant_collection_name,
+                    field_name="text",
+                    field_schema=models.TextIndexParams(
+                        type=TextIndexType.TEXT,
+                        tokenizer=models.TokenizerType.WORD,
+                        min_token_len=2,
+                        max_token_len=10,
+                        lowercase=True,
+                    ),
+                )
+
+                # Add indexes for collection, resource and chunk IDs
+                await client.create_payload_index(
+                    collection_name=self.qdrant_collection_name,
+                    field_name="collection_id",
+                    field_schema="keyword",
+                )
+                await client.create_payload_index(
+                    collection_name=self.qdrant_collection_name,
+                    field_name="resource_id",
+                    field_schema="keyword",
+                )
+                await client.create_payload_index(
+                    collection_name=self.qdrant_collection_name,
+                    field_name="chunk_id",
+                    field_schema="keyword",
+                )
+
                 logger.info(
-                    "Created collection - {collection_name}",
+                    "Created collection and indexes for - {collection_name}",
                     collection_name=self.qdrant_collection_name,
                 )
             else:
