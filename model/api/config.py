@@ -126,6 +126,15 @@ class CaddyConfig:
                     field_schema=models.TextIndexParams(
                         type=TextIndexType.TEXT,
                         tokenizer=models.TokenizerType.WORD,
+                        stemmer=models.SnowballParams(
+                            type=models.Snowball.SNOWBALL,
+                            language=models.SnowballLanguage.ENGLISH,
+                        ),
+                        stopwords=models.StopwordsSet(
+                            languages=[
+                                models.Language.ENGLISH,
+                            ],
+                        ),
                         min_token_len=2,
                         max_token_len=10,
                         lowercase=True,
