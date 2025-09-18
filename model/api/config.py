@@ -2,7 +2,7 @@ import contextlib
 import os
 from collections.abc import AsyncGenerator
 
-from fastembed import TextEmbedding
+from fastembed import SparseTextEmbedding
 from i_dot_ai_utilities.logging.structured_logger import StructuredLogger
 from i_dot_ai_utilities.logging.types.enrichment_types import ExecutionEnvironmentType
 from i_dot_ai_utilities.logging.types.log_output_format import LogOutputFormat
@@ -202,5 +202,5 @@ class CaddyConfig:
         )
 
     @staticmethod
-    def get_embedding_handler() -> TextEmbedding:
-        return TextEmbedding()
+    def get_embedding_handler() -> SparseTextEmbedding:
+        return SparseTextEmbedding(model_name="Qdrant/bm25")

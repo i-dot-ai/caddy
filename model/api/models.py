@@ -5,11 +5,11 @@ from typing import Any, Self
 from uuid import UUID, uuid4
 
 import jwt
-from pgvector.sqlalchemy import Vector
+from pgvector.sqlalchemy import SPARSEVEC, Vector
 from pydantic import BaseModel, EmailStr
 from pytz import utc
-from qdrant_client.http.models import models
-from sqlalchemy import event
+from qdrant_client.http.models import PointStruct, SparseVector, models
+from sqlalchemy import Column, event
 from sqlmodel import Field, Relationship, Session, SQLModel, select
 
 from api.config import EMBEDDING_DIMENSION
@@ -113,6 +113,8 @@ class TextChunk(SQLModel, table=True):
 
     text: str = Field(description="text extracted from file")
     embedding: Any = Field(sa_type=Vector(EMBEDDING_DIMENSION))
+    sparse_embedding: str = Field(sa_column=Column(SPARSEVEC))
+
     order: int = Field(description="extraction order of text-chunk")
 
 
@@ -187,10 +189,18 @@ def _sync_delete_document(target):
 
 async def _async_index_document(target: TextChunk):
     """Async helper to index a document in Qdrant."""
+    sparse_embedder = config.get_embedding_handler()
+    sparse_embeddings = list(sparse_embedder.embed(target.text))
+    sparse_embedding = sparse_embeddings[0]
+
     async with config.get_qdrant_client() as client:
-        point = models.PointStruct(
+        point = PointStruct(
             id=str(target.id),
             vector={
+                "text_sparse": SparseVector(
+                    indices=sparse_embedding.indices,
+                    values=sparse_embedding.values,
+                ),
                 "text_dense": target.embedding,
             },
             payload={
@@ -206,8 +216,10 @@ async def _async_index_document(target: TextChunk):
             },
         )
 
-        await client.upsert(
-            collection_name=config.qdrant_collection_name, points=[point]
+        await client.qdrant_client.upsert(
+            collection_name=config.qdrant_collection_name,
+            points=[point],
+            wait=False,
         )
 
 
