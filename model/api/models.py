@@ -179,20 +179,20 @@ def _index_document(target: TextChunk):
 
 def _delete_document(target: Resource):
     """Delete a single document from Qdrant using sync client."""
-    client = config.get_sync_qdrant_client()
-    client.delete(
-        collection_name=config.qdrant_collection_name,
-        points_selector=models.FilterSelector(
-            filter=models.Filter(
-                must=[
-                    models.FieldCondition(
-                        key="resource_id",
-                        match=models.MatchValue(value=str(target.id)),
-                    )
-                ]
-            )
-        ),
-    )
+    with config.get_sync_qdrant_client() as client:
+        client.delete(
+            collection_name=config.qdrant_collection_name,
+            points_selector=models.FilterSelector(
+                filter=models.Filter(
+                    must=[
+                        models.FieldCondition(
+                            key="resource_id",
+                            match=models.MatchValue(value=str(target.id)),
+                        )
+                    ]
+                )
+            ),
+        )
 
 
 # Register SQLAlchemy events
