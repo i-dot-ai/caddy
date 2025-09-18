@@ -127,6 +127,7 @@ def __process_resource(
             text=document.page_content,
             order=order,
             resource_id=resource.id,
+            resource=resource,
         )
         session.add(text_chunk)
     resource.is_processed = True
