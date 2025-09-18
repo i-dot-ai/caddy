@@ -219,4 +219,5 @@ class CaddyConfig:
 
     @staticmethod
     def get_embedding_handler() -> SparseTextEmbedding:
-        return SparseTextEmbedding(model_name="Qdrant/bm25")
+        # Using the following embedding model because it has a defined vocabulary size
+        return SparseTextEmbedding(model_name="Qdrant/bm42-all-minilm-l6-v2-attentions")

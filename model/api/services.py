@@ -122,33 +122,11 @@ def __process_resource(
 
     documents = _split_text(content)
 
-    dense_embeddings = config.embedding_model.embed_documents(
-        [d.page_content for d in documents]
-    )
-
-    sparse_embedder = config.get_embedding_handler()
-    sparse_embeddings = list(sparse_embedder.embed([d.page_content for d in documents]))
-
-    for order, (document, dense_embedding, sparse_embedding) in enumerate(
-        zip(documents, dense_embeddings, sparse_embeddings)
-    ):
-        indices = sparse_embedding.indices
-        values = sparse_embedding.values
-        dimension = len(sparse_embedding.indices)
-
-        # PG vector expects this criminal format for sparse vectors
-        sparse_str = (
-            "{"
-            + ",".join([f"{idx}:{val}" for idx, val in zip(indices, values)])
-            + "}/"
-            + str(dimension)
-        )
+    for order, document in enumerate(documents):
         text_chunk = TextChunk(
             text=document.page_content,
             order=order,
             resource_id=resource.id,
-            embedding=dense_embedding,
-            sparse_embedding=sparse_str,
         )
         session.add(text_chunk)
     resource.is_processed = True

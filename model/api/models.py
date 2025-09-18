@@ -1,16 +1,14 @@
 from datetime import datetime
-from typing import Any, Self
+from typing import Self
 from uuid import UUID, uuid4
 
 import jwt
-from pgvector.sqlalchemy import SPARSEVEC, Vector
 from pydantic import BaseModel, EmailStr
 from pytz import utc
 from qdrant_client.http.models import PointStruct, SparseVector, models
-from sqlalchemy import Column, event
+from sqlalchemy import event
 from sqlmodel import Field, Relationship, Session, SQLModel, select
 
-from api.config import EMBEDDING_DIMENSION
 from api.environment import config
 from api.types import CollectionBase, PaginatedResponse, ResourceBase, Role
 
@@ -110,8 +108,6 @@ class TextChunk(SQLModel, table=True):
     resource: Resource = Relationship()
 
     text: str = Field(description="text extracted from file")
-    embedding: Any = Field(sa_type=Vector(EMBEDDING_DIMENSION))
-    sparse_embedding: str = Field(sa_column=Column(SPARSEVEC))
 
     order: int = Field(description="extraction order of text-chunk")
 
@@ -145,11 +141,12 @@ def delete_chunk_document(mapper, connection, target: TextChunk):
 
 def _index_document(target: TextChunk):
     """Index a document in Qdrant using sync client."""
+    dense_embeddings = config.embedding_model.embed_documents([target.text])
+
     sparse_embedder = config.get_embedding_handler()
     sparse_embeddings = list(sparse_embedder.embed(target.text))
     sparse_embedding = sparse_embeddings[0]
 
-    client = config.get_sync_qdrant_client()
     point = PointStruct(
         id=str(target.id),
         vector={
@@ -157,7 +154,7 @@ def _index_document(target: TextChunk):
                 indices=sparse_embedding.indices,
                 values=sparse_embedding.values,
             ),
-            "text_dense": target.embedding,
+            "text_dense": dense_embeddings[0],
         },
         payload={
             "text": target.text,
@@ -172,6 +169,7 @@ def _index_document(target: TextChunk):
         },
     )
 
+    client = config.get_sync_qdrant_client()
     client.upsert(
         collection_name=config.qdrant_collection_name,
         points=[point],
