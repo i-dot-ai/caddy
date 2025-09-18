@@ -158,9 +158,9 @@ def _index_document(target: TextChunk):
         },
         payload={
             "text": target.text,
-            "created_at": target.resource.created_at.isoformat()
-            if isinstance(target.resource.created_at, datetime)
-            else target.resource.created_at,
+            "created_at": target.created_at.isoformat()
+            if isinstance(target.created_at, datetime)
+            else target.created_at,
             "filename": target.resource.filename,
             "content_type": target.resource.content_type,
             "resource_id": str(target.resource.id),
@@ -169,12 +169,12 @@ def _index_document(target: TextChunk):
         },
     )
 
-    client = config.get_sync_qdrant_client()
-    client.upsert(
-        collection_name=config.qdrant_collection_name,
-        points=[point],
-        wait=False,
-    )
+    with config.get_sync_qdrant_client() as client:
+        client.upsert(
+            collection_name=config.qdrant_collection_name,
+            points=[point],
+            wait=False,
+        )
 
 
 def _delete_document(target: Resource):
