@@ -7,7 +7,7 @@ from i_dot_ai_utilities.logging.structured_logger import StructuredLogger
 from i_dot_ai_utilities.logging.types.enrichment_types import ExecutionEnvironmentType
 from i_dot_ai_utilities.logging.types.log_output_format import LogOutputFormat
 from i_dot_ai_utilities.metrics.cloudwatch import CloudwatchEmbeddedMetricsWriter
-from qdrant_client import AsyncQdrantClient, models
+from qdrant_client import AsyncQdrantClient, QdrantClient, models
 from qdrant_client.http.models import TextIndexType
 from sqlmodel import create_engine
 
@@ -77,6 +77,22 @@ class CaddyConfig:
             yield client
         finally:
             await client.close()
+
+    def get_sync_qdrant_client(self) -> QdrantClient:
+        """Gets a sync Qdrant client from environment variables.
+
+        Supports both cloud (via API key) and local connections.
+        """
+        logger = self.get_logger(__name__)
+        logger.info("Connecting to Qdrant at {qdrant_url}", qdrant_url=self.qdrant_url)
+        client = QdrantClient(
+            url=self.qdrant_url, api_key=self.qdrant__service__api_key, timeout=30
+        )
+
+        try:
+            yield client
+        finally:
+            client.close()
 
     async def initialize_qdrant_collections(self) -> None:
         """Initialize Qdrant with proper collections.
