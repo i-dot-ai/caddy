@@ -1,6 +1,7 @@
 import contextlib
 import os
 from collections.abc import AsyncGenerator
+from contextlib import contextmanager
 
 from fastembed import SparseTextEmbedding
 from i_dot_ai_utilities.logging.structured_logger import StructuredLogger
@@ -78,6 +79,7 @@ class CaddyConfig:
         finally:
             await client.close()
 
+    @contextmanager
     def get_sync_qdrant_client(self) -> QdrantClient:
         """Gets a sync Qdrant client from environment variables.
 
