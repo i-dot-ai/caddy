@@ -78,7 +78,9 @@ async def search_collection(
     Returns:
         Documents: relevant documents
     """
-    query_vector = config.embedding_model.embed_documents([query])[0]
+    dense_query_vector = config.embedding_model.embed_documents([query])[0]
+    sparse_embedder = config.get_embedding_handler()
+    sparse_query_vector = list(sparse_embedder.embed(query))[0]
 
     must_conditions = [
         models.FieldCondition(
@@ -97,11 +99,24 @@ async def search_collection(
     query_filter.should = should_conditions
 
     async with config.get_qdrant_client() as client:
-        search_result = await client.search(
+        search_result = await client.query_points(
             collection_name=config.qdrant_collection_name,
-            query_vector=("text_dense", query_vector),
-            limit=10,
-            query_filter=query_filter,
+            prefetch=[
+                models.Prefetch(
+                    query=dense_query_vector,
+                    using="text_dense",
+                    filter=query_filter,
+                ),
+                models.Prefetch(
+                    query=sparse_query_vector,
+                    using="text_sparse",
+                    filter=query_filter,
+                ),
+            ],
+            query=models.FusionQuery(
+                fusion=models.Fusion.RRF,
+            ),
+            score_threshold=None,
             with_payload=True,
         )
 
