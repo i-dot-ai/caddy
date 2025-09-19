@@ -122,11 +122,6 @@ async def create_missing_points(
             sparse_embeddings = list(sparse_embedder.embed(chunk.text))
             sparse_embedding = sparse_embeddings[0]
 
-            # Update chunk record
-            session.add(chunk)
-            session.commit()
-            session.refresh(chunk)
-
             # Create new point
             point = PointStruct(
                 id=str(chunk.id),
