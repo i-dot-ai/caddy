@@ -83,199 +83,224 @@ async def handle_get_prompt(
     name: str, arguments: dict[str, str] | None
 ) -> types.GetPromptResult:
     """Get a specific prompt by collection slug."""
-    logger.refresh_context()
-    metric_writer.put_metric(
-        metric_name="prompt_retrieve_count",
-        value=1,
-        dimensions={
-            "prompt_name": name,
-        },
-    )
-
-    user_email = get_current_user()
-    logger.info(
-        "Getting prompt {name} with args {arguments} by user {user_email}",
-        name=name,
-        arguments=arguments,
-        user_email=user_email,
-    )
-
-    with Session(config.get_database()) as session:
-        # Check if user is a member of this collection
-        statement = (
-            select(UserCollection)
-            .join(User)
-            .join(Collection)
-            .where(
-                User.email == user_email,
-            )
+    try:
+        logger.refresh_context()
+        metric_writer.put_metric(
+            metric_name="prompt_retrieve_count",
+            value=1,
+            dimensions={
+                "prompt_name": name,
+            },
         )
-        user_collections = session.exec(statement).all()
-        matched_collection = next(
-            filter(
-                lambda user_collection: user_collection.collection.slug == name,
-                user_collections,
-            ),
-            None,
-        )
-        if not matched_collection:
-            raise HTTPException(
-                403, detail="User does not have access to this collection"
-            )
 
-    return types.GetPromptResult(
-        description=matched_collection.collection.description,
-        messages=[
-            types.PromptMessage(
-                role="user",
-                content=types.TextContent(
-                    type="text", text=matched_collection.collection.custom_prompt
+        user_email = get_current_user()
+        logger.info(
+            "Getting prompt {name} with args {arguments} by user {user_email}",
+            name=name,
+            arguments=arguments,
+            user_email=user_email,
+        )
+
+        with Session(config.get_database()) as session:
+            # Check if user is a member of this collection
+            statement = (
+                select(UserCollection)
+                .join(User)
+                .join(Collection)
+                .where(
+                    User.email == user_email,
+                )
+            )
+            user_collections = session.exec(statement).all()
+            matched_collection = next(
+                filter(
+                    lambda user_collection: user_collection.collection.slug == name,
+                    user_collections,
                 ),
+                None,
             )
-        ],
-    )
+            if not matched_collection:
+                raise HTTPException(
+                    403, detail="User does not have access to this collection"
+                )
+
+        return types.GetPromptResult(
+            description=matched_collection.collection.description,
+            messages=[
+                types.PromptMessage(
+                    role="user",
+                    content=types.TextContent(
+                        type="text",
+                        text=(
+                            matched_collection.collection.custom_prompt
+                            if matched_collection.collection.custom_prompt
+                            else ""
+                        ),
+                    ),
+                )
+            ],
+        )
+    except Exception:
+        return types.GetPromptResult(
+            description="Unknown exception occurred, no prompt found",
+            messages=[
+                types.PromptMessage(
+                    role="user",
+                    content=types.TextContent(type="text", text=""),
+                )
+            ],
+        )
 
 
 @mcp_server.list_prompts()
 async def list_prompts() -> list[types.Prompt]:
     """List available prompts."""
-    user_email = get_current_user()
+    try:
+        user_email = get_current_user()
 
-    logger.refresh_context()
-    logger.info("Listing prompts for user: {user_email}", user_email=user_email)
+        logger.refresh_context()
+        logger.info("Listing prompts for user: {user_email}", user_email=user_email)
 
-    with Session(config.get_database()) as session:
-        expression = (
-            select(Collection)
-            .join(UserCollection)
-            .join(User)
-            .where(User.email == user_email)
-        )
+        with Session(config.get_database()) as session:
+            expression = (
+                select(Collection)
+                .join(UserCollection)
+                .join(User)
+                .where(User.email == user_email)
+            )
 
-        collections = session.exec(expression).all()
+            collections = session.exec(expression).all()
 
-    return [
-        types.Prompt(
-            name=collection.slug,
-            description=collection.description,
-            arguments=[],
-        )
-        for collection in collections
-        if collection.custom_prompt is not None
-    ]
+        return [
+            types.Prompt(
+                name=collection.slug,
+                description=collection.description,
+                arguments=[],
+            )
+            for collection in collections
+            if collection.custom_prompt is not None
+        ]
+    except Exception:
+        return []
 
 
 @mcp_server.call_tool()
 async def call_tool(
     name: str, arguments: dict
 ) -> list[types.TextContent | types.ImageContent | types.EmbeddedResource]:
-    logger.refresh_context()
-    call_tool_start = datetime.now(UTC)
-    metric_writer.put_metric(
-        metric_name="tool_call_count",
-        value=1,
-        dimensions={
-            "tool_name": name,
-        },
-    )
+    try:
+        logger.refresh_context()
+        call_tool_start = datetime.now(UTC)
+        metric_writer.put_metric(
+            metric_name="tool_call_count",
+            value=1,
+            dimensions={
+                "tool_name": name,
+            },
+        )
 
-    user_email = get_current_user()
-    logger.info(
-        "Calling tool {name} with args {arguments} by user {user_email}",
-        name=name,
-        arguments=arguments,
-        user_email=user_email,
-    )
+        user_email = get_current_user()
+        logger.info(
+            "Calling tool {name} with args {arguments} by user {user_email}",
+            name=name,
+            arguments=arguments,
+            user_email=user_email,
+        )
 
-    with Session(config.get_database()) as session:
-        # Check if user is a member of this collection
-        statement = (
-            select(UserCollection)
-            .join(User)
-            .join(Collection)
-            .where(
-                User.email == user_email,
+        with Session(config.get_database()) as session:
+            # Check if user is a member of this collection
+            statement = (
+                select(UserCollection)
+                .join(User)
+                .join(Collection)
+                .where(
+                    User.email == user_email,
+                )
             )
-        )
-        user_collections = session.exec(statement).all()
-        matched_collection = next(
-            filter(
-                lambda user_collection: user_collection.collection.slug == name,
-                user_collections,
-            ),
-            None,
-        )
-        if not matched_collection:
-            raise HTTPException(
-                403, detail="User does not have access to this collection"
+            user_collections = session.exec(statement).all()
+            matched_collection = next(
+                filter(
+                    lambda user_collection: user_collection.collection.slug == name,
+                    user_collections,
+                ),
+                None,
             )
+            if not matched_collection:
+                raise HTTPException(
+                    403, detail="User does not have access to this collection"
+                )
 
-        documents = await search_collection(
-            matched_collection.collection_id,
-            query=arguments.get("query"),
-            keywords=arguments.get("keywords", []),
-            session=session,
+            documents = await search_collection(
+                matched_collection.collection_id,
+                query=arguments.get("query"),
+                keywords=arguments.get("keywords", []),
+                session=session,
+            )
+        tool_call_end = datetime.now(UTC)
+        timer_result_ms = (call_tool_start - tool_call_end).total_seconds() * 1000
+        metric_writer.put_metric(
+            metric_name="tool_call_duration_ms",
+            value=timer_result_ms,
+            dimensions={
+                "tool_name": name,
+            },
         )
-    tool_call_end = datetime.now(UTC)
-    timer_result_ms = (call_tool_start - tool_call_end).total_seconds() * 1000
-    metric_writer.put_metric(
-        metric_name="tool_call_duration_ms",
-        value=timer_result_ms,
-        dimensions={
-            "tool_name": name,
-        },
-    )
-    return [
-        types.TextContent(
-            type="text",
-            text=ToolResponse(documents=documents).model_dump_json(),
-        )
-    ]
+        return [
+            types.TextContent(
+                type="text",
+                text=ToolResponse(documents=documents).model_dump_json(),
+            )
+        ]
+    except Exception:
+        return []
 
 
 @mcp_server.list_tools()
 async def list_tools() -> list[types.Tool]:
-    user_email = get_current_user()
+    try:
+        user_email = get_current_user()
 
-    logger.refresh_context()
-    logger.info("Listing tools for user: {user_email}", user_email=user_email)
+        logger.refresh_context()
+        logger.info("Listing tools for user: {user_email}", user_email=user_email)
 
-    with Session(config.get_database()) as session:
-        expression = (
-            select(Collection)
-            .join(UserCollection)
-            .join(User)
-            .where(User.email == user_email)
-        )
+        with Session(config.get_database()) as session:
+            expression = (
+                select(Collection)
+                .join(UserCollection)
+                .join(User)
+                .where(User.email == user_email)
+            )
 
-        collections = session.exec(expression).all()
+            collections = session.exec(expression).all()
 
-    return [
-        types.Tool(
-            name=collection.slug,
-            description=collection.description,
-            inputSchema={
-                "type": "object",
-                "required": ["query"],
-                "properties": {
-                    "query": {
-                        "type": "string",
-                        "description": "what do you want to search for?",
-                    },
-                    "keywords": {
-                        "type": "array",
-                        "description": "- Extract 3-5 specific terms that capture key issues or needs"
-                        "- Include amounts, dates, or specific services mentioned"
-                        "- Focus on actionable terms that could help find relevant documents"
-                        "- Avoid generic words or category names",
-                        "items": {"type": "string"},
+        return [
+            types.Tool(
+                name=collection.slug,
+                description=collection.description,
+                inputSchema={
+                    "type": "object",
+                    "required": ["query"],
+                    "properties": {
+                        "query": {
+                            "type": "string",
+                            "description": "what do you want to search for?",
+                        },
+                        "keywords": {
+                            "type": "array",
+                            "description": "- Extract 3-5 specific terms that capture key issues or needs"
+                            "- Include amounts, dates, or specific services mentioned"
+                            "- Focus on actionable terms that could help find relevant documents"
+                            "- Avoid generic words or category names",
+                            "items": {"type": "string"},
+                        },
                     },
                 },
-            },
-            annotations={"title": f"Search {collection.name}"},
-        )
-        for collection in collections
-    ]
+                annotations={"title": f"Search {collection.name}"},
+            )
+            for collection in collections
+        ]
+    except Exception:
+        return []
 
 
 # Create the session manager with true stateless mode
