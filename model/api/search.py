@@ -4,6 +4,7 @@ from uuid import UUID
 
 from langchain_core.documents import Document
 from qdrant_client import models
+from qdrant_client.http.models import QueryResponse, SparseVector
 from sqlmodel import Session
 
 from api.environment import config
@@ -99,7 +100,7 @@ async def search_collection(
     query_filter.should = should_conditions
 
     async with config.get_qdrant_client() as client:
-        search_result = await client.query_points(
+        search_result: QueryResponse = await client.query_points(
             collection_name=config.qdrant_collection_name,
             prefetch=[
                 models.Prefetch(
@@ -108,7 +109,10 @@ async def search_collection(
                     filter=query_filter,
                 ),
                 models.Prefetch(
-                    query=sparse_query_vector,
+                    query=SparseVector(
+                        indices=sparse_query_vector.indices,
+                        values=sparse_query_vector.values,
+                    ),
                     using="text_sparse",
                     filter=query_filter,
                 ),
@@ -121,7 +125,7 @@ async def search_collection(
         )
 
     documents = []
-    for point in search_result:
+    for point in search_result.points:
         result_dict = {
             "id": point.id,
             "score": point.score,
