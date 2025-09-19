@@ -1,7 +1,7 @@
-import contextlib
 import os
 from collections.abc import AsyncGenerator
-from contextlib import contextmanager
+from contextlib import asynccontextmanager, contextmanager
+from functools import lru_cache
 
 from fastembed import SparseTextEmbedding
 from i_dot_ai_utilities.logging.structured_logger import StructuredLogger
@@ -62,7 +62,7 @@ class CaddyConfig:
 
         # asyncio.run(self.initialize_qdrant_collections())
 
-    @contextlib.asynccontextmanager
+    @asynccontextmanager
     async def get_qdrant_client(self) -> AsyncGenerator[AsyncQdrantClient]:
         """Gets an async Qdrant client from environment variables.
 
@@ -220,6 +220,7 @@ class CaddyConfig:
         )
 
     @staticmethod
+    @lru_cache
     def get_embedding_handler() -> SparseTextEmbedding:
         # Using the following embedding model because it has a defined vocabulary size
         return SparseTextEmbedding(model_name="Qdrant/bm42-all-minilm-l6-v2-attentions")
