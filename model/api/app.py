@@ -40,6 +40,8 @@ async def lifespan(
         logger.info("Application started with StreamableHTTP session manager!")
 
         try:
+            with config.get_qdrant_client() as _:
+                logger.info("Qdrant successfully connected")
             await config.initialize_qdrant_collections()
             engine = db_client
             with engine.connect() as connection:
