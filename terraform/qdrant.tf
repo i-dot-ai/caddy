@@ -107,14 +107,3 @@ module "qdrant-alb-alarm" {
   target_group                 = module.qdrant.aws_lb_target_group_name
   sns_topic_arn                = [module.sns_topic.sns_topic_arn]
 }
-
-# Allow backend to connect to Qdrant internally
-# resource "aws_security_group_rule" "backend_to_qdrant" {
-#   type                     = "ingress"
-#   from_port                = local.qdrant_port
-#   to_port                  = local.qdrant_port
-#   protocol                 = "tcp"
-#   source_security_group_id = module.model.ecs_sg_id
-#   security_group_id        = module.qdrant.ecs_sg_id
-#   description              = "Allow backend to connect to Qdrant internally"
-# }
