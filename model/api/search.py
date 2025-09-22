@@ -92,12 +92,14 @@ async def search_collection(
     should_conditions = []
     if keywords:
         for kw in keywords:
-            should_conditions.extend(
+            should_conditions.append(
                 models.FieldCondition(key="text", match=models.MatchText(text=kw))
             )
 
-    query_filter = models.Filter(must=must_conditions) if must_conditions else None
-    query_filter.should = should_conditions
+    query_filter = models.Filter(
+        must=must_conditions if must_conditions else None,
+        should=should_conditions if should_conditions else None,
+    )
 
     async with config.get_qdrant_client() as client:
         search_result: QueryResponse = await client.query_points(
