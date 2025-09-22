@@ -1,9 +1,7 @@
 """Ensure textchunks are in qdrant
-
 Revision ID: 37b0cb83d755
 Revises: 340fc40a6965
 Create Date: 2025-09-12 11:15:36.338102
-
 """
 
 import asyncio

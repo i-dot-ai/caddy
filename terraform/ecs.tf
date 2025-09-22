@@ -52,7 +52,8 @@ module "model" {
     "PORT" : local.backend_port,
     "REPO" : "caddy",
     "AWS_ACCOUNT_ID": var.account_id,
-    "GIT_SHA": var.image_tag
+    "GIT_SHA": var.image_tag,
+    "QDRANT_URL": "http://${aws_service_discovery_service.service_discovery_service.name}.${aws_service_discovery_private_dns_namespace.private_dns_namespace.name}:${local.qdrant_port}"
   }
 
   secrets = [
