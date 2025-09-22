@@ -42,6 +42,7 @@ async def lifespan(
         try:
             with config.get_qdrant_client() as _:
                 logger.info("Qdrant successfully connected")
+                exit(0)
             await config.initialize_qdrant_collections()
             engine = db_client
             with engine.connect() as connection:
