@@ -50,10 +50,9 @@ async def lifespan(
             raise RuntimeError(f"Failed to connect to qdrant: {e}")
         else:
             logger.info("Qdrant successfully connected")
-            exit(0)
+            await config.initialize_qdrant_collections()
 
         try:
-            await config.initialize_qdrant_collections()
             engine = db_client
             with engine.connect() as connection:
                 connection.execute(text("SELECT 1"))
