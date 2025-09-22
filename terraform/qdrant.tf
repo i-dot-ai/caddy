@@ -21,15 +21,27 @@ module "qdrant" {
   aws_lb_arn                   = module.load_balancer.alb_arn
   ecs_cluster_id               = data.terraform_remote_state.platform.outputs.ecs_cluster_id
   ecs_cluster_name             = data.terraform_remote_state.platform.outputs.ecs_cluster_name
-  create_listener              = true
+  https_listener_arn           = data.aws_lb_listener.lb_listener_443.arn
   certificate_arn              = data.terraform_remote_state.universal.outputs.certificate_arn
   target_group_name_override   = "caddy-qdrant-${var.env}-tg"
   permissions_boundary_name    = "infra/i-dot-ai-${var.env}-caddy-perms-boundary-app"
   container_port               = local.qdrant_port
 
+  service_discovery_service_arn = aws_service_discovery_service.service_discovery_service.arn
+  create_networking = true
+  create_listener = false
+
   # Resource allocation for Qdrant - sized for millions of documents
   memory = 4096
   cpu    = 2048
+
+    additional_security_group_ingress = [
+    {
+      purpose          = "Backend to qdrant container port"
+      port             = local.qdrant_port
+      additional_sg_id = module.model.ecs_sg_id
+    }
+  ]
 
   desired_app_count          = 1
   autoscaling_minimum_target = 1
@@ -69,7 +81,7 @@ module "qdrant" {
 
   health_check = {
     accepted_response   = 200
-    path                = "/readyz"
+    path                = "/healthz"
     interval            = 30
     timeout             = 5
     healthy_threshold   = 2
@@ -97,12 +109,12 @@ module "qdrant-alb-alarm" {
 }
 
 # Allow backend to connect to Qdrant internally
-resource "aws_security_group_rule" "backend_to_qdrant" {
-  type                     = "ingress"
-  from_port                = local.qdrant_port
-  to_port                  = local.qdrant_port
-  protocol                 = "tcp"
-  source_security_group_id = module.model.ecs_sg_id
-  security_group_id        = module.qdrant.ecs_sg_id
-  description              = "Allow backend to connect to Qdrant internally"
-}
+# resource "aws_security_group_rule" "backend_to_qdrant" {
+#   type                     = "ingress"
+#   from_port                = local.qdrant_port
+#   to_port                  = local.qdrant_port
+#   protocol                 = "tcp"
+#   source_security_group_id = module.model.ecs_sg_id
+#   security_group_id        = module.qdrant.ecs_sg_id
+#   description              = "Allow backend to connect to Qdrant internally"
+# }
