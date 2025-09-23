@@ -67,8 +67,14 @@ interface Collections {
 
 export const getCollections = async(keycloakToken: string | null) => {
   const { json, error } = await makeRequest('/collections', keycloakToken);
-  const collectionsData = (json as unknown as Collections) || { collections: [], is_admin: false };
+  const defaultResponse = { collections: [], is_admin: false };
 
+  if (!Array.isArray(json.collections)) {
+    console.error('getCollections response in unknown format', json);
+    return defaultResponse;
+  }
+
+  const collectionsData = (json as unknown as Collections) || defaultResponse;
   return { collectionsData, error };
 };
 
