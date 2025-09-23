@@ -312,6 +312,12 @@ def get_collections(
     #     )
     #     raise HTTPException(status_code=e.error_code, detail=e.message)
     else:
+        collection_ids = (
+            [collection.id for collection in result.collections]
+            if result.collections
+            else []
+        )
+        logger.info("Returning collections {ids}", ids=collection_ids)
         return result
 
 
