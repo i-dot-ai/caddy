@@ -303,11 +303,14 @@ def get_collections(
     try:
         __set_logger_context(logger, user)
         result = get_user_collections(user, session, logger, page, page_size)
-    except NoPermissionException as e:
-        logger.info(
-            "exception occurred getting collections. {message}", message=e.message
-        )
-        raise HTTPException(status_code=e.error_code, detail=e.message)
+    except Exception as e:
+        logger.exception("Exception occurred getting collections")
+        raise HTTPException(detail=str(e))
+    # except NoPermissionException as e:
+    #     logger.info(
+    #         "exception occurred getting collections. {message}", message=e.message
+    #     )
+    #     raise HTTPException(status_code=e.error_code, detail=e.message)
     else:
         return result
 
