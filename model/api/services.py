@@ -272,57 +272,60 @@ def get_user_collections(
     page: int = 1,
     page_size: int = 10,
 ) -> CollectionsDto:
-    user_is_admin = is_user_admin_user(user) or user.is_admin
-    where_clauses = (
-        [UserCollection.user_id == user.id] if user and not user.is_admin else []
-    )
-
-    statement = (
-        select(Collection)
-        .join(UserCollection, isouter=True)
-        .where(*where_clauses)
-        .distinct()
-        .order_by(Collection.name)
-        .offset(page_size * (page - 1))
-        .limit(page_size)
-    )
-    count_statement = select(func.count(Collection.id))
-    query_results = session.exec(statement).all()
-
-    # Build collections based on previous statements
-
-    collections = []
-    for collection in query_results:
-        permissions = get_collection_permissions_for_user(user, collection, session)
-        if CollectionPermissionEnum.VIEW not in permissions:
-            logger.error(
-                "User {user_email} does not have permission to view {collection}",
-                user_email=str(user),
-                collection=collection.id,
-            )
-            raise NoPermissionException(
-                error_code=401, message="Failed to retrieve available collections"
-            )
-        collections.append(
-            CollectionDto(
-                id=collection.id,
-                name=collection.name,
-                description=collection.description,
-                created_at=collection.created_at,
-                permissions=permissions,
-                custom_prompt=collection.custom_prompt,
-            )
+    try:
+        user_is_admin = is_user_admin_user(user) or user.is_admin
+        where_clauses = (
+            [UserCollection.user_id == user.id] if user and not user.is_admin else []
         )
 
-    total = session.exec(count_statement).one()
+        statement = (
+            select(Collection)
+            .join(UserCollection, isouter=True)
+            .where(*where_clauses)
+            .distinct()
+            .order_by(Collection.name)
+            .offset(page_size * (page - 1))
+            .limit(page_size)
+        )
+        count_statement = select(func.count(Collection.id))
+        query_results = session.exec(statement).all()
 
-    return CollectionsDto(
-        total=total,
-        page=page,
-        page_size=page_size,
-        collections=collections,
-        is_admin=user_is_admin,
-    )
+        # Build collections based on previous statements
+
+        collections = []
+        for collection in query_results:
+            permissions = get_collection_permissions_for_user(user, collection, session)
+            if CollectionPermissionEnum.VIEW not in permissions:
+                logger.error(
+                    "User {user_email} does not have permission to view {collection}",
+                    user_email=str(user),
+                    collection=collection.id,
+                )
+                raise NoPermissionException(
+                    error_code=401, message="Failed to retrieve available collections"
+                )
+            collections.append(
+                CollectionDto(
+                    id=collection.id,
+                    name=collection.name,
+                    description=collection.description,
+                    created_at=collection.created_at,
+                    permissions=permissions,
+                    custom_prompt=collection.custom_prompt,
+                )
+            )
+
+        total = session.exec(count_statement).one()
+
+        return CollectionsDto(
+            total=total,
+            page=page,
+            page_size=page_size,
+            collections=collections,
+            is_admin=user_is_admin,
+        )
+    except Exception:
+        raise
 
 
 def update_collection_by_id(
