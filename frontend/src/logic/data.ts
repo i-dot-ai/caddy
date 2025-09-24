@@ -82,6 +82,7 @@ export const getCollections = async(keycloakToken: string | null) => {
 
 export const getCollection = async(collectionId: string, keycloakToken: string | null) => {
   let { collectionsData, error } = await getCollections(keycloakToken); /* eslint prefer-const: "off" */
+  console.log(collectionsData);
   const collection = collectionsData.collections.find((item: Collection) => item.id === collectionId) as Collection;
   if (typeof collection === 'undefined') {
     error = 'Collection not found';
@@ -149,6 +150,7 @@ interface ResourceList {
 }
 export const getResources = async(collectionId: string, page: number, itemsPerPage: number, keycloakToken: string | null) => {
   const { json } = await makeRequest(`/collections/${collectionId}/resources?page=${page}&page_size=${itemsPerPage}`, keycloakToken);
+  console.log(json);
   return json as unknown as ResourceList;
 };
 
