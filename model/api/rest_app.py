@@ -74,11 +74,30 @@ def get_collection_resources(
             user, session, collection_id, logger, page_size, page
         )
     except (NoPermissionException, ItemNotFoundException) as e:
+        logger.exception(
+            "An exception occurred getting collection resources {message}",
+            message=str(e),
+        )
         raise HTTPException(
             status_code=e.error_code,
             detail=e.message,
         )
+    except Exception as e:
+        logger.exception(
+            "An exception occurred getting collection resources {message}",
+            message=str(e),
+        )
+        raise HTTPException(
+            status_code=500,
+            detail=str(e),
+        )
     else:
+        resource_ids = [resource.id for resource in result.resources]
+        logger.info(
+            "Resources {resource_ids} retrieved for collection {collection_id}",
+            resource_ids=resource_ids,
+            collection_id=collection_id,
+        )
         return result
 
 
