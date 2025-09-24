@@ -28,7 +28,7 @@ def get_current_user(
         tuple[User, StructuredLogger]: The user matching the username in the token and the logger
     """
 
-    logger.debug("Authorization header {authorization}", authorization=authorization)
+    logger.info("Authorization header {authorization}", authorization=authorization)
 
     if not authorization:
         logger.info("No token header found in get_current_user")
