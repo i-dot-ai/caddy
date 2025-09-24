@@ -146,77 +146,82 @@ def get_resources_by_collection_id(
     page_size: int = 10,
     page: int = 1,
 ) -> CollectionResources:
-    if collection := session.get(Collection, collection_id):
-        check_user_is_member_of_collection(
-            user,
-            collection.id,
-            session,
-            is_manager_of_collection=False,
-            struct_logger=logger,
-        )
-        permissions = get_collection_permissions_for_user(user, collection, session)
-        if permissions is None or CollectionPermissionEnum.VIEW not in permissions:
-            raise NoPermissionException(
-                "No permission to view resources on this collection", 401
+    try:
+        if collection := session.get(Collection, collection_id):
+            check_user_is_member_of_collection(
+                user,
+                collection.id,
+                session,
+                is_manager_of_collection=False,
+                struct_logger=logger,
             )
-        resources_statement = (
-            select(Resource)
-            .where(Resource.collection_id == collection.id)
-            .order_by(Resource.filename)
-            .offset(page_size * (page - 1))
-            .limit(page_size)
-        )
-        resources = session.exec(resources_statement).all()
-
-        count_statement = select(func.count(Resource.id)).where(
-            Resource.collection_id == collection.id
-        )
-        total = session.scalar(count_statement)
-
-        logger.info(
-            "Retrieved collection {collection_id} resources ({resource_count}) for user {user_email}",
-            collection_id=collection.id,
-            resource_count=total,
-            user_email=str(user),
-        )
-
-        if session.get(
-            UserCollection, {"collection_id": collection_id, "user_id": user.id}
-        ):
-            use_file_name = True
-        else:
-            use_file_name = False
-
-        resource_dtos = []
-        for resource in resources:
-            resource = Resource.model_validate(resource)
-            resource_dtos.append(
-                ResourceDto(
-                    id=resource.id,
-                    filename=resource.filename if use_file_name else str(resource.id),
-                    created_at=resource.created_at,
-                    content_type=resource.content_type,
-                    permissions=get_resource_permissions_for_user(
-                        user, resource, session
-                    ),
-                    url=resource.url,
-                    is_processed=resource.is_processed,
-                    process_error=resource.process_error,
-                    process_time=resource.process_time,
-                    created_by_id=resource.created_by_id,
-                    collection_id=resource.collection_id,
+            permissions = get_collection_permissions_for_user(user, collection, session)
+            if permissions is None or CollectionPermissionEnum.VIEW not in permissions:
+                raise NoPermissionException(
+                    "No permission to view resources on this collection", 401
                 )
+            resources_statement = (
+                select(Resource)
+                .where(Resource.collection_id == collection.id)
+                .order_by(Resource.filename)
+                .offset(page_size * (page - 1))
+                .limit(page_size)
+            )
+            resources = session.exec(resources_statement).all()
+
+            count_statement = select(func.count(Resource.id)).where(
+                Resource.collection_id == collection.id
+            )
+            total = session.scalar(count_statement)
+
+            logger.info(
+                "Retrieved collection {collection_id} resources ({resource_count}) for user {user_email}",
+                collection_id=collection.id,
+                resource_count=total,
+                user_email=str(user),
             )
 
-        return CollectionResources(
-            collection_id=collection.id,
-            page=page,
-            total=total,
-            page_size=page_size,
-            resources=resource_dtos,
-        )
-    else:
-        raise ItemNotFoundException("Collection not found", 403)
+            if session.get(
+                UserCollection, {"collection_id": collection_id, "user_id": user.id}
+            ):
+                use_file_name = True
+            else:
+                use_file_name = False
+
+            resource_dtos = []
+            for resource in resources:
+                resource = Resource.model_validate(resource)
+                resource_dtos.append(
+                    ResourceDto(
+                        id=resource.id,
+                        filename=resource.filename
+                        if use_file_name
+                        else str(resource.id),
+                        created_at=resource.created_at,
+                        content_type=resource.content_type,
+                        permissions=get_resource_permissions_for_user(
+                            user, resource, session
+                        ),
+                        url=resource.url,
+                        is_processed=resource.is_processed,
+                        process_error=resource.process_error,
+                        process_time=resource.process_time,
+                        created_by_id=resource.created_by_id,
+                        collection_id=resource.collection_id,
+                    )
+                )
+
+            return CollectionResources(
+                collection_id=collection.id,
+                page=page,
+                total=total,
+                page_size=page_size,
+                resources=resource_dtos,
+            )
+        else:
+            raise ItemNotFoundException("Collection not found", 403)
+    except Exception:
+        raise
 
 
 def create_new_collection(
