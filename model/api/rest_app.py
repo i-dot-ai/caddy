@@ -59,7 +59,7 @@ def __set_logger_context(logger: StructuredLogger, user: User):
 @router.get(
     "/collections/{collection_id}/resources", status_code=200, tags=["collections"]
 )
-async def get_collection_resources(
+def get_collection_resources(
     collection_id: UUID,
     session: Annotated[Session, Depends(get_session)],
     user: Annotated[User, Depends(get_current_user)],
