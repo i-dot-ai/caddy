@@ -42,7 +42,7 @@ async def lifespan(
 
         try:
             client: QdrantClient
-            async with config.get_qdrant_client() as client:
+            with config.get_qdrant_client() as client:
                 client.info()
                 client.collection_exists(config.qdrant_collection_name)
         except Exception as e:
