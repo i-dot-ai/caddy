@@ -42,7 +42,7 @@ async def lifespan(
 
         try:
             client: QdrantClient
-            with config.get_sync_qdrant_client() as client:
+            async with config.get_qdrant_client() as client:
                 client.info()
                 client.collection_exists(config.qdrant_collection_name)
         except Exception as e:
@@ -51,20 +51,19 @@ async def lifespan(
         else:
             logger.info("Qdrant successfully connected")
             await config.initialize_qdrant_collections()
-
-        try:
-            engine = db_client
-            with engine.connect() as connection:
-                connection.execute(text("SELECT 1"))
-            logger.info("Database connection validated successfully!")
-        except Exception as e:
-            logger.exception("Database connection validation failed")
-            raise RuntimeError(f"Failed to connect to database: {e}")
-
-        try:
-            yield
-        finally:
-            logger.info("Application shutting down...")
+            try:
+                engine = db_client
+                with engine.connect() as connection:
+                    connection.execute(text("SELECT 1"))
+                logger.info("Database connection validated successfully!")
+            except Exception as e:
+                logger.exception("Database connection validation failed")
+                raise RuntimeError(f"Failed to connect to database: {e}")
+            else:
+                try:
+                    yield
+                finally:
+                    logger.info("Application shutting down...")
 
 
 app = FastAPI(
