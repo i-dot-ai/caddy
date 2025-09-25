@@ -62,14 +62,12 @@ class CaddyConfig:
         self._qdrant_client: AsyncQdrantClient | None = None
 
     async def get_qdrant_client(self) -> AsyncQdrantClient:
-        """Get or create a persistent Qdrant client with connection pooling."""
+        """Get or create a persistent Qdrant client."""
         if self._qdrant_client is None:
             self._qdrant_client = AsyncQdrantClient(
                 url=self.qdrant_url,
                 api_key=self.qdrant__service__api_key,
                 timeout=60,
-                pool_size=10,
-                retries=3,
             )
         return self._qdrant_client
 
