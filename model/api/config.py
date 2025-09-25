@@ -107,85 +107,85 @@ class CaddyConfig:
 
     async def _collection_exists(self, collection_name: str) -> bool:
         """Checks if a collection exists in Qdrant."""
-        async with self.get_qdrant_client() as client:
-            return await client.collection_exists(collection_name)
+        client = await self.get_qdrant_client()
+        return await client.collection_exists(collection_name)
 
     async def _create_collection_if_none(self) -> None:
         """Create Qdrant collection if it doesn't exist."""
         distance = models.Distance.DOT
         logger = self.get_logger(__name__)
-        async with self.get_qdrant_client() as client:
-            if not await self._collection_exists(self.qdrant_collection_name):
-                await client.create_collection(
-                    collection_name=self.qdrant_collection_name,
-                    vectors_config={
-                        "text_dense": models.VectorParams(
-                            size=1024,
-                            distance=distance,
-                        ),
-                    },
-                    sparse_vectors_config={
-                        "text_sparse": {
-                            "index": models.SparseIndexParams(),
-                            "modifier": models.Modifier.IDF,
-                        },
-                    },
-                    quantization_config=models.ScalarQuantization(
-                        scalar=models.ScalarQuantizationConfig(
-                            type=models.ScalarType.INT8,
-                            always_ram=True,
-                        )
+        client = await self.get_qdrant_client()
+        if not await self._collection_exists(self.qdrant_collection_name):
+            await client.create_collection(
+                collection_name=self.qdrant_collection_name,
+                vectors_config={
+                    "text_dense": models.VectorParams(
+                        size=1024,
+                        distance=distance,
                     ),
-                )
+                },
+                sparse_vectors_config={
+                    "text_sparse": {
+                        "index": models.SparseIndexParams(),
+                        "modifier": models.Modifier.IDF,
+                    },
+                },
+                quantization_config=models.ScalarQuantization(
+                    scalar=models.ScalarQuantizationConfig(
+                        type=models.ScalarType.INT8,
+                        always_ram=True,
+                    )
+                ),
+            )
 
-                # Add index for text search
-                await client.create_payload_index(
-                    collection_name=self.qdrant_collection_name,
-                    field_name="text",
-                    field_schema=models.TextIndexParams(
-                        type=TextIndexType.TEXT,
-                        tokenizer=models.TokenizerType.WORD,
-                        stemmer=models.SnowballParams(
-                            type=models.Snowball.SNOWBALL,
-                            language=models.SnowballLanguage.ENGLISH,
-                        ),
-                        stopwords=models.StopwordsSet(
-                            languages=[
-                                models.Language.ENGLISH,
-                            ],
-                        ),
-                        min_token_len=2,
-                        max_token_len=10,
-                        lowercase=True,
+            # Add index for text search
+            await client.create_payload_index(
+                collection_name=self.qdrant_collection_name,
+                field_name="text",
+                field_schema=models.TextIndexParams(
+                    type=TextIndexType.TEXT,
+                    tokenizer=models.TokenizerType.WORD,
+                    stemmer=models.SnowballParams(
+                        type=models.Snowball.SNOWBALL,
+                        language=models.SnowballLanguage.ENGLISH,
                     ),
-                )
+                    stopwords=models.StopwordsSet(
+                        languages=[
+                            models.Language.ENGLISH,
+                        ],
+                    ),
+                    min_token_len=2,
+                    max_token_len=10,
+                    lowercase=True,
+                ),
+            )
 
-                # Add indexes for collection, resource and chunk IDs
-                await client.create_payload_index(
-                    collection_name=self.qdrant_collection_name,
-                    field_name="collection_id",
-                    field_schema="keyword",
-                )
-                await client.create_payload_index(
-                    collection_name=self.qdrant_collection_name,
-                    field_name="resource_id",
-                    field_schema="keyword",
-                )
-                await client.create_payload_index(
-                    collection_name=self.qdrant_collection_name,
-                    field_name="chunk_id",
-                    field_schema="keyword",
-                )
+            # Add indexes for collection, resource and chunk IDs
+            await client.create_payload_index(
+                collection_name=self.qdrant_collection_name,
+                field_name="collection_id",
+                field_schema="keyword",
+            )
+            await client.create_payload_index(
+                collection_name=self.qdrant_collection_name,
+                field_name="resource_id",
+                field_schema="keyword",
+            )
+            await client.create_payload_index(
+                collection_name=self.qdrant_collection_name,
+                field_name="chunk_id",
+                field_schema="keyword",
+            )
 
-                logger.info(
-                    "Created collection and indexes for - {collection_name}",
-                    collection_name=self.qdrant_collection_name,
-                )
-            else:
-                logger.info(
-                    "Collection already exists - {collection_name}",
-                    collection_name=self.qdrant_collection_name,
-                )
+            logger.info(
+                "Created collection and indexes for - {collection_name}",
+                collection_name=self.qdrant_collection_name,
+            )
+        else:
+            logger.info(
+                "Collection already exists - {collection_name}",
+                collection_name=self.qdrant_collection_name,
+            )
 
     def get_database(self):
         return create_engine(self.sqlalchemy_url)

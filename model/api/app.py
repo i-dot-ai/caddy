@@ -8,7 +8,6 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import JSONResponse
 from langchain.schema import Document
-from qdrant_client import QdrantClient
 from sqlalchemy import text
 from sqlmodel import Session, select
 from starlette.applications import Starlette
@@ -41,10 +40,9 @@ async def lifespan(
         logger.info("Application started with StreamableHTTP session manager!")
 
         try:
-            client: QdrantClient
-            with config.get_sync_qdrant_client() as client:
-                client.info()
-                client.collection_exists(config.qdrant_collection_name)
+            client = await config.get_qdrant_client()
+            await client.get_collections()
+            await client.collection_exists(config.qdrant_collection_name)
         except Exception as e:
             logger.exception("Qdrant connection validation failed")
             raise RuntimeError(f"Failed to connect to qdrant: {e}")
