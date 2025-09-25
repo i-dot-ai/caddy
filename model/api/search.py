@@ -100,31 +100,30 @@ async def search_collection(
         must=must_conditions if must_conditions else None,
         should=should_conditions if should_conditions else None,
     )
-
-    async with config.get_qdrant_client() as client:
-        search_result: QueryResponse = await client.query_points(
-            collection_name=config.qdrant_collection_name,
-            prefetch=[
-                models.Prefetch(
-                    query=dense_query_vector,
-                    using="text_dense",
-                    filter=query_filter,
-                ),
-                models.Prefetch(
-                    query=SparseVector(
-                        indices=sparse_query_vector.indices,
-                        values=sparse_query_vector.values,
-                    ),
-                    using="text_sparse",
-                    filter=query_filter,
-                ),
-            ],
-            query=models.FusionQuery(
-                fusion=models.Fusion.RRF,
+    client = await config.get_qdrant_client()
+    search_result: QueryResponse = await client.query_points(
+        collection_name=config.qdrant_collection_name,
+        prefetch=[
+            models.Prefetch(
+                query=dense_query_vector,
+                using="text_dense",
+                filter=query_filter,
             ),
-            score_threshold=None,
-            with_payload=True,
-        )
+            models.Prefetch(
+                query=SparseVector(
+                    indices=sparse_query_vector.indices,
+                    values=sparse_query_vector.values,
+                ),
+                using="text_sparse",
+                filter=query_filter,
+            ),
+        ],
+        query=models.FusionQuery(
+            fusion=models.Fusion.RRF,
+        ),
+        score_threshold=None,
+        with_payload=True,
+    )
 
     documents = []
     for point in search_result.points:

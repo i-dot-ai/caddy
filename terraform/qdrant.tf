@@ -28,14 +28,14 @@ module "qdrant" {
   container_port               = local.qdrant_port
 
   service_discovery_service_arn = aws_service_discovery_service.service_discovery_service.arn
-  create_networking = true
+  create_networking = false
   create_listener = false
 
   # Resource allocation for Qdrant - sized for millions of documents
   memory = 4096
   cpu    = 2048
 
-    additional_security_group_ingress = [
+  additional_security_group_ingress = [
     {
       purpose          = "Backend to qdrant container port"
       port             = local.qdrant_port

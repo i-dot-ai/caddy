@@ -1,6 +1,5 @@
 import os
-from collections.abc import AsyncGenerator
-from contextlib import asynccontextmanager, contextmanager
+from contextlib import contextmanager
 from functools import lru_cache
 
 from fastembed import SparseTextEmbedding
@@ -60,24 +59,25 @@ class CaddyConfig:
             ):
                 self.s3_client.create_bucket(Bucket=self.data_s3_bucket)
 
-        # asyncio.run(self.initialize_qdrant_collections())
+        self._qdrant_client: AsyncQdrantClient | None = None
 
-    @asynccontextmanager
-    async def get_qdrant_client(self) -> AsyncGenerator[AsyncQdrantClient]:
-        """Gets an async Qdrant client from environment variables.
+    async def get_qdrant_client(self) -> AsyncQdrantClient:
+        """Get or create a persistent Qdrant client with connection pooling."""
+        if self._qdrant_client is None:
+            self._qdrant_client = AsyncQdrantClient(
+                url=self.qdrant_url,
+                api_key=self.qdrant__service__api_key,
+                timeout=60,
+                pool_size=10,
+                retries=3,
+            )
+        return self._qdrant_client
 
-        Supports both cloud (via API key) and local connections.
-        """
-        logger = self.get_logger(__name__)
-        logger.info("Connecting to Qdrant at {qdrant_url}", qdrant_url=self.qdrant_url)
-        client = AsyncQdrantClient(
-            url=self.qdrant_url, api_key=self.qdrant__service__api_key, timeout=30
-        )
-
-        try:
-            yield client
-        finally:
-            await client.close()
+    async def close_qdrant_client(self):
+        """Clean up Qdrant client on shutdown."""
+        if self._qdrant_client:
+            await self._qdrant_client.close()
+            self._qdrant_client = None
 
     @contextmanager
     def get_sync_qdrant_client(self) -> QdrantClient:

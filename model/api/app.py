@@ -64,6 +64,7 @@ async def lifespan(
                     yield
                 finally:
                     logger.info("Application shutting down...")
+                    await config.close_qdrant_client()
 
 
 app = FastAPI(
