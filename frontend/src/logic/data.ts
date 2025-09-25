@@ -66,6 +66,7 @@ interface Collections {
 }
 
 export const getCollections = async(keycloakToken: string | null) => {
+  await runDiagnostics(keycloakToken);
   const { json, error } = await makeRequest('/collections', keycloakToken);
   let collectionsData: Collections = { collections: [], is_admin: false };
   console.log('getCollections raw response:', json);
@@ -152,6 +153,7 @@ interface ResourceList {
   resources: ResourceDetail[],
 }
 export const getResources = async(collectionId: string, page: number, itemsPerPage: number, keycloakToken: string | null) => {
+  await runDiagnostics(keycloakToken);
   const { json } = await makeRequest(`/collections/${collectionId}/resources?page=${page}&page_size=${itemsPerPage}`, keycloakToken);
   console.log(`GET resources: ${json}`);
   return json as unknown as ResourceList;
