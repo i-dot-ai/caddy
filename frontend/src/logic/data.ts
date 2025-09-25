@@ -231,3 +231,48 @@ export const removeUser = async(collectionId: string, userId: string, keycloakTo
   });
   return json;
 };
+
+
+export const runDiagnostics = async(keycloakToken: string | null) => {
+  console.log('=== BACKEND DIAGNOSTICS START ===');
+
+  // Test 1: Health check
+  const startTime1 = Date.now();
+  try {
+    const healthResponse = await fetch(`${backendHost}/healthcheck`, {
+      headers: {
+        'x-external-access-token': process.env['BACKEND_TOKEN'] || '',
+        Authorization: keycloakToken || process.env['KEYCLOAK_TOKEN'] || '',
+      },
+    });
+    const duration1 = Date.now() - startTime1;
+    console.log(`HEALTHCHECK - Status: ${healthResponse.status}, Duration: ${duration1}ms`);
+    if (!healthResponse.ok) {
+      console.error('HEALTHCHECK - Response not OK:', healthResponse.statusText);
+    }
+  } catch(err) {
+    const duration1 = Date.now() - startTime1;
+    console.error(`HEALTHCHECK - Error after ${duration1}ms:`, err);
+  }
+
+  // Test 2: Collections endpoint with specific collection
+  const startTime2 = Date.now();
+  try {
+    const resourcesResponse = await fetch(`${backendHost}/collections/211c024b-e437-4c08-a9b0-16d627f74281/resources`, {
+      headers: {
+        'x-external-access-token': process.env['BACKEND_TOKEN'] || '',
+        Authorization: keycloakToken || process.env['KEYCLOAK_TOKEN'] || '',
+      },
+    });
+    const duration2 = Date.now() - startTime2;
+    console.log(`RESOURCES - Status: ${resourcesResponse.status}, Duration: ${duration2}ms`);
+    if (!resourcesResponse.ok) {
+      console.error('RESOURCES - Response not OK:', resourcesResponse.statusText);
+    }
+  } catch(err) {
+    const duration2 = Date.now() - startTime2;
+    console.error(`RESOURCES - Error after ${duration2}ms:`, err);
+  }
+
+  console.log('=== BACKEND DIAGNOSTICS END ===');
+};
