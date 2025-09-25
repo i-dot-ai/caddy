@@ -32,16 +32,19 @@ async def cleanup_opensearch_per_test():
     """Clean up qdrant documents after each test"""
     yield
     # Delete all documents from the test index
-    async with config.get_qdrant_client() as qdrant_client:
-        await qdrant_client.delete(
-            collection_name=config.qdrant_collection_name,
-            points_selector=models.FilterSelector(filter=models.Filter(must=[])),
-        )
+    qdrant_client = await config.get_qdrant_client()
+    await qdrant_client.delete(
+        collection_name=config.qdrant_collection_name,
+        points_selector=models.FilterSelector(filter=models.Filter(must=[])),
+    )
 
 
 @pytest_asyncio.fixture(scope="session", autouse=True)
 async def setup_qdrant_collection():
     await config.initialize_qdrant_collections()
+    yield
+    # Clean up the persistent client at the end of test session
+    await config.close_qdrant_client()
 
 
 @pytest.fixture(scope="session", autouse=True)
