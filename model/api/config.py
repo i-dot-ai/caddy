@@ -123,10 +123,10 @@ class CaddyConfig:
                     ),
                 },
                 sparse_vectors_config={
-                    "text_sparse": {
-                        "index": models.SparseIndexParams(),
-                        "modifier": models.Modifier.IDF,
-                    },
+                    "text_sparse": models.SparseVectorParams(
+                        index=models.SparseIndexParams(),
+                        modifier=models.Modifier.IDF,
+                    ),
                 },
                 quantization_config=models.ScalarQuantization(
                     scalar=models.ScalarQuantizationConfig(
