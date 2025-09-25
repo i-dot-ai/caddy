@@ -292,8 +292,14 @@ def get_user_collections(
             .offset(page_size * (page - 1))
             .limit(page_size)
         )
-        count_statement = select(func.count(Collection.id))
+        count_statement = (
+            select(func.count(Collection.id))
+            .join(UserCollection, isouter=True)
+            .where(*where_clauses)
+            .distinct()
+        )
         query_results = session.exec(statement).all()
+        logger.info("Found {count} collections from query", count=len(query_results))
 
         # Build collections based on previous statements
 

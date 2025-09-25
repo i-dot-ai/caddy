@@ -321,9 +321,13 @@ def get_collections(
     """
     try:
         __set_logger_context(logger, user)
+        logger.info("Getting collections for user {user_email}", user_email=str(user))
         result = get_user_collections(user, session, logger, page, page_size)
+        logger.info("Successfully got collections: {count} total", count=result.total)
     except Exception as e:
-        logger.exception("Exception occurred getting collections")
+        logger.exception(
+            "Exception occurred getting collections: {error}", error=str(e)
+        )
         raise HTTPException(status_code=500, detail=str(e))
     # except NoPermissionException as e:
     #     logger.info(

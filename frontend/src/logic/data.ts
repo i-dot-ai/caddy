@@ -68,12 +68,15 @@ interface Collections {
 export const getCollections = async(keycloakToken: string | null) => {
   const { json, error } = await makeRequest('/collections', keycloakToken);
   let collectionsData: Collections = { collections: [], is_admin: false };
-  console.log(json);
+  console.log('getCollections raw response:', json);
+  console.log('getCollections error:', error);
 
   if (Array.isArray(json.collections)) {
     collectionsData = json as unknown as Collections;
   } else {
     console.error('getCollections response in unknown format', json);
+    console.error('typeof json:', typeof json);
+    console.error('Object.keys(json):', Object.keys(json));
   }
 
   return { collectionsData, error };
@@ -82,7 +85,7 @@ export const getCollections = async(keycloakToken: string | null) => {
 
 export const getCollection = async(collectionId: string, keycloakToken: string | null) => {
   let { collectionsData, error } = await getCollections(keycloakToken); /* eslint prefer-const: "off" */
-  console.log(`GET collections ${collectionsData}`);
+  // console.log(`GET collections ${collectionsData}`);
   const collection = collectionsData.collections.find((item: Collection) => item.id === collectionId) as Collection;
   if (typeof collection === 'undefined') {
     error = 'Collection not found';
