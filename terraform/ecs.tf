@@ -32,7 +32,7 @@ module "model" {
   target_group_name_override   =  "caddy-mo-${var.env}-tg"
   permissions_boundary_name    = "infra/i-dot-ai-${var.env}-caddy-perms-boundary-app"
 
-  
+
   service_discovery_service_arn = aws_service_discovery_service.service_discovery_service.arn
   create_networking = true
   create_listener   = false
@@ -44,7 +44,6 @@ module "model" {
       additional_sg_id = module.frontend.ecs_sg_id
     }
   ]
-  
 
   environment_variables = {
     "ENVIRONMENT" : terraform.workspace,
@@ -100,6 +99,7 @@ module "frontend" {
   target_group_name_override   = "caddy-fe-${var.env}-tg"
   task_additional_iam_policies = local.additional_policy_arns
   permissions_boundary_name    = "infra/i-dot-ai-${var.env}-caddy-perms-boundary-app"
+  service_discovery_service_arn = aws_service_discovery_service.service_discovery_service.arn
 
   environment_variables = {
     "ENVIRONMENT" : terraform.workspace,
@@ -114,6 +114,14 @@ module "frontend" {
     for k, v in aws_ssm_parameter.env_secrets : {
       name      = regex("([^/]+$)", v.arn)[0], # Extract right-most string (param name) after the final slash
       valueFrom = v.arn
+    }
+  ]
+
+  additional_security_group_ingress = [
+    {
+      purpose          = "Backend to frontend container port"
+      port             = local.frontend_port
+      additional_sg_id = module.model.ecs_sg_id
     }
   ]
 
