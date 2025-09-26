@@ -39,8 +39,8 @@ const { collection, error } = await getCollection(collectionId || '', Astro.requ
         <input type="hidden" value={ collectionId } name="collectionId"/>
         <input type="hidden" value={ collection.name } name="collectionName"/>
         <div class="govuk-button-group">
-          <button class={ 'govuk-button plausible-event-name=Delete+Collection plausible-event-collection=' + collection.name }>Confirm delete</button>
-          <a class="govuk-button govuk-button--secondary" href="/">Cancel</a>
+          <button class={ 'iai-button plausible-event-name=Delete+Collection plausible-event-collection=' + collection.name }>Confirm delete</button>
+          <a class="iai-button--secondary ml-3" href="/">Cancel</a>
         </div>
       </form>
 

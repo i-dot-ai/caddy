@@ -2,6 +2,7 @@
 import 'dotenv/config';
 import Footer from '@components/footer.astro';
 import '../../node_modules/i.ai-design-system/dist/iai-design-system.css';
+import '../styles/global.css';
 import LitWrapper from '@components/lit-wrapper.astro';
 
 const { title, error } = Astro.props;
@@ -68,7 +69,7 @@ const isAdmin = await Astro.session?.get('isAdmin');
 
 		<style is:global>
 			body:has(.iai-footer) .govuk-main-wrapper {
-				min-height: calc(100vh - 235px);
+				min-height: calc(100vh - 155px);
 			}
 
 			.govuk-panel--confirmation {
@@ -102,6 +103,9 @@ const isAdmin = await Astro.session?.get('isAdmin');
 				margin-left: 0.5rem;
 				position: relative;
 			}
+
+			
+
 		</style>
 
 	</body>

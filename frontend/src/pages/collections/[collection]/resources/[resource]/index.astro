@@ -35,7 +35,7 @@ const fragments = await getResourceFragments(collectionId || '', resourceId || '
 
       { fragments?.map((chunk) =>
         <LitWrapper>
-          <markdown-converter class="govuk-!-display-block govuk-!-padding-5 govuk-!-margin-top-5" style="border: 1px solid #b1b4b6;" content={ chunk.page_content }></markdown-converter>
+          <markdown-converter class="border-1 border-solid border-border-grey block p-5 mt-5" content={ chunk.page_content }></markdown-converter>
         </LitWrapper>
       )}
 

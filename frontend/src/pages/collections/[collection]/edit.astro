@@ -32,22 +32,22 @@ const { collection, error } = await getCollection(collectionId || '', Astro.requ
         <input type="hidden" value={ collectionId } name="collection"/>
         <div class="govuk-form-group">
           <label class="govuk-label" for="name">Collection name</label>
-          <input class="govuk-input" id="name" name="name" type="text" value={ collection.name } required />
+          <input class="govuk-input rounded-sm!" id="name" name="name" type="text" value={ collection.name } required />
         </div>
         <div class="govuk-form-group">
           <label class="govuk-label" for="description">Description</label>
-          <div id="description-hint" class="govuk-hint" style="font-size: 1rem;">Describe the contents of this collection so that AI agents and chatbots know when to use it. Specific, verbose descriptions are better than short, generic ones.</div>
-          <input class="govuk-input" id="description" name="description" type="text" value={ collection.description } aria-describedby="description-hint" />
+          <div id="description-hint" class="govuk-hint text-[1rem]!">Describe the contents of this collection so that AI agents and chatbots know when to use it. Specific, verbose descriptions are better than short, generic ones.</div>
+          <input class="govuk-input rounded-sm!" id="description" name="description" type="text" value={ collection.description } aria-describedby="description-hint" />
         </div>
         <div class="govuk-form-group">
           <label class="govuk-label" for="prompt">
             Custom prompt
             <strong class="govuk-tag">Experimental</strong>
           </label>
-          <div id="prompt-hint" class="govuk-hint" style="font-size: 1rem;">This will override the default system prompt in Gov AI Client. The default will be used if this is empty.</div>
-          <textarea class="govuk-textarea" id="prompt" name="prompt" rows="5" aria-describedby="prompt-hint">{ collection.custom_prompt }</textarea>
+          <div id="prompt-hint" class="govuk-hint text-[1rem]!">This will override the default system prompt in Gov AI Client. The default will be used if this is empty.</div>
+          <textarea class="govuk-textarea rounded-sm!" id="prompt" name="prompt" rows="5" aria-describedby="prompt-hint">{ collection.custom_prompt }</textarea>
         </div>
-        <button class="govuk-button">Update</button>
+        <button class="iai-button">Update</button>
       </form>
 
     </div>

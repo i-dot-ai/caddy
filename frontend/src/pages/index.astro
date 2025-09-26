@@ -38,12 +38,12 @@ const chatLink = (() => {
       <h2 class="govuk-heading-m govuk-!-margin-top-5">Collections</h2>
       
       { collectionsData.is_admin &&
-        <a class="govuk-button" href="/collections/add">Add a collection</a>
+        <a class="iai-button mt-1" href="/collections/add">Add a collection</a>
       }
 
       { collections.length ?
 
-        <div style="overflow-x: auto; width: 100%;">
+        <div class="mt-3 overflow-x-auto w-full">
           <sortable-table>
             <table class="govuk-table">
               <caption class="govuk-visually-hidden">My collections</caption>
@@ -63,7 +63,7 @@ const chatLink = (() => {
                       }
                     </td>
                     <td class="govuk-table__cell">
-                      <span class="govuk-!-display-flex" style="gap: 10px 20px;">
+                      <span class="flex gap-4">
                         <a class="govuk-body-s govuk-!-margin-bottom-0" href={ `/collections/${collection.id}/resources` }>
                           Resources<span class="govuk-visually-hidden"> for { collection.name }</span>
                         </a>
