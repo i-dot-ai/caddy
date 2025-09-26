@@ -31,10 +31,10 @@ const users = await getUsers(collectionId || '', Astro.request.headers.get('x-am
       <p><strong>Collection:</strong> { collection.name }</p>
 
       { (collection.permissions.includes(CollectionPermission.MANAGE_USERS) || collectionsData.is_admin) &&
-        <a class="govuk-button" href="users/add">Add user</a>
+        <a class="iai-button mt-1" href="users/add">Add user</a>
       }
 
-      <div style="overflow-x: auto; width: 100%;">
+      <div class="mt-5 overflow-x-auto w-full">
         <sortable-table>
           <table class="govuk-table">
             <caption class="govuk-visually-hidden">Files</caption>
@@ -54,7 +54,7 @@ const users = await getUsers(collectionId || '', Astro.request.headers.get('x-am
                   <td class="govuk-table__cell">{ user.role === 'manager' ? 'Admin' : 'User' }</td>
                   { (collection.permissions.includes(CollectionPermission.MANAGE_USERS) || collectionsData.is_admin) &&
                     <td class="govuk-table__cell">
-                      <span class="govuk-!-display-flex" style="gap: 10px 20px;">
+                      <span class="flex gap-4">
                         <a class="govuk-body-s govuk-!-margin-bottom-0" href={ `users/${user.user_id}/edit` }>
                           Edit
                           <span class="govuk-visually-hidden"> { user.user_email }</span>

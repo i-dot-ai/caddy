@@ -20,7 +20,7 @@ const IaiHeader = class extends LitElement {
         <div class="govuk-header__container govuk-width-container">
           <div class="govuk-header__logo">
             <a href="/" class="govuk-header__link govuk-header__link--homepage">
-              <span style="font-weight: bold;">AI.GOV.UK</span>
+              <span class="font-bold">AI.GOV.UK</span>
               <span class="govuk-header__product-name">${this.productName}</span>
             </a>
           </div>
