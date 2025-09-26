@@ -241,6 +241,9 @@ export const runDiagnostics = async(keycloakToken: string | null) => {
   // Test 1: Health check
   const startTime1 = Date.now();
   try {
+    console.log(`Sending backend request to ${backendHost}/collections/211c024b-e437-4c08-a9b0-16d627f74281/resources`);
+    console.log(`Using keycloak token ${keycloakToken}`);
+    console.log(`Using x header ${process.env['BACKEND_TOKEN']}`);
     const healthResponse = await fetch(`${backendHost}/healthcheck`, {
       headers: {
         'x-external-access-token': process.env['BACKEND_TOKEN'] || '',
