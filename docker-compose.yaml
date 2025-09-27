@@ -28,8 +28,8 @@ services:
     healthcheck:
       test: curl --fail 'http://localhost:8080/healthcheck' || exit 1
       start_period: 60s
-      start_interval: 1s
-      retries: 10
+      interval: 5s
+      retries: 12
     depends_on:
       qdrant:
         condition: service_healthy
@@ -56,8 +56,8 @@ services:
     healthcheck:
       test: curl --fail 'http://localhost:4322/' || exit 1
       start_period: 60s
-      start_interval: 1s
-      retries: 10
+      interval: 5s
+      retries: 12
     depends_on:
       model:
         condition: service_healthy
@@ -76,8 +76,8 @@ services:
     healthcheck:
       test: curl --fail 'http://localhost:6333/healthz' || exit 1
       start_period: 60s
-      start_interval: 1s
-      retries: 10
+      interval: 5s
+      retries: 12
     volumes:
       - qdrant_storage:/qdrant/storage:z
     networks:
@@ -96,9 +96,9 @@ services:
       - ./model/scripts/postgres-init.sql:/docker-entrypoint-initdb.d/postgres-init.sql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready"]
-      retries: 10
+      retries: 12
       start_period: 60s
-      start_interval: 1s
+      interval: 5s
     networks:
       - caddy-net
 
@@ -121,9 +121,9 @@ services:
     restart: unless-stopped
     healthcheck:
       test: [ "CMD", "mc", "ready", "local" ]
-      retries: 20
+      retries: 12
       start_period: 60s
-      start_interval: 1s
+      interval: 5s
 
   client:
     image: public.ecr.aws/idotai/gov-ai-client:068ee7adce7c62c6836239c57415d517cf870dd5
