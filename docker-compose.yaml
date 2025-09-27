@@ -73,6 +73,11 @@ services:
       - 6335
     env_file: .env
     restart: always
+    healthcheck:
+      test: curl --fail 'http://localhost:6333/healthz' || exit 1
+      start_period: 60s
+      start_interval: 1s
+      retries: 10
     volumes:
       - qdrant_storage:/qdrant/storage:z
     networks:
