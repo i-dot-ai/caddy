@@ -37,6 +37,7 @@ resource_url_template = os.environ["RESOURCE_URL_TEMPLATE"]
 
 qdrant__service__api_key = os.environ["QDRANT__SERVICE__API_KEY"]
 qdrant_url = os.environ["QDRANT_URL"]
+qdrant_access_token_header = os.environ["QDRANT_ACCESS_TOKEN_HEADER"]
 
 config = CaddyConfig(
     qdrant__service__api_key=qdrant__service__api_key,
@@ -53,4 +54,5 @@ config = CaddyConfig(
     sentry_dsn=sentry_dsn,
     keycloak_allowed_roles=keycloak_allowed_roles,
     git_sha=os.getenv("GIT_SHA"),
+    qdrant_access_token_header=qdrant_access_token_header,
 )

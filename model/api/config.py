@@ -33,6 +33,7 @@ class CaddyConfig:
         s3_prefix="app_data",
         keycloak_allowed_roles=None,
         git_sha=None,
+        qdrant_access_token_header=None,
     ):
         self.embedding_model = embedding_model
         self.env = env.upper()
@@ -51,6 +52,7 @@ class CaddyConfig:
         self.qdrant_url = qdrant_url
         self.qdrant__service__api_key = qdrant__service__api_key
         self.qdrant_collection_name = qdrant_collection_name
+        self.qdrant_access_token_header = qdrant_access_token_header
 
         if self.env not in ("PROD", "PREPROD", "DEV"):
             if not any(
@@ -85,8 +87,14 @@ class CaddyConfig:
         """
         logger = self.get_logger(__name__)
         logger.info("Connecting to Qdrant at {qdrant_url}", qdrant_url=self.qdrant_url)
+        use_https = self.env not in ["TEST", "LOCAL"]
+        headers = {"x-external-access-token": self.qdrant_access_token_header}
         client = QdrantClient(
-            url=self.qdrant_url, api_key=self.qdrant__service__api_key, timeout=30
+            url=self.qdrant_url,
+            api_key=self.qdrant__service__api_key,
+            timeout=300,
+            https=use_https,
+            metadata=headers if use_https else {},
         )
 
         try:
