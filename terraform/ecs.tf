@@ -52,7 +52,8 @@ module "model" {
     "REPO" : "caddy",
     "AWS_ACCOUNT_ID": var.account_id,
     "GIT_SHA": var.image_tag,
-    "QDRANT_URL": "http://${aws_service_discovery_service.service_discovery_service.name}.${aws_service_discovery_private_dns_namespace.private_dns_namespace.name}:${local.qdrant_port}"
+    # "QDRANT_URL": "http://${aws_service_discovery_service.service_discovery_service.name}.${aws_service_discovery_private_dns_namespace.private_dns_namespace.name}:${local.qdrant_port}"
+    "QDRANT_URL": "https://${local.host_qdrant}"
   }
 
   secrets = [
@@ -106,7 +107,8 @@ module "frontend" {
     "APP_NAME" : "caddy"
     "PORT" : local.frontend_port,
     "REPO" : "caddy",
-    "BACKEND_HOST" : "http://${aws_service_discovery_service.service_discovery_service.name}.${aws_service_discovery_private_dns_namespace.private_dns_namespace.name}:${local.backend_port}",
+    # "BACKEND_HOST" : "http://${aws_service_discovery_service.service_discovery_service.name}.${aws_service_discovery_private_dns_namespace.private_dns_namespace.name}:${local.backend_port}",
+    "BACKEND_HOST" : "https://${local.host_backend}",
     "GIT_SHA": var.image_tag
   }
 
@@ -114,14 +116,6 @@ module "frontend" {
     for k, v in aws_ssm_parameter.env_secrets : {
       name      = regex("([^/]+$)", v.arn)[0], # Extract right-most string (param name) after the final slash
       valueFrom = v.arn
-    }
-  ]
-
-  additional_security_group_ingress = [
-    {
-      purpose          = "Backend to frontend container port"
-      port             = local.frontend_port
-      additional_sg_id = module.model.ecs_sg_id
     }
   ]
 

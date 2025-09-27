@@ -28,7 +28,7 @@ module "qdrant" {
   container_port               = local.qdrant_port
 
   service_discovery_service_arn = aws_service_discovery_service.service_discovery_service.arn
-  create_networking = false
+  create_networking = true
   create_listener = false
 
   # Resource allocation for Qdrant - sized for millions of documents
