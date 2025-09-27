@@ -113,7 +113,11 @@ locals {
     {
       name = "QDRANT__SERVICE__API_KEY",
       value = random_password.qdrant_api_key.result
-    }
+    },
+    {
+      name = "QDRANT_ACCESS_TOKEN_HEADER",
+      value = "placeholder"
+    },
   ]
 }
 
