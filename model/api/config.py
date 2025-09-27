@@ -1,5 +1,4 @@
 import os
-from contextlib import contextmanager
 from functools import lru_cache
 
 from fastembed import SparseTextEmbedding
@@ -62,14 +61,19 @@ class CaddyConfig:
                 self.s3_client.create_bucket(Bucket=self.data_s3_bucket)
 
         self._qdrant_client: AsyncQdrantClient | None = None
+        self._sync_qdrant_client: QdrantClient | None = None
 
     async def get_qdrant_client(self) -> AsyncQdrantClient:
         """Get or create a persistent Qdrant client."""
         if self._qdrant_client is None:
+            use_https = self.env not in ["TEST", "LOCAL"]
+            headers = {"x-external-access-token": self.qdrant_access_token_header}
             self._qdrant_client = AsyncQdrantClient(
                 url=self.qdrant_url,
                 api_key=self.qdrant__service__api_key,
-                timeout=60,
+                timeout=300,
+                https=use_https,
+                metadata=headers if use_https else {},
             )
         return self._qdrant_client
 
@@ -79,7 +83,6 @@ class CaddyConfig:
             await self._qdrant_client.close()
             self._qdrant_client = None
 
-    @contextmanager
     def get_sync_qdrant_client(self) -> QdrantClient:
         """Gets a sync Qdrant client from environment variables.
 
@@ -87,20 +90,26 @@ class CaddyConfig:
         """
         logger = self.get_logger(__name__)
         logger.info("Connecting to Qdrant at {qdrant_url}", qdrant_url=self.qdrant_url)
-        use_https = self.env not in ["TEST", "LOCAL"]
-        headers = {"x-external-access-token": self.qdrant_access_token_header}
-        client = QdrantClient(
-            url=self.qdrant_url,
-            api_key=self.qdrant__service__api_key,
-            timeout=300,
-            https=use_https,
-            metadata=headers if use_https else {},
-        )
+        if self._sync_qdrant_client is None:
+            logger.info(
+                "Creating Qdrant client at {qdrant_url}", qdrant_url=self.qdrant_url
+            )
+            use_https = self.env not in ["TEST", "LOCAL"]
+            headers = {"x-external-access-token": self.qdrant_access_token_header}
+            self._sync_qdrant_client = QdrantClient(
+                url=self.qdrant_url,
+                api_key=self.qdrant__service__api_key,
+                timeout=300,
+                https=use_https,
+                metadata=headers if use_https else {},
+            )
+        return self._sync_qdrant_client
 
-        try:
-            yield client
-        finally:
-            client.close()
+    def close_sync_qdrant_client(self):
+        """Clean up Qdrant client on shutdown."""
+        if self._sync_qdrant_client:
+            self._sync_qdrant_client.close()
+            self._sync_qdrant_client = None
 
     async def initialize_qdrant_collections(self) -> None:
         """Initialize Qdrant with proper collections.

@@ -22,7 +22,6 @@ from api.rest_app import router
 from api.search import search_collection
 from api.types import QueryRequest
 
-# Configure logging
 logger = config.get_logger(__name__)
 
 if config.sentry_dsn:
@@ -41,8 +40,10 @@ async def lifespan(
 
         try:
             client = await config.get_qdrant_client()
+            sync_client = config.get_sync_qdrant_client()
             await client.get_collections()
             await client.collection_exists(config.qdrant_collection_name)
+            sync_client.get_collections()
         except Exception as e:
             logger.exception("Qdrant connection validation failed")
             raise RuntimeError(f"Failed to connect to qdrant: {e}")
@@ -63,6 +64,7 @@ async def lifespan(
                 finally:
                     logger.info("Application shutting down...")
                     await config.close_qdrant_client()
+                    config.close_sync_qdrant_client()
 
 
 app = FastAPI(
