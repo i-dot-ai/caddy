@@ -75,7 +75,7 @@ class CaddyConfig:
                 timeout=30,
                 https=use_https,
                 check_compatibility=False,
-                metadata=headers,
+                metadata=headers if self.qdrant_access_token_header else None,
             )
         return self._qdrant_client
 
@@ -101,10 +101,11 @@ class CaddyConfig:
             self._sync_qdrant_client = QdrantClient(
                 url=self.qdrant_url,
                 api_key=self.qdrant__service__api_key,
+                port=443,
                 timeout=30,
                 check_compatibility=False,
                 https=use_https,
-                metadata=headers,
+                metadata=headers if self.qdrant_access_token_header else None,
             )
         return self._sync_qdrant_client
 
