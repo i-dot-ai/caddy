@@ -75,7 +75,7 @@ class CaddyConfig:
                 timeout=30,
                 https=use_https,
                 check_compatibility=False,
-                metadata=headers if self.qdrant_access_token_header else None,
+                metadata=headers if self.qdrant_access_token_header else {},
             )
         return self._qdrant_client
 
@@ -105,7 +105,7 @@ class CaddyConfig:
                 timeout=30,
                 check_compatibility=False,
                 https=use_https,
-                metadata=headers if self.qdrant_access_token_header else None,
+                metadata=headers if self.qdrant_access_token_header else {},
             )
         return self._sync_qdrant_client
 
