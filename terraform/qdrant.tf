@@ -51,6 +51,10 @@ module "qdrant" {
     "QDRANT_URL" = "http://${aws_service_discovery_service.service_discovery_service.name}.${aws_service_discovery_private_dns_namespace.private_dns_namespace.name}:${local.qdrant_port}"
     "QDRANT__LOG_LEVEL" = terraform.workspace == "prod" ? "warn" : "info"
     "QDRANT__SERVICE__HTTP_PORT" = tostring(local.qdrant_port)
+    "QDRANT__SERVICE__ENABLE_HTTPS" = true
+    "QDRANT__SERVICE__ENABLE_CORS" = true
+    "QDRANT__SERVICE__CERT" = "./tls/cert.pem"
+    "QDRANT__SERVICE__KEY" = "./tls/key.pem"
 
     # Storage optimizers for millions of vectors
     "QDRANT__STORAGE__OPTIMIZERS__MEMMAP_THRESHOLD_KB" = "100000"  # Enable memmap for segments >100MB
