@@ -67,13 +67,11 @@ class CaddyConfig:
         """Get or create a persistent Qdrant client."""
         if self._qdrant_client is None:
             use_https = self.env not in ["TEST", "LOCAL"]
-            headers = {"x-external-access-token": self.qdrant_access_token_header}
             self._qdrant_client = AsyncQdrantClient(
                 url=self.qdrant_url,
                 api_key=self.qdrant__service__api_key,
                 timeout=300,
                 https=use_https,
-                metadata=headers if use_https else {},
             )
         return self._qdrant_client
 
@@ -95,13 +93,11 @@ class CaddyConfig:
                 "Creating Qdrant client at {qdrant_url}", qdrant_url=self.qdrant_url
             )
             use_https = self.env not in ["TEST", "LOCAL"]
-            headers = {"x-external-access-token": self.qdrant_access_token_header}
             self._sync_qdrant_client = QdrantClient(
                 url=self.qdrant_url,
                 api_key=self.qdrant__service__api_key,
                 timeout=300,
                 https=use_https,
-                metadata=headers if use_https else {},
             )
         return self._sync_qdrant_client
 
