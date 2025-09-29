@@ -1,7 +1,7 @@
 ---
 import Layout from '@layouts/Layout.astro';
 import Resources from '@components/Resources.astro';
-import { getCollections, getCollection, getResources, CollectionPermission, runDiagnostics} from '@logic/data.ts';
+import { getCollections, getCollection, getResources, CollectionPermission} from '@logic/data.ts';
 
 const PAGE_SIZE = 50;
 
@@ -83,13 +83,3 @@ const resourcesData = await getResources(collectionId || '', 1, PAGE_SIZE, token
 </Layout>
 
 <script src="@components/sortable-table.ts"></script>
-
-<!-- <script>
-  // Run backend diagnostics on page load
-  import { runDiagnostics } from '@logic/data.ts';
-  
-  document.addEventListener('DOMContentLoaded', async () => {
-    const token = null; // Will use env token
-    await runDiagnostics(token);
-  });
-</script> -->
