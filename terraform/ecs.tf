@@ -32,7 +32,6 @@ module "model" {
   target_group_name_override   =  "caddy-mo-${var.env}-tg"
   permissions_boundary_name    = "infra/i-dot-ai-${var.env}-caddy-perms-boundary-app"
 
-
   service_discovery_service_arn = aws_service_discovery_service.service_discovery_service.arn
   create_networking = true
   create_listener   = false
@@ -52,7 +51,6 @@ module "model" {
     "REPO" : "caddy",
     "AWS_ACCOUNT_ID": var.account_id,
     "GIT_SHA": var.image_tag,
-    # "QDRANT_URL": "http://${aws_service_discovery_service.service_discovery_service.name}.${aws_service_discovery_private_dns_namespace.private_dns_namespace.name}:${local.qdrant_port}"
     "QDRANT_URL": "https://${local.host_qdrant}"
   }
 
@@ -64,8 +62,8 @@ module "model" {
   ]
 
   container_port             = local.backend_port
-  memory                     = terraform.workspace == "prod" ? 2048 : 4096
-  cpu                        = terraform.workspace == "prod" ? 1024 : 2048
+  memory                     = terraform.workspace == "prod" ? 2048 : 1024
+  cpu                        = terraform.workspace == "prod" ? 1024 : 512
   autoscaling_maximum_target = var.env == "prod" ? 5 : 1
 
   health_check = {
@@ -107,7 +105,6 @@ module "frontend" {
     "APP_NAME" : "caddy"
     "PORT" : local.frontend_port,
     "REPO" : "caddy",
-    # "BACKEND_HOST" : "http://${aws_service_discovery_service.service_discovery_service.name}.${aws_service_discovery_private_dns_namespace.private_dns_namespace.name}:${local.backend_port}",
     "BACKEND_HOST" : "https://${local.host_backend}",
     "GIT_SHA": var.image_tag
   }
@@ -189,6 +186,7 @@ module "model-ecs-alarm" {
   ecs_cluster_name             = data.terraform_remote_state.platform.outputs.ecs_cluster_name
   sns_topic_arn                = [module.sns_topic.sns_topic_arn]
 }
+
 module "model-alb-alarm" {
   # checkov:skip=CKV_TF_1: We're using semantic versions instead of commit hash
   # source                       = "../../i-dot-ai-core-terraform-modules/modules/observability/alb-alarms"
