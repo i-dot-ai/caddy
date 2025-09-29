@@ -150,7 +150,6 @@ interface ResourceList {
 
 export const getResources = async(collectionId: string, page: number, itemsPerPage: number, keycloakToken: string | null) => {
   const { json } = await makeRequest(`/collections/${collectionId}/resources?page=${page}&page_size=${itemsPerPage}`, keycloakToken);
-  console.log(`GET resources: ${json}`);
   return json as unknown as ResourceList;
 };
 
