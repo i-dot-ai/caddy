@@ -82,15 +82,6 @@ def get_collection_resources(
             status_code=e.error_code,
             detail=e.message,
         )
-    except Exception as e:
-        logger.exception(
-            "An exception occurred getting collection resources {message}",
-            message=str(e),
-        )
-        raise HTTPException(
-            status_code=500,
-            detail=str(e),
-        )
     else:
         resource_ids = [resource.id for resource in result.resources]
         logger.info(
@@ -324,16 +315,11 @@ def get_collections(
         logger.info("Getting collections for user {user_email}", user_email=str(user))
         result = get_user_collections(user, session, logger, page, page_size)
         logger.info("Successfully got collections: {count} total", count=result.total)
-    except Exception as e:
+    except NoPermissionException as e:
         logger.exception(
-            "Exception occurred getting collections: {error}", error=str(e)
+            "Exception occurred getting collections. {message}", message=str(e)
         )
-        raise HTTPException(status_code=500, detail=str(e))
-    # except NoPermissionException as e:
-    #     logger.info(
-    #         "exception occurred getting collections. {message}", message=e.message
-    #     )
-    #     raise HTTPException(status_code=e.error_code, detail=e.message)
+        raise HTTPException(status_code=e.error_code, detail=e.message)
     else:
         collection_ids = (
             [collection.id for collection in result.collections]
