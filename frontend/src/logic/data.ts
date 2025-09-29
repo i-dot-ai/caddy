@@ -66,18 +66,13 @@ interface Collections {
 }
 
 export const getCollections = async(keycloakToken: string | null) => {
-  await runDiagnostics(keycloakToken);
   const { json, error } = await makeRequest('/collections', keycloakToken);
   let collectionsData: Collections = { collections: [], is_admin: false };
-  console.log('getCollections raw response:', json);
-  console.log('getCollections error:', error);
 
   if (Array.isArray(json.collections)) {
     collectionsData = json as unknown as Collections;
   } else {
     console.error('getCollections response in unknown format', json);
-    console.error('typeof json:', typeof json);
-    console.error('Object.keys(json):', Object.keys(json));
   }
 
   return { collectionsData, error };
@@ -86,7 +81,6 @@ export const getCollections = async(keycloakToken: string | null) => {
 
 export const getCollection = async(collectionId: string, keycloakToken: string | null) => {
   let { collectionsData, error } = await getCollections(keycloakToken); /* eslint prefer-const: "off" */
-  // console.log(`GET collections ${collectionsData}`);
   const collection = collectionsData.collections.find((item: Collection) => item.id === collectionId) as Collection;
   if (typeof collection === 'undefined') {
     error = 'Collection not found';
@@ -152,8 +146,9 @@ interface ResourceList {
   page: number,
   resources: ResourceDetail[],
 }
+
+
 export const getResources = async(collectionId: string, page: number, itemsPerPage: number, keycloakToken: string | null) => {
-  await runDiagnostics(keycloakToken);
   const { json } = await makeRequest(`/collections/${collectionId}/resources?page=${page}&page_size=${itemsPerPage}`, keycloakToken);
   console.log(`GET resources: ${json}`);
   return json as unknown as ResourceList;
@@ -232,52 +227,4 @@ export const removeUser = async(collectionId: string, userId: string, keycloakTo
     method: 'DELETE',
   });
   return json;
-};
-
-
-export const runDiagnostics = async(keycloakToken: string | null) => {
-  console.log('=== BACKEND DIAGNOSTICS START ===');
-
-  // Test 1: Health check
-  const startTime1 = Date.now();
-  try {
-    console.log(`Sending backend request to ${backendHost}/collections/211c024b-e437-4c08-a9b0-16d627f74281/resources`);
-    console.log(`Using keycloak token ${keycloakToken}`);
-    console.log(`Using x header ${process.env['BACKEND_TOKEN']}`);
-    const healthResponse = await fetch(`${backendHost}/healthcheck`, {
-      headers: {
-        'x-external-access-token': process.env['BACKEND_TOKEN'] || '',
-        Authorization: keycloakToken || process.env['KEYCLOAK_TOKEN'] || '',
-      },
-    });
-    const duration1 = Date.now() - startTime1;
-    console.log(`HEALTHCHECK - Status: ${healthResponse.status}, Duration: ${duration1}ms`);
-    if (!healthResponse.ok) {
-      console.error('HEALTHCHECK - Response not OK:', healthResponse.statusText);
-    }
-  } catch(err) {
-    const duration1 = Date.now() - startTime1;
-    console.error(`HEALTHCHECK - Error after ${duration1}ms:`, err);
-  }
-
-  // Test 2: Collections endpoint with specific collection
-  const startTime2 = Date.now();
-  try {
-    const resourcesResponse = await fetch(`${backendHost}/collections/211c024b-e437-4c08-a9b0-16d627f74281/resources`, {
-      headers: {
-        'x-external-access-token': process.env['BACKEND_TOKEN'] || '',
-        Authorization: keycloakToken || process.env['KEYCLOAK_TOKEN'] || '',
-      },
-    });
-    const duration2 = Date.now() - startTime2;
-    console.log(`RESOURCES - Status: ${resourcesResponse.status}, Duration: ${duration2}ms`);
-    if (!resourcesResponse.ok) {
-      console.error('RESOURCES - Response not OK:', resourcesResponse.statusText);
-    }
-  } catch(err) {
-    const duration2 = Date.now() - startTime2;
-    console.error(`RESOURCES - Error after ${duration2}ms:`, err);
-  }
-
-  console.log('=== BACKEND DIAGNOSTICS END ===');
 };
