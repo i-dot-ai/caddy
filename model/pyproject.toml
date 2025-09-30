@@ -38,9 +38,10 @@ python-keycloak = "^4.7.3"
 cryptography = "^44.0.1"
 pgvector = "^0.4.1"
 html2text = "^2025.4.15"
-i-dot-ai-utilities = "0.2.3"
+#i-dot-ai-utilities = "0.3.0"
 python-slugify = "^8.0.4"
 qdrant-client = {extras = ["fastembed"], version = "^1.15.1" }
+i-dot-ai-utilities = {path = "../../i-dot-ai-utilities", develop = true}
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.3.3"

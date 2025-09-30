@@ -21,15 +21,11 @@ def build_document(document: Document, session):
     if resource.url:
         document.metadata["url"] = resource.url
     else:
-        s3_client = config.s3_client
+        s3_client = config.get_file_store_client()
 
-        s3_url = s3_client.generate_presigned_url(
-            "get_object",
-            Params={
-                "Bucket": config.data_s3_bucket,
-                "Key": f"{config.s3_prefix}/{resource.collection_id}/{resource.id}/{resource.filename}",
-            },
-            ExpiresIn=3600,
+        s3_url = s3_client.download_object_url(
+            f"{resource.collection_id}/{resource.id}/{resource.filename}",
+            expiration=3600,
         )
         document.metadata["url"] = s3_url
         document.metadata["created_at"] = resource.created_at.strftime("%H:%M %d-%m-%Y")
