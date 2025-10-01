@@ -13,6 +13,6 @@ export async function POST({ request, redirect }: EndpointParams) {
 
   const notification = data.get('user') ? `User <strong>${emailAddress}</strong> updated` : `User <strong>${emailAddress}</strong> added to collection`;
 
-  return redirect(`/collections/${collectionId}/users?notification=${encodeURI(notification)}`, 303);
+  return redirect(`/collections/${collectionId}#sharing?notification=${encodeURI(notification)}`, 303);
 
 }

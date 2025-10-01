@@ -10,18 +10,18 @@ export async function POST({ request, redirect }: EndpointParams) {
   const description = data.get('description')?.toString() || '';
   const prompt = data.get('prompt')?.toString() || '';
 
-  let notification = '';
   if (name) {
-    notification = `Collection <strong>${name}</strong> `;
+    // let notification = `Collection <strong>${name}</strong> `;
     if (id) {
       await updateCollection(id, name, description, prompt, request.headers.get('x-amzn-oidc-accesstoken'));
-      notification += 'updated';
+      // notification += 'updated';
+      return redirect(`/collections/${id}#settings`, 303);
     } else {
-      await addCollection(name, description, prompt, request.headers.get('x-amzn-oidc-accesstoken'));
-      notification += 'created';
+      const data = await addCollection(name, description, prompt, request.headers.get('x-amzn-oidc-accesstoken'));
+      // notification += 'created';
+      return redirect(`/collections/${data.id}`, 303);
     }
   }
 
-  return redirect(`/?notification=${encodeURI(notification)}`, 303);
 
 }

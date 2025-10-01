@@ -17,6 +17,6 @@ export async function POST({ request, redirect }: EndpointParams) {
 
   const notification = `<strong>${urls.length}</strong> URL${urls.length === 1 ? '' : 's'} added to collection`;
 
-  return redirect(`/collections/${collectionId}/resources?notification=${encodeURI(notification)}`, 303);
+  return redirect(`/collections/${collectionId}?notification=${encodeURI(notification)}`, 303);
 
 }
