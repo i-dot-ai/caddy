@@ -14,24 +14,35 @@ module "load_balancer" {
 
 module "waf" {
   # checkov:skip=CKV_TF_1: We're using semantic versions instead of commit hash
-  #source        = "../../i-dot-ai-core-terraform-modules//modules/infrastructure/waf" # For testing local changes
-  source         = "git::https://github.com/i-dot-ai/i-dot-ai-core-terraform-modules.git//modules/infrastructure/waf?ref=v7.1.1-waf"
-  name           = local.name
-  host           = local.host
-  env            = var.env
+  # source = "../../i-dot-ai-core-terraform-modules//modules/infrastructure/waf" # For testing local changes
+  source         = "git::https://github.com/i-dot-ai/i-dot-ai-core-terraform-modules.git//modules/infrastructure/waf?ref=waf-multi-hostname"
+  name   = local.name
+  host   = local.host
+  env    = var.env
 
-  header_secured_access_configuration = {
-    kms_key_id = data.terraform_remote_state.platform.outputs.kms_key_arn
-    hostname = local.host_backend
-    client_configs = [
-      {
-        client_name = var.project_name,
-      },
-      {
-        client_name = "govwifi",
-      },
-    ]
-  }
+  header_secured_access_configuration = [
+    {
+      kms_key_id = data.terraform_remote_state.platform.outputs.kms_key_arn
+      hostname   = local.host_backend
+      client_configs = [
+        {
+          client_name = var.project_name,
+        },
+        {
+          client_name = "govwifi",
+        },
+      ]
+    },
+    {
+      kms_key_id = data.terraform_remote_state.platform.outputs.kms_key_arn
+      hostname   = local.host_qdrant
+      client_configs = [
+        {
+          client_name = var.project_name,
+        },
+      ]
+    }
+  ]
 }
 
 resource "aws_route53_record" "type_a_record" {
