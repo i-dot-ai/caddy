@@ -13,7 +13,6 @@ def test_document_url(database_transaction, web_resource, example_collection):
 
     result = build_document(
         document=document_with_url,
-        collection_id=example_collection.id,
         session=database_transaction,
     )
 
