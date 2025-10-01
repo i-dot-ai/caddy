@@ -14,6 +14,11 @@ const dateOptions: Intl.DateTimeFormatOptions = {
   month: 'short',
   year:  'numeric',
 };
+const timeOptions: Intl.DateTimeFormatOptions = {
+  hour: 'numeric',
+  minute: 'numeric',
+  hourCycle: 'h12',
+};
 
 ---
 
@@ -22,7 +27,7 @@ const dateOptions: Intl.DateTimeFormatOptions = {
     <td class="govuk-table__cell">
       { !resource.process_error ?
         resource.permissions.includes(ResourcePermission.READ_CONTENTS) ? 
-          <a class="govuk-!-display-block" href={ `resources/${resource.id}` }>{ resource.filename || resource.id }</a>
+          <a class="govuk-!-display-block" href={ `/collections/${collectionId}/resources/${resource.id}` }>{ resource.filename || resource.id }</a>
         :
           <span>{ resource.filename || resource.id }</span>
       :
@@ -35,11 +40,11 @@ const dateOptions: Intl.DateTimeFormatOptions = {
     <td class="govuk-table__cell">{ resource.content_type }</td>
     <td class="govuk-table__cell" data-sort={resource.created_at}>
       <span class="govuk-!-display-inline-block">{ resource.created_at ? `${new Date(resource.created_at).toLocaleDateString('en-GB', dateOptions) }, ` : '-' }</span>
-      <span class="govuk-!-display-inline-block">{ resource.created_at ? new Date(resource.created_at).toLocaleTimeString() : '' }</span>
+      <span class="govuk-!-display-inline-block">{ resource.created_at ? new Date(resource.created_at).toLocaleTimeString('en-GB', timeOptions).toUpperCase() : '' }</span>
     </td>
     { isManager &&
       <td class="govuk-table__cell">
-        <a class="govuk-body-s" href={ `resources/${resource.id}/delete` }>
+        <a class="govuk-body-s" href={ `/collections/${collectionId}/resources/${resource.id}/delete` }>
           Delete
           <span class="govuk-visually-hidden"> { resource.filename || resource.id }</span>
         </a>
@@ -47,21 +52,3 @@ const dateOptions: Intl.DateTimeFormatOptions = {
     }
   </tr>
 )}
-
-
-<style>
-  td a, td span {
-    max-width: 340px;
-    word-wrap: break-word;
-  }
-  @media (min-width: 641px) {
-    td a, td span {
-      max-width: 580px;
-    }
-  }
-  @media (min-width: 1021px) {
-    td a, td span {
-      max-width: 700px;
-    }
-  }
-</style>

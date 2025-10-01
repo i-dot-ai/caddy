@@ -20,7 +20,7 @@ const userData = await (async () => {
         <a class="govuk-breadcrumbs__link" href="/">Collections</a>
       </li>
       <li class="govuk-breadcrumbs__list-item">
-        <a class="govuk-breadcrumbs__link" href="../../users">Users</a>
+        <a class="govuk-breadcrumbs__link" href={ `/collections/${collectionId}#sharing`}>Sharing</a>
       </li>
       <li class="govuk-breadcrumbs__list-item">
         Delete
@@ -43,7 +43,7 @@ const userData = await (async () => {
         <input type="hidden" value={ userData?.user_email } name="emailAddress"/>
         <div class="govuk-button-group mt-6">
           <button class={ 'iai-button plausible-event-name=Remove+User plausible-event-collection=' + collection.name }>Confirm remove</button>
-          <a class="iai-button--secondary ml-3" href="../../users">Cancel</a>
+          <a class="iai-button--secondary ml-3" href={ `/collections/${collectionId}#sharing` }>Cancel</a>
         </div>
         
       </form>

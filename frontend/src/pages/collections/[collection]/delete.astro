@@ -40,7 +40,7 @@ const { collection, error } = await getCollection(collectionId || '', Astro.requ
         <input type="hidden" value={ collection.name } name="collectionName"/>
         <div class="govuk-button-group">
           <button class={ 'iai-button plausible-event-name=Delete+Collection plausible-event-collection=' + collection.name }>Confirm delete</button>
-          <a class="iai-button--secondary ml-3" href="/">Cancel</a>
+          <a class="iai-button--secondary ml-3" href={ `/collections/${collectionId}#settings` }>Cancel</a>
         </div>
       </form>
 

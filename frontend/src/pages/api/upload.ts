@@ -16,6 +16,6 @@ export async function POST({ request, redirect }: EndpointParams) {
 
   const notification = files.length === 1 ? `File <strong>${files[0].name}</strong> uploaded` : `<strong>${files.length}</strong> files uploaded`;
 
-  return redirect(`/collections/${collectionId}/resources?notification=${encodeURI(notification)}`, 303);
+  return redirect(`/collections/${collectionId}?notification=${encodeURI(notification)}`, 303);
 
 }

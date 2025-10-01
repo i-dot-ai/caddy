@@ -1,0 +1,215 @@
+---
+import Layout from '@layouts/Layout.astro';
+import Resources from '@components/Resources.astro';
+import { getCollection, getCollections, getResources, getUsers, CollectionPermission, ResourcePermission } from '@logic/data.ts';
+
+const PAGE_SIZE = 50;
+const token = Astro.request.headers.get('x-amzn-oidc-accesstoken');
+
+// TO-DO: if we can get permissions using getCollection, then we won't need getCollections here
+let { collectionsData } = await getCollections(token);
+
+const { collection: collectionId } = Astro.params;
+const { collection, error } = await getCollection(collectionId || '', token);
+
+const resourcesData = await getResources(collectionId || '', 1, PAGE_SIZE, token);
+
+const users = await getUsers(collectionId || '', token);
+
+const dateOptions: Intl.DateTimeFormatOptions = {
+  day:   'numeric',
+  month: 'short',
+  year:  'numeric',
+};
+const timeOptions: Intl.DateTimeFormatOptions = {
+  hour: 'numeric',
+  minute: 'numeric',
+  hourCycle: 'h12',
+};
+
+---
+
+<Layout title={ collection.name } error={ error }>
+
+  <nav class="govuk-breadcrumbs govuk-!-margin-bottom-6" aria-label="Breadcrumb">
+    <ol class="govuk-breadcrumbs__list">
+      <li class="govuk-breadcrumbs__list-item">
+        <a class="govuk-breadcrumbs__link" href="/">Collections</a>
+      </li>
+    </ol>
+  </nav>
+
+
+  <div class="govuk-grid-row">
+    <div class="govuk-grid-column-full">
+
+      <h1 class="govuk-heading-l mb-0!">{ collection.name }</h1>
+      <p class="govuk-body mt-3!">{ collection.description } { collectionId }</p>
+
+      <div class="govuk-tabs mt-9!" data-module="govuk-tabs">
+        <h2 class="govuk-tabs__title">
+          Contents
+        </h2>
+        <ul class="govuk-tabs__list">
+          <li class="govuk-tabs__list-item govuk-tabs__list-item--selected">
+            <a class="govuk-tabs__tab" href="#documents">Documents</a>
+          </li>
+          <li class="govuk-tabs__list-item">
+            <a class="govuk-tabs__tab" href="#sharing">Sharing</a>
+          </li>
+          <li class="govuk-tabs__list-item">
+            <a class="govuk-tabs__tab" href="#settings">Settings</a>
+          </li>
+        </ul>
+        
+        {/* Tab 1 content */}
+        <div class="govuk-tabs__panel" id="documents">
+          <p class="govuk-body">There are { resourcesData.total } documents in this collection.</p>
+          { (collection.permissions.includes(CollectionPermission.MANAGE_RESOURCES) || collectionsData.is_admin) &&
+            <a class="iai-button mt-1" href={ `/collections/${collection.id}/resources/add` }>Add documents</a>
+          }
+
+          <div class="mt-7 overflow-x-hidden w-full">
+            <sortable-table>
+              <table class="govuk-table">
+                <caption class="govuk-visually-hidden">Files</caption>
+                <thead class="govuk-table__head">
+                  <tr class="govuk-table__row">
+                    <th scope="col" class="govuk-table__header" aria-sort="ascending" data-sortable="true">Filename</th>
+                    <th scope="col" class="govuk-table__header" data-sortable="true">Type</th>
+                    <th scope="col" class="govuk-table__header" data-sortable="true">Last updated</th>
+                    { (collection.permissions.includes(CollectionPermission.MANAGE_RESOURCES) || collectionsData.is_admin) &&
+                      <th scope="col" class="govuk-table__header">
+                        <span class="sr-only">Actions</span>
+                      </th>
+                    }
+                  </tr>
+                </thead>
+                <tbody class="govuk-table__body">
+                  { resourcesData.resources?.map((resource) =>
+                    <tr class="govuk-table__row">
+                      <td class="govuk-table__cell">
+                        { !resource.process_error ?
+                          resource.permissions.includes(ResourcePermission.READ_CONTENTS) ? 
+                            <a class="govuk-!-display-block" href={ `/collections/${collectionId}/resources/${resource.id}` }>{ resource.filename || resource.id }</a>
+                          :
+                            <span>{ resource.filename || resource.id }</span>
+                        :
+                          <>
+                            <span>{ resource.filename || resource.id }</span>
+                            <span class="govuk-error-message govuk-!-margin-bottom-0 govuk-!-display-block">{ resource.process_error }</span>
+                          </>
+                        }
+                      </td>
+                      <td class="govuk-table__cell">{ resource.content_type }</td>
+                      <td class="govuk-table__cell" data-sort={resource.created_at}>
+                        <span class="govuk-!-display-inline-block">{ resource.created_at ? `${new Date(resource.created_at).toLocaleDateString('en-GB', dateOptions) }, ` : '-' }</span>
+                        <span class="govuk-!-display-inline-block">{ resource.created_at ? new Date(resource.created_at).toLocaleTimeString('en-GB', timeOptions).toUpperCase() : '' }</span>
+                      </td>
+                      { collection.permissions.includes(CollectionPermission.MANAGE_RESOURCES) &&
+                        <td class="govuk-table__cell">
+                          <a class="govuk-body-s" href={ `/collections/${collectionId}/resources/${resource.id}/delete` }>
+                            Delete
+                            <span class="govuk-visually-hidden"> { resource.filename || resource.id }</span>
+                          </a>
+                        </td>
+                      }
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </sortable-table>
+          </div>
+          { (collection.permissions.includes(CollectionPermission.MANAGE_RESOURCES) || collectionsData.is_admin) &&
+            <a class="iai-button mt-1" href={ `/collections/${collection.id}/resources/add` }>Add documents</a>
+          }
+        </div>
+        
+        {/* Tab 2 content */}
+        <div class="govuk-tabs__panel govuk-tabs__panel--hidden" id="sharing">
+          <p>This collection is shared with {users.length || '0'} people.</p>
+
+          { (collection.permissions.includes(CollectionPermission.MANAGE_USERS) || collectionsData.is_admin) &&
+            <a class="iai-button mt-1" href={ `/collections/${collection.id}/users/add` }>Add user</a>
+          }
+
+          <div class="mt-5 overflow-x-auto w-full">
+            <sortable-table class="block">
+              <table class="govuk-table">
+                <caption class="govuk-visually-hidden">Files</caption>
+                <thead class="govuk-table__head">
+                  <tr class="govuk-table__row">
+                    <th scope="col" class="govuk-table__header" aria-sort="ascending" data-sortable="true">Email address</th>
+                    <th scope="col" class="govuk-table__header" data-sortable="true">Role</th>
+                    { (collection.permissions.includes(CollectionPermission.MANAGE_USERS) || collectionsData.is_admin) &&
+                      <th scope="col" class="govuk-table__header">
+                        <span class="sr-only">Actions</span>
+                      </th>
+                    }
+                  </tr>
+                </thead>
+                <tbody class="govuk-table__body">
+                  { users?.map((user) =>
+                    <tr class="govuk-table__row">
+                      <td class="govuk-table__cell">{ user.user_email }</td>
+                      <td class="govuk-table__cell">{ user.role === 'manager' ? 'Admin' : 'User' }</td>
+                      { (collection.permissions.includes(CollectionPermission.MANAGE_USERS) || collectionsData.is_admin) &&
+                        <td class="govuk-table__cell">
+                          <span class="flex gap-4 justify-end">
+                            <a class="govuk-body-s govuk-!-margin-bottom-0" href={ `/collections/${collection.id}/users/${user.user_id}/edit` }>
+                              Edit
+                              <span class="govuk-visually-hidden"> { user.user_email }</span>
+                            </a>
+                            <a class="govuk-body-s govuk-!-margin-bottom-0" href={ `/collections/${collection.id}/users/${user.user_id}/remove` }>
+                              Remove
+                              <span class="govuk-visually-hidden"> { user.user_email }</span>
+                            </a>
+                          </span>
+                        </td>
+                      }
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </sortable-table>
+          </div>
+        </div>
+        
+        {/* Tab 3 content */}
+        <div class="govuk-tabs__panel govuk-tabs__panel--hidden" id="settings">
+          <form method="post" action="/api/update-collection/" enctype="multipart/form-data">
+            <input type="hidden" value={ collection.id } name="collection"/>
+            <div class="govuk-form-group">
+              <label class="govuk-label" for="name">Collection name</label>
+              <input class="govuk-input rounded-sm!" id="name" name="name" type="text" value={ collection.name } required />
+            </div>
+            <div class="govuk-form-group">
+              <label class="govuk-label" for="description">Description</label>
+              <div id="description-hint" class="govuk-hint text-[1rem]!">Describe the contents of this collection so that AI agents and chatbots know when to use it. Specific, verbose descriptions are better than short, generic ones.</div>
+              <input class="govuk-input rounded-sm!" id="description" name="description" type="text" value={ collection.description } aria-describedby="description-hint" />
+            </div>
+            <div class="govuk-form-group">
+              <label class="govuk-label" for="prompt">
+                Custom prompt
+                <strong class="govuk-tag">Experimental</strong>
+              </label>
+              <div id="prompt-hint" class="govuk-hint text-[1rem]!">This will override the default system prompt in Gov AI Client. The default will be used if this is empty.</div>
+              <textarea class="govuk-textarea rounded-sm!" id="prompt" name="prompt" rows="5" aria-describedby="prompt-hint">{ collection.custom_prompt }</textarea>
+            </div>
+            <div class="flex gap-4 items-center">
+              <button class="iai-button">Update collection</button>
+              or
+              <a href={ `/collections/${collection.id}/delete` }>Delete collection</a>
+            </div>
+            
+          </form>
+        </div>
+        
+      </div>
+
+    </div>
+  </div>
+
+</Layout>
+
+<script src="@components/sortable-table.ts"></script>

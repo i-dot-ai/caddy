@@ -13,6 +13,6 @@ export async function POST({ request, redirect }: EndpointParams) {
 
   const notification = `Resource <strong>${resourceName}</strong> deleted`;
 
-  return redirect(`/collections/${collectionId}/resources?notification=${encodeURI(notification)}`, 303);
+  return redirect(`/collections/${collectionId}?notification=${encodeURI(notification)}`, 303);
 
 }

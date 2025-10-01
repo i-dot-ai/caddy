@@ -22,7 +22,7 @@ const resourcesData = await getResources(collectionId || '', 1, 9999, token);
         <a class="govuk-breadcrumbs__link" href="/">Collections</a>
       </li>
       <li class="govuk-breadcrumbs__list-item">
-        <a class="govuk-breadcrumbs__link" href="../resources">Resources</a>
+        <a class="govuk-breadcrumbs__link" href={ `/collections/${collectionId}` }>Documents</a>
       </li>
       <li class="govuk-breadcrumbs__list-item">
         Upload
