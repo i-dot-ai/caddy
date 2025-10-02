@@ -19,6 +19,8 @@ const chatLink = (() => {
   return `https://gov-ai-client${urlSegment}.ai.cabinetoffice.gov.uk`;
 })();
 
+const adminCount = collections.filter((collection) => collection.permissions.includes(CollectionPermission.MANAGE_RESOURCES)).length;
+
 ---
 
 <Layout title="Collections" error={error}>
@@ -27,6 +29,8 @@ const chatLink = (() => {
     <div class="govuk-grid-column-full">
       
       <h1 class="govuk-heading-l">Manage Collections</h1>
+
+      <p>You currently manage { adminCount } collections.</p>
       
        { collections.length ?
         <ul class="ml-0 mt-9">
