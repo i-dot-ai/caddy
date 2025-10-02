@@ -43,13 +43,14 @@ const timeOptions: Intl.DateTimeFormatOptions = {
   <div class="govuk-grid-row">
     <div class="govuk-grid-column-full">
 
-      <h1 class="govuk-heading-l mb-0!">{ collection.name }</h1>
+      <h1 class="govuk-heading-l mb-0!">
+        <span class="block font-normal mb-1 text-[1.5rem] text-text-secondary">Collection</span>
+        { collection.name }
+      </h1>
       <p class="govuk-body mt-3!">{ collection.description } { collectionId }</p>
 
       <div class="govuk-tabs mt-9!" data-module="govuk-tabs">
-        <h2 class="govuk-tabs__title">
-          Contents
-        </h2>
+        <h2 class="govuk-tabs__title">Contents</h2>
         <ul class="govuk-tabs__list">
           <li class="govuk-tabs__list-item govuk-tabs__list-item--selected">
             <a class="govuk-tabs__tab" href="#documents">Documents</a>
