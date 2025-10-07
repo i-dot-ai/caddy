@@ -44,12 +44,15 @@ const timeOptions: Intl.DateTimeFormatOptions = {
     </td>
     { isManager &&
       <td class="govuk-table__cell">
-        <span class="flex gap-3 items-center">
+        <span class="flex gap-3 items-center justify-end">
           { resource.url &&
             <form method="post" action="/api/add-urls/?refresh=true" enctype="multipart/form-data">
               <input type="hidden" name="collection" value={ collectionId } />
               <input type="hidden" name="addUrls" value={ resource.url } />
-              <button class="actions__refresh govuk-link govuk-body-s">Update</button>
+              <button class="flex govuk-link govuk-body-s mb-0! cursor-pointer text-pink! disabled:no-underline!">
+                Update
+                <loading-spinner></loading-spinner>
+              </button>
             </form>   
           }
           <a class="govuk-body-s govuk-!-margin-bottom-0" href={ `/collections/${collectionId}/resources/${resource.id}/delete` }>
