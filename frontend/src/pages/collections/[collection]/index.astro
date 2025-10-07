@@ -1,9 +1,9 @@
 ---
 import Layout from '@layouts/Layout.astro';
-import Resources from '@components/Resources.astro';
+import AddUpdateResources from '@components/AddUpdateResources.astro';
 import { getCollection, getCollections, getResources, getUsers, CollectionPermission, ResourcePermission } from '@logic/data.ts';
 
-const PAGE_SIZE = 50;
+const PAGE_SIZE = 9999;
 const token = Astro.request.headers.get('x-amzn-oidc-accesstoken');
 
 // TO-DO: if we can get permissions using getCollection, then we won't need getCollections here
@@ -13,6 +13,8 @@ const { collection: collectionId } = Astro.params;
 const { collection, error } = await getCollection(collectionId || '', token);
 
 const resourcesData = await getResources(collectionId || '', 1, PAGE_SIZE, token);
+
+const webResources = resourcesData.resources.filter((resource) => resource.url).map((resource) => resource.url).join().replaceAll(',', '\n');
 
 const users = await getUsers(collectionId || '', token);
 
@@ -66,8 +68,8 @@ const timeOptions: Intl.DateTimeFormatOptions = {
         {/* Tab 1 content */}
         <div class="govuk-tabs__panel" id="documents">
           <p class="govuk-body">There are { resourcesData.total } documents in this collection.</p>
-          { (collection.permissions.includes(CollectionPermission.MANAGE_RESOURCES) || collectionsData.is_admin) &&
-            <a class="iai-button mt-1" href={ `/collections/${collection.id}/resources/add` }>Add documents</a>
+          { (collection.permissions.includes(CollectionPermission.MANAGE_RESOURCES) || collectionsData.is_admin) && webResources &&
+            <AddUpdateResources collectionId={ collection.id } webResources={ webResources } />
           }
 
           <div class="mt-7 overflow-x-hidden w-full">
@@ -109,10 +111,19 @@ const timeOptions: Intl.DateTimeFormatOptions = {
                       </td>
                       { collection.permissions.includes(CollectionPermission.MANAGE_RESOURCES) &&
                         <td class="govuk-table__cell">
-                          <a class="govuk-body-s" href={ `/collections/${collectionId}/resources/${resource.id}/delete` }>
-                            Delete
-                            <span class="govuk-visually-hidden"> { resource.filename || resource.id }</span>
-                          </a>
+                          <span class="flex gap-3 items-center">
+                            { resource.url &&
+                              <form class="pb-[3px]" method="post" action="/api/add-urls/?refresh=true" enctype="multipart/form-data">
+                                <input type="hidden" name="collection" value={ collectionId } />
+                                <input type="hidden" name="addUrls" value={ resource.url } />
+                                <button class="govuk-link govuk-body-s mb-0! cursor-pointer text-pink!">Update</button>
+                              </form>   
+                            }
+                            <a class="govuk-body-s mb-0!" href={ `/collections/${collectionId}/resources/${resource.id}/delete` }>
+                              Delete
+                              <span class="govuk-visually-hidden"> { resource.filename || resource.id }</span>
+                            </a>
+                          </span>
                         </td>
                       }
                     </tr>
@@ -122,7 +133,7 @@ const timeOptions: Intl.DateTimeFormatOptions = {
             </sortable-table>
           </div>
           { (collection.permissions.includes(CollectionPermission.MANAGE_RESOURCES) || collectionsData.is_admin) &&
-            <a class="iai-button mt-1" href={ `/collections/${collection.id}/resources/add` }>Add documents</a>
+            <AddUpdateResources collectionId={ collection.id } webResources={ webResources } />
           }
         </div>
         
