@@ -41,7 +41,7 @@ html2text = "^2025.4.15"
 #i-dot-ai-utilities = "0.3.0"
 python-slugify = "^8.0.4"
 qdrant-client = {extras = ["fastembed"], version = "^1.15.1" }
-i-dot-ai-utilities = {path = "../../i-dot-ai-utilities", develop = true}
+i-dot-ai-utilities = "^0.3.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.3.3"
