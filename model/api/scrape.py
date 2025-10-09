@@ -134,7 +134,7 @@ class Scraper:
                         if title_tag:
                             page_title = title_tag.get_text().strip()
                         content_type = ""
-                        content_type_tag = soup.meta.get("content")
+                        content_type_tag = soup.meta.get("content", "text/html")
                         if content_type_tag:
                             content_type = content_type_tag.split(";")[0]
 
