@@ -229,13 +229,6 @@ def create_new_collection(
     user: User,
     logger: StructuredLogger,
 ) -> Collection:
-    if not is_user_admin_user(user):
-        logger.info(
-            "User {user_email} tried to create a collection {collection_name} without being an admin",
-            user_email=str(user),
-            collection_name=new_collection.name,
-        )
-        raise NoPermissionException(error_code=403, message="User needs to be an admin")
     collection = Collection(**new_collection.model_dump())
     stmt = select(Collection).where(Collection.name == collection.name)
     results = session.exec(stmt).all()
