@@ -2,6 +2,10 @@ import os
 from functools import lru_cache
 
 from fastembed import SparseTextEmbedding
+from i_dot_ai_utilities.file_store.factory import create_file_store
+from i_dot_ai_utilities.file_store.types.file_store_destination_enum import (
+    FileStoreDestinationEnum,
+)
 from i_dot_ai_utilities.logging.structured_logger import StructuredLogger
 from i_dot_ai_utilities.logging.types.enrichment_types import ExecutionEnvironmentType
 from i_dot_ai_utilities.logging.types.log_output_format import LogOutputFormat
@@ -18,7 +22,6 @@ class CaddyConfig:
         self,
         embedding_model,
         sqlalchemy_url: str,
-        s3_client,
         data_s3_bucket: str,
         resource_url_template: str,
         qdrant_url: str,
@@ -29,7 +32,6 @@ class CaddyConfig:
         disable_auth_signature_verification=False,
         auth_provider_public_key="none",
         sentry_dsn=None,
-        s3_prefix="app_data",
         keycloak_allowed_roles=None,
         git_sha=None,
         qdrant_access_token_header=None,
@@ -42,9 +44,7 @@ class CaddyConfig:
         self.auth_provider_public_key = auth_provider_public_key
         self.sqlalchemy_url = sqlalchemy_url
         self.keycloak_allowed_roles = keycloak_allowed_roles or []
-        self.s3_client = s3_client
         self.data_s3_bucket = data_s3_bucket
-        self.s3_prefix = s3_prefix
         self.resource_url_template = resource_url_template
         self.git_sha = git_sha
         self.admin_users = os.environ.get("ADMIN_USERS", "").split(",")
@@ -52,13 +52,6 @@ class CaddyConfig:
         self.qdrant__service__api_key = qdrant__service__api_key
         self.qdrant_collection_name = qdrant_collection_name
         self.qdrant_access_token_header = qdrant_access_token_header
-
-        if self.env not in ("PROD", "PREPROD", "DEV"):
-            if not any(
-                bucket["Name"] == self.data_s3_bucket
-                for bucket in self.s3_client.list_buckets()["Buckets"]
-            ):
-                self.s3_client.create_bucket(Bucket=self.data_s3_bucket)
 
         self._qdrant_client: AsyncQdrantClient | None = None
         self._sync_qdrant_client: QdrantClient | None = None
@@ -237,6 +230,25 @@ class CaddyConfig:
             environment=self.env,
             logger=self.get_logger(__name__),
         )
+
+    @lru_cache
+    def get_file_store_client(self):
+        logger = self.get_logger(__name__)
+        client = create_file_store(
+            FileStoreDestinationEnum.AWS_S3, self.get_logger(__name__)
+        )
+        buckets = client.list_buckets()
+        if not any(bucket["Name"] == self.data_s3_bucket for bucket in buckets):
+            logger.info(
+                "Bucket not found, creating - {bucket_name}",
+                bucket_name=self.data_s3_bucket,
+            )
+            client.create_bucket(name=self.data_s3_bucket)
+        else:
+            logger.info(
+                "Bucket exists - {bucket_name}", bucket_name=self.data_s3_bucket
+            )
+        return client
 
     @staticmethod
     @lru_cache

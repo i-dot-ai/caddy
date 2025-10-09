@@ -77,6 +77,7 @@ def __process_resource(
     content: str | bytes,
     session: Session,
     user: User,
+    logger: StructuredLogger,
     url: str | None = None,
 ) -> tuple[Resource, timedelta]:
     process_time_start = utc_now()
@@ -107,18 +108,26 @@ def __process_resource(
     if not url and type(content) is bytes:
         # Assume the file is a File, not URL, so it can be uploaded to S3
         # Take advantage of S3 upload and download to handle file conversion and to get back string body
-        config.s3_client.put_object(
-            Bucket=config.data_s3_bucket,
-            Key=f"{config.s3_prefix}/{collection_id}/{resource.id}/{resource_name}",
-            Body=content,
-        )
-        s3_object = config.s3_client.get_object(
-            Bucket=config.data_s3_bucket,
-            Key=f"{config.s3_prefix}/{resource.collection_id}/{resource.id}/{resource.filename}",
+        logger.info(
+            "Uploading file to filestore - {resource_id}", resource_id=resource.id
         )
 
-        s3_content = BytesIO(s3_object["Body"].read())
+        client = config.get_file_store_client()
+
+        client.put_object(
+            key=f"{collection_id}/{resource.id}/{resource_name}", data=content
+        )
+
+        s3_object = client.read_object(
+            key=f"{collection_id}/{resource.id}/{resource_name}", as_text=False
+        )
+
+        s3_content = BytesIO(s3_object)
         content = md.convert(s3_content).text_content
+
+        logger.info(
+            "File uploaded to file store - {resource_id}", resource_id=resource.id
+        )
 
     documents = _split_text(content)
 
@@ -439,6 +448,7 @@ def create_resource_from_file(
             content=file.file.read(),
             session=session,
             user=user,
+            logger=logger,
             url=None,
         )
         session.commit()
@@ -536,6 +546,7 @@ async def create_resource_from_urls(
                 content=file.markdown,
                 session=session,
                 user=user,
+                logger=logger,
             )
             session.add(resource)
             session.commit()
@@ -698,10 +709,8 @@ def delete_resource_by_id(
                 message="No permission to delete documents for this resource",
             )
 
-        config.s3_client.delete_object(
-            Bucket=config.data_s3_bucket,
-            Key=f"{config.s3_prefix}/{collection_id}/{resource_id}",
-        )
+        client = config.get_file_store_client()
+        client.delete_object(f"{collection_id}/{resource_id}/{resource.filename}")
 
         session.delete(resource)
         session.commit()

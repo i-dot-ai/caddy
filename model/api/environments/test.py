@@ -1,9 +1,6 @@
 import json
 import os
 
-import boto3
-from botocore.client import Config
-
 from api.config import CaddyConfig
 from api.embedding_models import load_embedding_model
 
@@ -14,15 +11,6 @@ auth_provider_public_key = os.environ["AUTH_PROVIDER_PUBLIC_KEY"]
 
 sqlalchemy_url = "postgresql+psycopg2://{POSTGRES_USER}:{POSTGRES_PASSWORD}@{POSTGRES_HOST}/{POSTGRES_DB}".format(
     **os.environ
-)
-
-
-s3_client = boto3.client(
-    "s3",
-    endpoint_url="http://localhost:9000",
-    aws_access_key_id="minioadmin",
-    aws_secret_access_key="minioadmin",  # pragma: allowlist secret
-    config=Config(signature_version="s3v4"),
 )
 
 data_s3_bucket = "test-bucket"
@@ -42,7 +30,6 @@ config = CaddyConfig(
     qdrant_collection_name=qdrant_collection_name,
     embedding_model=embedding_model,
     sqlalchemy_url=sqlalchemy_url,
-    s3_client=s3_client,
     data_s3_bucket=data_s3_bucket,
     resource_url_template=resource_url_template,
     env="test",

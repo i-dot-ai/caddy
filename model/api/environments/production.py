@@ -25,9 +25,7 @@ sqlalchemy_url = "postgresql+psycopg2://{POSTGRES_USER}:{POSTGRES_PASSWORD}@{POS
     **os.environ
 )
 
-s3_client = boto3.client("s3")
-
-data_s3_bucket = os.environ["DATA_S3_BUCKET"]
+data_s3_bucket = os.environ["IAI_FS_BUCKET_NAME"]
 
 keycloak_allowed_roles = json.loads(os.environ["KEYCLOAK_ALLOWED_ROLES"])
 
@@ -44,7 +42,6 @@ config = CaddyConfig(
     qdrant_url=qdrant_url,
     embedding_model=embedding_model,
     sqlalchemy_url=sqlalchemy_url,
-    s3_client=s3_client,
     data_s3_bucket=data_s3_bucket,
     resource_url_template=resource_url_template,
     env=environment,
