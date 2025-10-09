@@ -17,7 +17,7 @@ from api.models import (
 )
 from api.types import Chunks, CollectionsDto
 
-s3_client = config.s3_client
+s3_client = config.get_file_store_client()
 CWD = os.path.dirname(os.path.abspath(__file__))
 
 
