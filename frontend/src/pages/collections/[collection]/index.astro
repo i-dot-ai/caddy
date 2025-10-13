@@ -1,10 +1,12 @@
 ---
 import Layout from '@layouts/Layout.astro';
+import ResourcesTable from '@components/ResourcesTable.astro';
 import AddUpdateResources from '@components/AddUpdateResources.astro';
 import { getCollection, getCollections, getResources, getUsers, CollectionPermission, ResourcePermission } from '@logic/data.ts';
 
-const PAGE_SIZE = 9999;
 const token = Astro.request.headers.get('x-amzn-oidc-accesstoken');
+
+const PAGE_SIZE = 50; // how many docs to load in each "chunk". One chunk is shown on initial page load and the rest are streamed
 
 // TO-DO: if we can get permissions using getCollection, then we won't need getCollections here
 let { collectionsData } = await getCollections(token);
@@ -17,6 +19,8 @@ const resourcesData = await getResources(collectionId || '', 1, PAGE_SIZE, token
 const webResources = resourcesData.resources.filter((resource) => resource.url).map((resource) => resource.url).join().replaceAll(',', '\n');
 
 const users = await getUsers(collectionId || '', token);
+
+const isAdmin = collection.permissions.includes(CollectionPermission.MANAGE_RESOURCES) || collectionsData.is_admin;
 
 const dateOptions: Intl.DateTimeFormatOptions = {
   day:   'numeric',
@@ -68,73 +72,12 @@ const timeOptions: Intl.DateTimeFormatOptions = {
         {/* Tab 1 content */}
         <div class="govuk-tabs__panel" id="documents">
           <p class="govuk-body">There are { resourcesData.total } documents in this collection.</p>
-          { (collection.permissions.includes(CollectionPermission.MANAGE_RESOURCES) || collectionsData.is_admin) && webResources &&
+          { isAdmin && webResources &&
             <AddUpdateResources collectionId={ collection.id } webResources={ webResources } />
           }
 
-          <div class="mt-7 overflow-x-hidden w-full">
-            <sortable-table>
-              <table class="govuk-table">
-                <caption class="govuk-visually-hidden">Files</caption>
-                <thead class="govuk-table__head">
-                  <tr class="govuk-table__row">
-                    <th scope="col" class="govuk-table__header" aria-sort="ascending" data-sortable="true">Filename</th>
-                    <th scope="col" class="govuk-table__header" data-sortable="true">Type</th>
-                    <th scope="col" class="govuk-table__header" data-sortable="true">Last updated</th>
-                    { (collection.permissions.includes(CollectionPermission.MANAGE_RESOURCES) || collectionsData.is_admin) &&
-                      <th scope="col" class="govuk-table__header">
-                        <span class="sr-only">Actions</span>
-                      </th>
-                    }
-                  </tr>
-                </thead>
-                <tbody class="govuk-table__body">
-                  { resourcesData.resources?.map((resource) =>
-                    <tr class="govuk-table__row">
-                      <td class="govuk-table__cell">
-                        { !resource.process_error ?
-                          resource.permissions.includes(ResourcePermission.READ_CONTENTS) ? 
-                            <a class="govuk-!-display-block" href={ `/collections/${collectionId}/resources/${resource.id}` }>{ resource.filename || resource.id }</a>
-                          :
-                            <span>{ resource.filename || resource.id }</span>
-                        :
-                          <>
-                            <span>{ resource.filename || resource.id }</span>
-                            <span class="govuk-error-message govuk-!-margin-bottom-0 govuk-!-display-block">{ resource.process_error }</span>
-                          </>
-                        }
-                      </td>
-                      <td class="govuk-table__cell">{ resource.content_type }</td>
-                      <td class="govuk-table__cell" data-sort={resource.created_at}>
-                        <span class="govuk-!-display-inline-block">{ resource.created_at ? `${new Date(resource.created_at).toLocaleDateString('en-GB', dateOptions) }, ` : '-' }</span>
-                        <span class="govuk-!-display-inline-block">{ resource.created_at ? new Date(resource.created_at).toLocaleTimeString('en-GB', timeOptions).toUpperCase() : '' }</span>
-                      </td>
-                      { collection.permissions.includes(CollectionPermission.MANAGE_RESOURCES) &&
-                        <td class="govuk-table__cell">
-                          <span class="flex gap-3 items-center justify-end">
-                            { resource.url &&
-                              <form class="pb-[3px]" method="post" action="/api/add-urls/?refresh=true" enctype="multipart/form-data">
-                                <input type="hidden" name="collection" value={ collectionId } />
-                                <input type="hidden" name="addUrls" value={ resource.url } />
-                                <button class="flex govuk-link govuk-body-s mb-0! cursor-pointer text-pink! disabled:no-underline!">
-                                  Update
-                                  <loading-spinner></loading-spinner>
-                                </button>
-                              </form>   
-                            }
-                            <a class="govuk-body-s mb-0!" href={ `/collections/${collectionId}/resources/${resource.id}/delete` }>
-                              Delete
-                              <span class="govuk-visually-hidden"> { resource.filename || resource.id }</span>
-                            </a>
-                          </span>
-                        </td>
-                      }
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </sortable-table>
-          </div>
+          <ResourcesTable collectionId={ collection.id } isAdmin={ isAdmin } resourcesData={ resourcesData } token={ token } pageSize={ PAGE_SIZE }></ResourcesTable>          
+
           { (collection.permissions.includes(CollectionPermission.MANAGE_RESOURCES) || collectionsData.is_admin) &&
             <AddUpdateResources collectionId={ collection.id } webResources={ webResources } />
           }
@@ -144,19 +87,19 @@ const timeOptions: Intl.DateTimeFormatOptions = {
         <div class="govuk-tabs__panel govuk-tabs__panel--hidden" id="sharing">
           <p>This collection is shared with {users.length || '0'} people.</p>
 
-          { (collection.permissions.includes(CollectionPermission.MANAGE_USERS) || collectionsData.is_admin) &&
+          { isAdmin &&
             <a class="iai-button mt-1" href={ `/collections/${collection.id}/users/add` }>Add user</a>
           }
 
           <div class="mt-5 overflow-x-auto w-full">
             <sortable-table class="block">
               <table class="govuk-table">
-                <caption class="govuk-visually-hidden">Files</caption>
+                <caption class="govuk-visually-hidden">Users</caption>
                 <thead class="govuk-table__head">
                   <tr class="govuk-table__row">
                     <th scope="col" class="govuk-table__header" aria-sort="ascending" data-sortable="true">Email address</th>
                     <th scope="col" class="govuk-table__header" data-sortable="true">Role</th>
-                    { (collection.permissions.includes(CollectionPermission.MANAGE_USERS) || collectionsData.is_admin) &&
+                    { isAdmin &&
                       <th scope="col" class="govuk-table__header">
                         <span class="sr-only">Actions</span>
                       </th>
@@ -168,7 +111,7 @@ const timeOptions: Intl.DateTimeFormatOptions = {
                     <tr class="govuk-table__row">
                       <td class="govuk-table__cell">{ user.user_email }</td>
                       <td class="govuk-table__cell">{ user.role === 'manager' ? 'Admin' : 'User' }</td>
-                      { (collection.permissions.includes(CollectionPermission.MANAGE_USERS) || collectionsData.is_admin) &&
+                      { isAdmin &&
                         <td class="govuk-table__cell">
                           <span class="flex gap-4 justify-end">
                             <a class="govuk-body-s govuk-!-margin-bottom-0" href={ `/collections/${collection.id}/users/${user.user_id}/edit` }>
