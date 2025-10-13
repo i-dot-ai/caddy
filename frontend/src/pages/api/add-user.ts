@@ -13,6 +13,6 @@ export async function POST({ request, redirect }: APIContext) {
 
   const notification = data.get('user') ? `User <strong>${emailAddress}</strong> updated` : `User <strong>${emailAddress}</strong> added to collection`;
 
-  return redirect(`/collections/${collectionId}#sharing?notification=${encodeURI(notification)}`, 303);
+  return redirect(`/collections/${collectionId}?notification=${encodeURI(notification)}#sharing`, 303);
 
 }

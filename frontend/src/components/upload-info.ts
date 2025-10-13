@@ -17,7 +17,10 @@ const UploadInfo = class extends HTMLElement {
     this.form?.addEventListener('submit', async(evt) => {
       evt.preventDefault();
       await this.#uploadFiles();
-      this.querySelector('[hidden]')?.classList.add('govuk-button');
+
+      const button = this.querySelector('[hidden]');
+      button?.classList.add('govuk-button');
+      button?.removeAttribute('hidden');
     });
 
   }
@@ -37,7 +40,7 @@ const UploadInfo = class extends HTMLElement {
           </li>
         `).join('')}
       </ul>
-      <a href="../resources" hidden>Back to resources page</a>
+      <a href="../" hidden>Back to resources</a>
     `;
 
     this.classList.add('upload-info');
