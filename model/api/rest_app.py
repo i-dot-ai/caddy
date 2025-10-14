@@ -2,6 +2,7 @@ from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
+from fastapi.responses import RedirectResponse
 from i_dot_ai_utilities.logging.structured_logger import StructuredLogger
 from markitdown import MarkItDown, MarkItDownException
 from sqlmodel import Session
@@ -32,6 +33,7 @@ from api.services import (
     get_collection_user_roles_by_id,
     get_documents_for_resource_by_id,
     get_resource_by_id,
+    get_resource_download_url,
     get_resources_by_collection_id,
     get_user_collections,
     update_collection_by_id,
@@ -208,6 +210,50 @@ async def create_resources_from_url_list(
         raise HTTPException(status_code=e.error_code, detail=str(e))
     else:
         return result
+
+
+@router.get(
+    "/collections/{collection_id}/resources/{resource_id}/download",
+    status_code=302,
+    tags=["resources"],
+)
+def download_resource(
+    collection_id: UUID,
+    resource_id: UUID,
+    session: Annotated[Session, Depends(get_session)],
+    user: Annotated[User, Depends(get_current_user)],
+    logger: StructuredLogger = Depends(get_logger(__name__)),
+) -> RedirectResponse:
+    """
+    Endpoint to download a file, if authorised.
+
+    Args:
+        logger: The logger to use
+        session: DB session
+        user: The logged-in user from auth JWT or None
+        collection_id (UUID): The collection the file belongs to.
+        resource_id (UUID): The resource to download.
+
+    Returns:
+        A redirect to the download url
+    """
+    try:
+        __set_logger_context(logger, user)
+        result = get_resource_download_url(
+            collection_id, resource_id, session, logger, user
+        )
+    except (
+        NoPermissionException,
+        ItemNotFoundException,
+    ) as e:
+        logger.exception(
+            "Failed to get download url for resource {resource_id} for user {user_email}",
+            resource_id=resource_id,
+            user_email=str(user),
+        )
+        raise HTTPException(status_code=e.error_code, detail=str(e))
+    else:
+        return RedirectResponse(url=result, status_code=302)
 
 
 @router.get(
