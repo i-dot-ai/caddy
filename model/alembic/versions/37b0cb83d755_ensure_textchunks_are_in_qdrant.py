@@ -172,15 +172,12 @@ def upgrade() -> None:
 
     # Initialize Qdrant collections synchronously
     client = config.get_sync_qdrant_client()
+    # Check if collection exists, if not this will raise an exception
     try:
-        # Check if collection exists, if not this will raise an exception
-        try:
-            client.get_collection(config.qdrant_collection_name)
-        except Exception:
-            # Collection doesn't exist, it should be created elsewhere
-            print(f"Collection {config.qdrant_collection_name} should already exist")
-    finally:
-        client.close()
+        client.get_collection(config.qdrant_collection_name)
+    except Exception:
+        # Collection doesn't exist, it should be created elsewhere
+        print(f"Collection {config.qdrant_collection_name} should already exist")
 
     check_and_create_qdrant_points()
 
