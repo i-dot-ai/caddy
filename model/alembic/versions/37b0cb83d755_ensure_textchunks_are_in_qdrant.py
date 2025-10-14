@@ -126,7 +126,12 @@ def create_missing_points(
 
     points_to_create = []
 
-    for chunk in missing_chunks:
+    total_points = len(missing_chunks)
+
+    for i, chunk in enumerate(missing_chunks):
+        logger.info(
+            "Processing record {i} / {total_points}", i=i, total_points=total_points
+        )
         try:
             logger.info("Creating missing dense embedding")
             # Generate dense vector as it already overlaps from the chunking
