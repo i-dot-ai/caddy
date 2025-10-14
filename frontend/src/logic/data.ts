@@ -132,6 +132,7 @@ export interface ResourceDetail {
   created_at?: string,
   process_error?: string,
   permissions: ResourcePermission[],
+  download_url: string,
 }
 
 interface ResourceList {

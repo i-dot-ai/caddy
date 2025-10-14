@@ -35,6 +35,15 @@ const fragments = await getResourceFragments(collectionId || '', resourceId || '
 
       <p><strong>Document:</strong> { resource.filename || resource.id }</p>
 
+      { !resource.url &&
+        <div class="govuk-button-group mt-7">
+          <a class="iai-button" href={ resource.download_url } download>Download original document</a>
+          <copy-link>
+            <button class="iai-button--secondary ml-3" data-url={ resource.download_url }>Copy link</button>
+          </copy-link>
+        </div>
+      }
+
       { fragments?.map((chunk) =>
         <LitWrapper>
           <markdown-converter class="border-1 border-solid border-border-grey block p-5 mt-5" content={ chunk.page_content }></markdown-converter>
@@ -49,3 +58,5 @@ const fragments = await getResourceFragments(collectionId || '', resourceId || '
   </div>
 
 </Layout>
+
+<script src="@components/copy-link.ts"></script>

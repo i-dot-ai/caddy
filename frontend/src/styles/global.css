@@ -19,5 +19,5 @@
   @apply bg-pink inline-block border-pink border-solid border-1 cursor-pointer font-medium outline-offset-4 outline-pink px-3 py-2 rounded-md no-underline! text-white! hover:bg-transparent! hover:text-pink! focus:bg-pink! focus:shadow-none! focus:text-white! focus-visible:outline-pink! focus-visible:outline-2!;
 }
 .iai-button--secondary {
-  @apply bg-transparent inline-block border-pink border-solid border-1 cursor-pointer font-medium outline-offset-4 outline-pink px-3 py-2 rounded-md no-underline! hover:bg-pink! hover:text-white! focus:bg-transparent! focus:shadow-none! focus:text-pink! focus-visible:outline-pink! focus-visible:outline-2!;
+  @apply bg-transparent inline-block border-pink border-solid border-1 cursor-pointer font-medium outline-offset-4 outline-pink px-3 py-2 rounded-md text-pink no-underline! hover:bg-pink! hover:text-white! focus:bg-transparent! focus:shadow-none! focus:text-pink! focus-visible:outline-pink! focus-visible:outline-2!;
 }
