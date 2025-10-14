@@ -24,6 +24,9 @@ branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
 
+logger = config.get_logger(__name__)
+
+
 def check_and_create_qdrant_points():
     """Check if TextChunk points exist in Qdrant and create missing ones."""
 
@@ -35,33 +38,44 @@ def check_and_create_qdrant_points():
         text_chunks = session.query(TextChunk).join(Resource).all()
 
         if not text_chunks:
-            print("No TextChunks found in database")
+            logger.info("No TextChunks found in database")
             return
 
-        print(f"Found {len(text_chunks)} TextChunks to check")
+        logger.info(
+            "Found {num_chunks} TextChunks to check", num_chunks=len(text_chunks)
+        )
 
         client = config.get_sync_qdrant_client()
         try:
             existing_chunk_ids = get_existing_chunk_ids(client)
-            print(f"Found {len(existing_chunk_ids)} existing points in Qdrant")
+            logger.info(
+                "Found {num_points} existing points in Qdrant",
+                num_points=len(existing_chunk_ids),
+            )
 
             missing_chunks = []
             for chunk in text_chunks:
                 if str(chunk.id) not in existing_chunk_ids:
                     missing_chunks.append(chunk)
 
-            print(f"Found {len(missing_chunks)} missing chunks to create")
+            logger.info(
+                "Found {num_points} missing chunks to create",
+                num_points=len(missing_chunks),
+            )
 
             if missing_chunks:
                 create_missing_points(client, missing_chunks, session)
-                print(f"Successfully created {len(missing_chunks)} missing points")
+                logger.info(
+                    "Successfully created {num_points} missing points",
+                    num_points=len(missing_chunks),
+                )
             else:
-                print("All chunks already exist in Qdrant")
+                logger.info("All chunks already exist in Qdrant")
         finally:
             client.close()
 
     except Exception as e:
-        print(f"Error during migration: {e}")
+        logger.exception("Error during migration: {msg}", msg=str(e))
         raise
     finally:
         session.close()
@@ -99,7 +113,7 @@ def get_existing_chunk_ids(client: QdrantClient) -> set[str]:
             offset = next_offset
 
     except Exception as e:
-        print(f"Error getting existing chunk IDs: {e}")
+        logger.exception("Error getting existing chunk IDs: {msg}", msg=str(e))
         return set()
 
     return existing_ids
@@ -114,10 +128,12 @@ def create_missing_points(
 
     for chunk in missing_chunks:
         try:
+            logger.info("Creating missing dense embedding")
             # Generate dense vector as it already overlaps from the chunking
             dense_embeddings = config.embedding_model.embed_documents([chunk.text])
 
             # Generate sparse vector for chunks without it
+            logger.info("Creating sparse embedding")
             sparse_embedder = config.get_embedding_handler()
             sparse_embeddings = list(sparse_embedder.embed(chunk.text))
             sparse_embedding = sparse_embeddings[0]
@@ -147,7 +163,11 @@ def create_missing_points(
             points_to_create.append(point)
 
         except Exception as e:
-            print(f"Error creating point for chunk {chunk.id}: {e}")
+            logger.exception(
+                "Error creating point for chunk {chunk_id}: {msg}",
+                chunk_id=chunk.id,
+                msg=str(e),
+            )
             session.rollback()
             continue
 
@@ -159,16 +179,24 @@ def create_missing_points(
                 client.upsert(
                     collection_name=config.qdrant_collection_name, points=batch
                 )
-                print(f"Created batch {i // batch_size + 1}: {len(batch)} points")
+                logger.info(
+                    "Created batch {batch_num}: {batch_len} points",
+                    batch_num=(i // batch_size + 1),
+                    batch_len=len(batch),
+                )
             except Exception as e:
-                print(f"Error creating batch {i // batch_size + 1}: {e}")
+                logger.exception(
+                    "Error creating batch {batch_num}: {msg}",
+                    batch_num=(i // batch_size + 1),
+                    msg=str(e),
+                )
                 session.rollback()
                 raise
 
 
 def upgrade() -> None:
     """Run the migration to sync TextChunks to Qdrant."""
-    print("Starting Qdrant sync migration...")
+    logger.info("Starting Qdrant sync migration...")
 
     # Initialize Qdrant collections synchronously
     client = config.get_sync_qdrant_client()
@@ -177,11 +205,14 @@ def upgrade() -> None:
         client.get_collection(config.qdrant_collection_name)
     except Exception:
         # Collection doesn't exist, it should be created elsewhere
-        print(f"Collection {config.qdrant_collection_name} should already exist")
+        logger.info(
+            "Collection {collection_name} should already exist",
+            collection_name=config.qdrant_collection_name,
+        )
 
     check_and_create_qdrant_points()
 
-    print("Qdrant sync migration completed")
+    logger.info("Qdrant sync migration completed")
 
 
 def downgrade() -> None:
