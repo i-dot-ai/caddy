@@ -19,79 +19,43 @@ const chatLink = (() => {
   return `https://gov-ai-client${urlSegment}.ai.cabinetoffice.gov.uk`;
 })();
 
+const adminCount = collections.filter((collection) => collection.permissions.includes(CollectionPermission.MANAGE_RESOURCES)).length;
+
 ---
 
 <Layout title="Collections" error={error}>
   
   <div class="govuk-grid-row">
-    <div class="govuk-grid-column-two-thirds">
-      <h1 class="govuk-visually-hidden">Welcome to Caddy</h1>
-      <h2 class="govuk-heading-l">What is Caddy?</h2>
-      <p>Caddy allows you to create and share collections of documents that can be searched and queried using AI chat tools.</p>
-      <p>Right now you can only search collections using Caddy's <a href={chatLink}>built in chat interface</a>, but in the future we hope to make it available via other tools, like Microsoft Copilot.</p>
-      <p>Caddy is a beta product - it's still in development and likely to change. If you'd like to create and share your own document collections, contact us. </p>
-    </div>
-  </div>
-
-  <div class="govuk-grid-row">
     <div class="govuk-grid-column-full">
-      <h2 class="govuk-heading-m govuk-!-margin-top-5">Collections</h2>
       
-      { collectionsData.is_admin &&
-        <a class="govuk-button" href="/collections/add">Add a collection</a>
-      }
+      <h1 class="govuk-heading-l">Manage Collections</h1>
 
-      { collections.length ?
-
-        <div style="overflow-x: auto; width: 100%;">
-          <sortable-table>
-            <table class="govuk-table">
-              <caption class="govuk-visually-hidden">My collections</caption>
-              <thead class="govuk-table__head">
-                <tr class="govuk-table__row">
-                  <th scope="col" class="govuk-table__header" aria-sort="ascending" data-sortable="true">Name</th>
-                  <th scope="col" class="govuk-table__header">Actions</th>
-                </tr>
-              </thead>
-              <tbody class="govuk-table__body">
-                { collections.map((collection) =>
-                  <tr class="govuk-table__row">
-                    <td class="govuk-table__cell">
-                      <span>{ collection.name }</span>
-                      { collection.description &&
-                        <span class="govuk-!-display-block govuk-!-margin-top-2 govuk-!-margin-bottom-1 govuk-body-s">{ collection.description }</span>
-                      }
-                    </td>
-                    <td class="govuk-table__cell">
-                      <span class="govuk-!-display-flex" style="gap: 10px 20px;">
-                        <a class="govuk-body-s govuk-!-margin-bottom-0" href={ `/collections/${collection.id}/resources` }>
-                          Resources<span class="govuk-visually-hidden"> for { collection.name }</span>
-                        </a>
-                        <a class="govuk-body-s govuk-!-margin-bottom-0" href={ `/collections/${collection.id}/users` }>
-                          Users<span class="govuk-visually-hidden"> for { collection.name }</span>
-                        </a>
-                        { collection.permissions.includes(CollectionPermission.EDIT) &&
-                          <a class="govuk-body-s govuk-!-margin-bottom-0" href={ `/collections/${collection.id}/edit/` }>
-                            Edit<span class="govuk-visually-hidden"> { collection.name }</span>
-                          </a>
-                        }
-                        { collection.permissions.includes(CollectionPermission.DELETE) &&
-                          <a class="govuk-body-s govuk-!-margin-bottom-0" href={ `/collections/${collection.id}/delete` }>
-                            Delete<span class="govuk-visually-hidden"> { collection.name }</span>
-                          </a>
-                        }
-                      </span>
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </sortable-table>
-        </div>
-
+      <p>You currently manage { adminCount } collections.</p>
+      
+       { collections.length ?
+        <ul class="ml-0 mt-9">
+          { collections.map((collection) =>
+            <li class="border-b-1 broder-solid border-border-grey flex gap-3 pb-3 pt-[0.75rem] last:border-0">
+              <span class="pt-[2px]">
+                <span class="bg-black flex h-9 items-center justify-center rounded-full text-white text-lg w-9">{ collection.name[0].toUpperCase() }</span>
+              </span>
+              <span>
+                <a class="block" href={ `/collections/${collection.id}` }>
+                  <h2>{ collection.name }</h2>
+                </a>
+                { collection.description &&
+                  <p class="block govuk-body-s mt-1!">{ collection.description }</p>
+                }
+              </span>
+            </li>
+          )}
+        </ul>
       :
         <p>No collections found.</p>
       }
+
+      <a class="iai-button mt-1" href="/collections/add">Create new collection</a>
+
     </div>
   </div>
 

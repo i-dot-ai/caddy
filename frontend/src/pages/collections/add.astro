@@ -24,14 +24,14 @@ import Layout from '@layouts/Layout.astro';
       <form class="govuk-!-margin-top-7" method="post" action="/api/update-collection/" enctype="multipart/form-data">
         <div class="govuk-form-group">
           <label class="govuk-label" for="name">Collection name</label>
-          <input class="govuk-input" id="name" name="name" type="text" required>
+          <input class="govuk-input rounded-sm!" id="name" name="name" type="text" required>
         </div>
         <div class="govuk-form-group">
           <label class="govuk-label" for="description">Description</label>
-          <div id="description-hint" class="govuk-hint" style="font-size: 1rem;">Describe the contents of this collection so that AI agents and chatbots know when to use it. Specific, verbose descriptions are better than short, generic ones.</div>
-          <input class="govuk-input" id="description" name="description" type="text" aria-describedby="description-hint">
+          <div id="description-hint" class="govuk-hint text-[1rem]!">Describe the contents of this collection so that AI agents and chatbots know when to use it. Specific, verbose descriptions are better than short, generic ones.</div>
+          <input class="govuk-input rounded-sm!" id="description" name="description" type="text" aria-describedby="description-hint">
         </div>
-        <button class="govuk-button">Add</button>
+        <button class="iai-button">Add</button>
       </form>
 
     </div>

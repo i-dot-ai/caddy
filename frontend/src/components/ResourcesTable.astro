@@ -1,0 +1,31 @@
+---
+import Resources from './Resources.astro';
+
+let { collectionId, isAdmin, token, resourcesData, pageSize } = Astro.props;
+
+---
+<div class="mt-7 overflow-x-hidden w-full">
+  <sortable-table>
+    <table class="govuk-table">
+      <caption class="govuk-visually-hidden">Files</caption>
+      <thead class="govuk-table__head">
+        <tr class="govuk-table__row">
+          <th scope="col" class="govuk-table__header" aria-sort="ascending" data-sortable="true">Filename</th>
+          <th scope="col" class="govuk-table__header" data-sortable="true">Type</th>
+          <th scope="col" class="govuk-table__header" data-sortable="true">Last updated</th>
+          { isAdmin &&
+            <th scope="col" class="govuk-table__header">
+              <span class="sr-only">Actions</span>
+            </th>
+          }
+        </tr>
+      </thead>
+      <tbody class="govuk-table__body">
+        <Resources collectionId={ collectionId } page="1" count={ pageSize } resources={ resourcesData.resources } isManager={ isAdmin } />
+        { Array.from({ length: Math.ceil(resourcesData.total / pageSize) - 1 }).map((_, index) => (
+          <Resources collectionId={ collectionId } page={ index + 2 } count={ pageSize } token={ token } isManager={ isAdmin } />
+        )) }
+      </tbody>
+    </table>
+  </sortable-table>
+</div>
