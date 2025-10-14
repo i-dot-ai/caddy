@@ -18,17 +18,8 @@ def build_document(document: Document, collection_id, session):
     if resource.url:
         document.metadata["url"] = resource.url
     else:
-        s3_client = config.s3_client
-
-        s3_url = s3_client.generate_presigned_url(
-            "get_object",
-            Params={
-                "Bucket": config.data_s3_bucket,
-                "Key": f"{config.s3_prefix}/{resource.collection_id}/{resource.id}/{resource.filename}",
-            },
-            ExpiresIn=3600,
-        )
-        document.metadata["url"] = s3_url
+        download_url = f"{config.backend_host}/collections/{collection_id}/resources/{resource.id}/download"
+        document.metadata["url"] = download_url
         document.metadata["created_at"] = resource.created_at.strftime("%H:%M %d-%m-%Y")
 
     return document

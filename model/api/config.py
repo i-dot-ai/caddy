@@ -23,6 +23,7 @@ class CaddyConfig:
         opensearch_url_pipeline="hybrid_search_pipeline",
         env="local",
         app_name="caddy_model",
+        backend_host="http://localhost:8000",
         disable_auth_signature_verification=False,
         auth_provider_public_key="none",
         sentry_dsn=None,
@@ -46,6 +47,7 @@ class CaddyConfig:
         self.resource_url_template = resource_url_template
         self.git_sha = git_sha
         self.admin_users = os.environ.get("ADMIN_USERS", "").split(",")
+        self.backend_host = backend_host
 
         self.os_index_name = (
             "caddy_text_chunks_test" if self.env == "TEST" else "caddy_text_chunks"
