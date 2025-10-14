@@ -4,13 +4,12 @@ Revises: 340fc40a6965
 Create Date: 2025-09-12 11:15:36.338102
 """
 
-import asyncio
 from datetime import datetime
 from typing import Sequence, Union
 
 import sqlalchemy as sa
 from pgvector.sqlalchemy.vector import VECTOR
-from qdrant_client import AsyncQdrantClient
+from qdrant_client import QdrantClient
 from qdrant_client.http.models import PointStruct, SparseVector
 from sqlalchemy.orm import Session
 
@@ -25,7 +24,7 @@ branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
 
-async def check_and_create_qdrant_points():
+def check_and_create_qdrant_points():
     """Check if TextChunk points exist in Qdrant and create missing ones."""
 
     connection = op.get_bind()
@@ -41,8 +40,9 @@ async def check_and_create_qdrant_points():
 
         print(f"Found {len(text_chunks)} TextChunks to check")
 
-        async with config.get_qdrant_client() as client:
-            existing_chunk_ids = await get_existing_chunk_ids(client)
+        client = config.get_qdrant_client_sync()
+        try:
+            existing_chunk_ids = get_existing_chunk_ids(client)
             print(f"Found {len(existing_chunk_ids)} existing points in Qdrant")
 
             missing_chunks = []
@@ -53,10 +53,12 @@ async def check_and_create_qdrant_points():
             print(f"Found {len(missing_chunks)} missing chunks to create")
 
             if missing_chunks:
-                await create_missing_points(client, missing_chunks, session)
+                create_missing_points(client, missing_chunks, session)
                 print(f"Successfully created {len(missing_chunks)} missing points")
             else:
                 print("All chunks already exist in Qdrant")
+        finally:
+            client.close()
 
     except Exception as e:
         print(f"Error during migration: {e}")
@@ -65,7 +67,7 @@ async def check_and_create_qdrant_points():
         session.close()
 
 
-async def get_existing_chunk_ids(client: AsyncQdrantClient) -> set[str]:
+def get_existing_chunk_ids(client: QdrantClient) -> set[str]:
     """Get all existing chunk_id values from Qdrant."""
     existing_ids = set()
 
@@ -73,7 +75,7 @@ async def get_existing_chunk_ids(client: AsyncQdrantClient) -> set[str]:
         offset = None
 
         while True:
-            scroll_result = await client.scroll(
+            scroll_result = client.scroll(
                 collection_name=config.qdrant_collection_name,
                 limit=1000,
                 offset=offset,
@@ -103,8 +105,8 @@ async def get_existing_chunk_ids(client: AsyncQdrantClient) -> set[str]:
     return existing_ids
 
 
-async def create_missing_points(
-    client: AsyncQdrantClient, missing_chunks: list[TextChunk], session: Session
+def create_missing_points(
+    client: QdrantClient, missing_chunks: list[TextChunk], session: Session
 ):
     """Create Qdrant points for missing TextChunks."""
 
@@ -154,7 +156,7 @@ async def create_missing_points(
         for i in range(0, len(points_to_create), batch_size):
             batch = points_to_create[i : i + batch_size]
             try:
-                await client.upsert(
+                client.upsert(
                     collection_name=config.qdrant_collection_name, points=batch
                 )
                 print(f"Created batch {i // batch_size + 1}: {len(batch)} points")
@@ -168,8 +170,8 @@ def upgrade() -> None:
     """Run the migration to sync TextChunks to Qdrant."""
     print("Starting Qdrant sync migration...")
 
-    asyncio.run(config.initialize_qdrant_collections())
-    asyncio.run(check_and_create_qdrant_points())
+    config.initialize_qdrant_collections_sync()
+    check_and_create_qdrant_points()
 
     print("Qdrant sync migration completed")
 
