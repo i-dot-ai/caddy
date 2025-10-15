@@ -123,9 +123,6 @@ def create_missing_points(
     client: QdrantClient, missing_chunks: list[TextChunk], session: Session
 ):
     """Create Qdrant points for missing TextChunks."""
-
-    points_to_create = []
-
     total_points = len(missing_chunks)
 
     for i, chunk in enumerate(missing_chunks):
@@ -165,38 +162,20 @@ def create_missing_points(
                     "chunk_id": str(chunk.id),
                 },
             )
-            points_to_create.append(point)
+            client.upsert(
+                collection_name=config.qdrant_collection_name,
+                points=[point],
+                wait=False,
+            )
 
         except Exception as e:
             logger.exception(
-                "Error creating point for chunk {chunk_id}: {msg}",
+                "Error upserting point for chunk {chunk_id}: {msg}",
                 chunk_id=chunk.id,
                 msg=str(e),
             )
             session.rollback()
             continue
-
-    if points_to_create:
-        batch_size = 100
-        for i in range(0, len(points_to_create), batch_size):
-            batch = points_to_create[i : i + batch_size]
-            try:
-                client.upsert(
-                    collection_name=config.qdrant_collection_name, points=batch
-                )
-                logger.info(
-                    "Created batch {batch_num}: {batch_len} points",
-                    batch_num=(i // batch_size + 1),
-                    batch_len=len(batch),
-                )
-            except Exception as e:
-                logger.exception(
-                    "Error creating batch {batch_num}: {msg}",
-                    batch_num=(i // batch_size + 1),
-                    msg=str(e),
-                )
-                session.rollback()
-                raise
 
 
 def upgrade() -> None:
