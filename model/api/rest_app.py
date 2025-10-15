@@ -2,7 +2,6 @@ from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
-from fastapi.responses import RedirectResponse
 from i_dot_ai_utilities.logging.structured_logger import StructuredLogger
 from markitdown import MarkItDown, MarkItDownException
 from sqlmodel import Session
@@ -39,11 +38,11 @@ from api.services import (
     update_collection_by_id,
 )
 from api.types import (
-    Chunks,
     CollectionBase,
     CollectionDto,
     CollectionResources,
     CollectionsDto,
+    ResourceChunks,
     ResourceDto,
     UserRole,
 )
@@ -227,13 +226,13 @@ async def create_resources_from_url_list(
     status_code=302,
     tags=["resources"],
 )
-def download_resource(
+def get_download_url(
     collection_id: UUID,
     resource_id: UUID,
     session: Annotated[Session, Depends(get_session)],
     user: Annotated[User, Depends(get_current_user)],
     logger: StructuredLogger = Depends(get_logger(__name__)),
-) -> RedirectResponse:
+) -> str:
     """
     Endpoint to download a file, if authorised.
 
@@ -263,7 +262,7 @@ def download_resource(
         )
         raise HTTPException(status_code=e.error_code, detail=str(e))
     else:
-        return RedirectResponse(url=result, status_code=302)
+        return result
 
 
 @router.get(
@@ -279,7 +278,7 @@ def get_resource_documents(
     logger: StructuredLogger = Depends(get_logger(__name__)),
     page: int = Query(1, ge=1),
     page_size: int = Query(10, ge=1),
-) -> Chunks:
+) -> ResourceChunks:
     """get a documents belonging to a resource"""
     try:
         __set_logger_context(logger, user)

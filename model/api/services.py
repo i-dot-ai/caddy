@@ -42,6 +42,7 @@ from api.types import (
     CollectionDto,
     CollectionResources,
     CollectionsDto,
+    ResourceChunks,
     ResourceDto,
     Role,
     UserRole,
@@ -636,7 +637,7 @@ def get_documents_for_resource_by_id(
     resource_id: UUID,
     page: int = 1,
     page_size: int = 10,
-) -> Chunks:
+) -> ResourceChunks:
     check_user_is_member_of_collection(
         user,
         collection_id,
@@ -704,13 +705,31 @@ def get_documents_for_resource_by_id(
         user_email=str(user),
     )
 
-    return Chunks(
-        collection_id=collection_id,
-        resource_id=resource_id,
-        page=page,
-        total=total,
-        page_size=page_size,
-        documents=documents,
+    url = None
+    if True:
+        s3_client = config.s3_client
+
+        s3_url = s3_client.generate_presigned_url(
+            "get_object",
+            Params={
+                "Bucket": config.data_s3_bucket,
+                "Key": f"{config.s3_prefix}/{collection_id}/{resource_id}/{resource.filename}",
+            },
+            ExpiresIn=3600,
+        )
+
+        url = s3_url
+
+    return ResourceChunks(
+        url=url,
+        chunks=Chunks(
+            collection_id=collection_id,
+            resource_id=resource_id,
+            page=page,
+            total=total,
+            page_size=page_size,
+            documents=documents,
+        ),
     )
 
 
