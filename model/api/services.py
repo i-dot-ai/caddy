@@ -122,16 +122,12 @@ def __process_resource(
 
     documents = _split_text(content)
 
-    embeddings = config.embedding_model.embed_documents(
-        [d.page_content for d in documents]
-    )
-
-    for order, (document, embedding) in enumerate(zip(documents, embeddings)):
+    for order, document in enumerate(documents):
         text_chunk = TextChunk(
             text=document.page_content,
             order=order,
+            resource_id=resource.id,
             resource=resource,
-            embedding=embedding,
         )
         session.add(text_chunk)
     resource.is_processed = True
@@ -150,77 +146,82 @@ def get_resources_by_collection_id(
     page_size: int = 10,
     page: int = 1,
 ) -> CollectionResources:
-    if collection := session.get(Collection, collection_id):
-        check_user_is_member_of_collection(
-            user,
-            collection.id,
-            session,
-            is_manager_of_collection=False,
-            struct_logger=logger,
-        )
-        permissions = get_collection_permissions_for_user(user, collection, session)
-        if permissions is None or CollectionPermissionEnum.VIEW not in permissions:
-            raise NoPermissionException(
-                "No permission to view resources on this collection", 401
+    try:
+        if collection := session.get(Collection, collection_id):
+            check_user_is_member_of_collection(
+                user,
+                collection.id,
+                session,
+                is_manager_of_collection=False,
+                struct_logger=logger,
             )
-        resources_statement = (
-            select(Resource)
-            .where(Resource.collection_id == collection.id)
-            .order_by(Resource.filename)
-            .offset(page_size * (page - 1))
-            .limit(page_size)
-        )
-        resources = session.exec(resources_statement).all()
-
-        count_statement = select(func.count(Resource.id)).where(
-            Resource.collection_id == collection.id
-        )
-        total = session.scalar(count_statement)
-
-        logger.info(
-            "Retrieved collection {collection_id} resources ({resource_count}) for user {user_email}",
-            collection_id=collection.id,
-            resource_count=total,
-            user_email=str(user),
-        )
-
-        if session.get(
-            UserCollection, {"collection_id": collection_id, "user_id": user.id}
-        ):
-            use_file_name = True
-        else:
-            use_file_name = False
-
-        resource_dtos = []
-        for resource in resources:
-            resource = Resource.model_validate(resource)
-            resource_dtos.append(
-                ResourceDto(
-                    id=resource.id,
-                    filename=resource.filename if use_file_name else str(resource.id),
-                    created_at=resource.created_at,
-                    content_type=resource.content_type,
-                    permissions=get_resource_permissions_for_user(
-                        user, resource, session
-                    ),
-                    url=resource.url,
-                    is_processed=resource.is_processed,
-                    process_error=resource.process_error,
-                    process_time=resource.process_time,
-                    created_by_id=resource.created_by_id,
-                    collection_id=resource.collection_id,
+            permissions = get_collection_permissions_for_user(user, collection, session)
+            if permissions is None or CollectionPermissionEnum.VIEW not in permissions:
+                raise NoPermissionException(
+                    "No permission to view resources on this collection", 401
                 )
+            resources_statement = (
+                select(Resource)
+                .where(Resource.collection_id == collection.id)
+                .order_by(Resource.filename)
+                .offset(page_size * (page - 1))
+                .limit(page_size)
+            )
+            resources = session.exec(resources_statement).all()
+
+            count_statement = select(func.count(Resource.id)).where(
+                Resource.collection_id == collection.id
+            )
+            total = session.scalar(count_statement)
+
+            logger.info(
+                "Retrieved collection {collection_id} resources ({resource_count}) for user {user_email}",
+                collection_id=collection.id,
+                resource_count=total,
+                user_email=str(user),
             )
 
-        return CollectionResources(
-            collection_id=collection.id,
-            page=page,
-            total=total,
-            page_size=page_size,
-            resources=resource_dtos,
-        )
-    else:
-        raise ItemNotFoundException("Collection not found", 403)
+            if session.get(
+                UserCollection, {"collection_id": collection_id, "user_id": user.id}
+            ):
+                use_file_name = True
+            else:
+                use_file_name = False
+
+            resource_dtos = []
+            for resource in resources:
+                resource = Resource.model_validate(resource)
+                resource_dtos.append(
+                    ResourceDto(
+                        id=resource.id,
+                        filename=resource.filename
+                        if use_file_name
+                        else str(resource.id),
+                        created_at=resource.created_at,
+                        content_type=resource.content_type,
+                        permissions=get_resource_permissions_for_user(
+                            user, resource, session
+                        ),
+                        url=resource.url,
+                        is_processed=resource.is_processed,
+                        process_error=resource.process_error,
+                        process_time=resource.process_time,
+                        created_by_id=resource.created_by_id,
+                        collection_id=resource.collection_id,
+                    )
+                )
+
+            return CollectionResources(
+                collection_id=collection.id,
+                page=page,
+                total=total,
+                page_size=page_size,
+                resources=resource_dtos,
+            )
+        else:
+            raise ItemNotFoundException("Collection not found", 403)
+    except Exception:
+        raise
 
 
 def create_new_collection(
@@ -269,57 +270,66 @@ def get_user_collections(
     page: int = 1,
     page_size: int = 10,
 ) -> CollectionsDto:
-    user_is_admin = is_user_admin_user(user) or user.is_admin
-    where_clauses = (
-        [UserCollection.user_id == user.id] if user and not user.is_admin else []
-    )
-
-    statement = (
-        select(Collection)
-        .join(UserCollection, isouter=True)
-        .where(*where_clauses)
-        .distinct()
-        .order_by(Collection.name)
-        .offset(page_size * (page - 1))
-        .limit(page_size)
-    )
-    count_statement = select(func.count(Collection.id))
-    query_results = session.exec(statement).all()
-
-    # Build collections based on previous statements
-
-    collections = []
-    for collection in query_results:
-        permissions = get_collection_permissions_for_user(user, collection, session)
-        if CollectionPermissionEnum.VIEW not in permissions:
-            logger.error(
-                "User {user_email} does not have permission to view {collection}",
-                user_email=str(user),
-                collection=collection.id,
-            )
-            raise NoPermissionException(
-                error_code=401, message="Failed to retrieve available collections"
-            )
-        collections.append(
-            CollectionDto(
-                id=collection.id,
-                name=collection.name,
-                description=collection.description,
-                created_at=collection.created_at,
-                permissions=permissions,
-                custom_prompt=collection.custom_prompt,
-            )
+    try:
+        user_is_admin = is_user_admin_user(user) or user.is_admin
+        where_clauses = (
+            [UserCollection.user_id == user.id] if user and not user.is_admin else []
         )
 
-    total = session.exec(count_statement).one()
+        statement = (
+            select(Collection)
+            .join(UserCollection, isouter=True)
+            .where(*where_clauses)
+            .distinct()
+            .order_by(Collection.name)
+            .offset(page_size * (page - 1))
+            .limit(page_size)
+        )
+        count_statement = (
+            select(func.count(Collection.id))
+            .join(UserCollection, isouter=True)
+            .where(*where_clauses)
+            .distinct()
+        )
+        query_results = session.exec(statement).all()
+        logger.info("Found {count} collections from query", count=len(query_results))
 
-    return CollectionsDto(
-        total=total,
-        page=page,
-        page_size=page_size,
-        collections=collections,
-        is_admin=user_is_admin,
-    )
+        # Build collections based on previous statements
+
+        collections = []
+        for collection in query_results:
+            permissions = get_collection_permissions_for_user(user, collection, session)
+            if CollectionPermissionEnum.VIEW not in permissions:
+                logger.error(
+                    "User {user_email} does not have permission to view {collection}",
+                    user_email=str(user),
+                    collection=collection.id,
+                )
+                raise NoPermissionException(
+                    error_code=401, message="Failed to retrieve available collections"
+                )
+            collections.append(
+                CollectionDto(
+                    id=collection.id,
+                    name=collection.name,
+                    description=collection.description,
+                    created_at=collection.created_at,
+                    permissions=permissions,
+                    custom_prompt=collection.custom_prompt,
+                )
+            )
+
+        total = session.exec(count_statement).one()
+
+        return CollectionsDto(
+            total=total,
+            page=page,
+            page_size=page_size,
+            collections=collections,
+            is_admin=user_is_admin,
+        )
+    except Exception:
+        raise
 
 
 def update_collection_by_id(

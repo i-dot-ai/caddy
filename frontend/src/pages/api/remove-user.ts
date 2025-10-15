@@ -13,6 +13,6 @@ export async function POST({ request, redirect }: APIContext) {
 
   const notification = `User <strong>${emailAddress}</strong> removed from collection`;
 
-  return redirect(`/collections/${collectionId}#sharing?notification=${encodeURI(notification)}`, 303);
+  return redirect(`/collections/${collectionId}?notification=${encodeURI(notification)}#sharing`, 303);
 
 }

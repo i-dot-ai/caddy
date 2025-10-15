@@ -1,11 +1,13 @@
 import os
+from functools import lru_cache
 
+from fastembed import SparseTextEmbedding
 from i_dot_ai_utilities.logging.structured_logger import StructuredLogger
 from i_dot_ai_utilities.logging.types.enrichment_types import ExecutionEnvironmentType
 from i_dot_ai_utilities.logging.types.log_output_format import LogOutputFormat
 from i_dot_ai_utilities.metrics.cloudwatch import CloudwatchEmbeddedMetricsWriter
-from langchain_community.vectorstores import OpenSearchVectorSearch
-from opensearchpy import NotFoundError, OpenSearch
+from qdrant_client import AsyncQdrantClient, QdrantClient, models
+from qdrant_client.http.models import TextIndexType
 from sqlmodel import create_engine
 
 EMBEDDING_DIMENSION = 1024
@@ -14,13 +16,14 @@ EMBEDDING_DIMENSION = 1024
 class CaddyConfig:
     def __init__(
         self,
-        opensearch_kwargs,
         embedding_model,
         sqlalchemy_url: str,
         s3_client,
         data_s3_bucket: str,
         resource_url_template: str,
-        opensearch_url_pipeline="hybrid_search_pipeline",
+        qdrant_url: str,
+        qdrant__service__api_key: str,
+        qdrant_collection_name: str = "caddy_collection",
         env="local",
         app_name="caddy_model",
         backend_host="http://localhost:8000",
@@ -30,9 +33,8 @@ class CaddyConfig:
         s3_prefix="app_data",
         keycloak_allowed_roles=None,
         git_sha=None,
+        qdrant_access_token_header=None,
     ):
-        self.opensearch_kwargs = opensearch_kwargs
-        self.opensearch_url_pipeline = opensearch_url_pipeline
         self.embedding_model = embedding_model
         self.env = env.upper()
         self.sentry_dsn = sentry_dsn
@@ -48,10 +50,10 @@ class CaddyConfig:
         self.git_sha = git_sha
         self.admin_users = os.environ.get("ADMIN_USERS", "").split(",")
         self.backend_host = backend_host
-
-        self.os_index_name = (
-            "caddy_text_chunks_test" if self.env == "TEST" else "caddy_text_chunks"
-        )
+        self.qdrant_url = qdrant_url
+        self.qdrant__service__api_key = qdrant__service__api_key
+        self.qdrant_collection_name = qdrant_collection_name
+        self.qdrant_access_token_header = qdrant_access_token_header
 
         if self.env not in ("PROD", "PREPROD", "DEV"):
             if not any(
@@ -60,42 +62,151 @@ class CaddyConfig:
             ):
                 self.s3_client.create_bucket(Bucket=self.data_s3_bucket)
 
-        self._init_vector_store()
+        self._qdrant_client: AsyncQdrantClient | None = None
+        self._sync_qdrant_client: QdrantClient | None = None
 
-    def get_os_client(self):
-        return OpenSearch(**self.opensearch_kwargs)
-
-    def get_vector_store(self):
-        # langchain insists on a URL param even though it's also defined in "hosts"
-        opensearch_url = "{}://{}:{}".format(
-            self.opensearch_kwargs["scheme"],
-            self.opensearch_kwargs["hosts"][0]["host"],
-            self.opensearch_kwargs["hosts"][0]["port"],
-        )
-        new_kwargs = {k: v for k, v in self.opensearch_kwargs.items() if k != "hosts"}
-
-        return OpenSearchVectorSearch(
-            opensearch_url,
-            index_name=self.os_index_name,
-            embedding_function=self.embedding_model,
-            **new_kwargs,
-        )
-
-    def _init_vector_store(self):
-        vector_store = self.get_vector_store()
-        if not vector_store.index_exists(self.os_index_name):
-            vector_store.create_index(
-                EMBEDDING_DIMENSION, self.os_index_name, engine="faiss"
+    async def get_qdrant_client(self) -> AsyncQdrantClient:
+        """Get or create a persistent Qdrant client."""
+        if self._qdrant_client is None:
+            use_https = self.env not in ["TEST", "LOCAL"]
+            headers = {"x-external-access-token": self.qdrant_access_token_header}
+            self._qdrant_client = AsyncQdrantClient(
+                url=self.qdrant_url,
+                api_key=self.qdrant__service__api_key,
+                port=443,
+                timeout=30,
+                https=use_https,
+                check_compatibility=False,
+                metadata=headers if self.qdrant_access_token_header else {},
             )
-        try:
-            vector_store.client.transport.perform_request(
-                method="GET", url=f"/_search/pipeline/{self.opensearch_url_pipeline}"
+        return self._qdrant_client
+
+    async def close_qdrant_client(self):
+        """Clean up Qdrant client on shutdown."""
+        if self._qdrant_client:
+            await self._qdrant_client.close()
+            self._qdrant_client = None
+
+    def get_sync_qdrant_client(self) -> QdrantClient:
+        """Gets a sync Qdrant client from environment variables.
+
+        Supports both cloud (via API key) and local connections.
+        """
+        logger = self.get_logger(__name__)
+        logger.info("Connecting to Qdrant at {qdrant_url}", qdrant_url=self.qdrant_url)
+        if self._sync_qdrant_client is None:
+            logger.info(
+                "Creating Qdrant client at {qdrant_url}", qdrant_url=self.qdrant_url
             )
-        except NotFoundError:
-            vector_store.configure_search_pipelines(
-                self.opensearch_url_pipeline, 0.3, 0.7
+            use_https = self.env not in ["TEST", "LOCAL"]
+            headers = {"x-external-access-token": self.qdrant_access_token_header}
+            self._sync_qdrant_client = QdrantClient(
+                url=self.qdrant_url,
+                api_key=self.qdrant__service__api_key,
+                port=443,
+                timeout=30,
+                check_compatibility=False,
+                https=use_https,
+                metadata=headers if self.qdrant_access_token_header else {},
             )
-        return vector_store
+        return self._sync_qdrant_client
+
+    def close_sync_qdrant_client(self):
+        """Clean up Qdrant client on shutdown."""
+        if self._sync_qdrant_client:
+            self._sync_qdrant_client.close()
+            self._sync_qdrant_client = None
+
+    async def initialize_qdrant_collections(self) -> None:
+        """Initialize Qdrant with proper collections.
+
+        This function abstracts the common initialization logic used by both
+        the CLI and test fixtures.
+        """
+        # Create collections with appropriate vector dimensions
+        await self._create_collection_if_none()
+
+    async def _collection_exists(self, collection_name: str) -> bool:
+        """Checks if a collection exists in Qdrant."""
+        client = await self.get_qdrant_client()
+        return await client.collection_exists(collection_name)
+
+    async def _create_collection_if_none(self) -> None:
+        """Create Qdrant collection if it doesn't exist."""
+        distance = models.Distance.DOT
+        logger = self.get_logger(__name__)
+        client = await self.get_qdrant_client()
+        if not await self._collection_exists(self.qdrant_collection_name):
+            await client.create_collection(
+                collection_name=self.qdrant_collection_name,
+                vectors_config={
+                    "text_dense": models.VectorParams(
+                        size=1024,
+                        distance=distance,
+                    ),
+                },
+                sparse_vectors_config={
+                    "text_sparse": models.SparseVectorParams(
+                        index=models.SparseIndexParams(),
+                        modifier=models.Modifier.IDF,
+                    ),
+                },
+                quantization_config=models.ScalarQuantization(
+                    scalar=models.ScalarQuantizationConfig(
+                        type=models.ScalarType.INT8,
+                        always_ram=True,
+                    )
+                ),
+            )
+
+            # Add index for text search
+            await client.create_payload_index(
+                collection_name=self.qdrant_collection_name,
+                field_name="text",
+                field_schema=models.TextIndexParams(
+                    type=TextIndexType.TEXT,
+                    tokenizer=models.TokenizerType.WORD,
+                    stemmer=models.SnowballParams(
+                        type=models.Snowball.SNOWBALL,
+                        language=models.SnowballLanguage.ENGLISH,
+                    ),
+                    stopwords=models.StopwordsSet(
+                        languages=[
+                            models.Language.ENGLISH,
+                        ],
+                    ),
+                    min_token_len=2,
+                    max_token_len=10,
+                    lowercase=True,
+                ),
+            )
+
+            # Add indexes for collection, resource and chunk IDs
+            await client.create_payload_index(
+                collection_name=self.qdrant_collection_name,
+                field_name="collection_id",
+                field_schema="keyword",
+            )
+            await client.create_payload_index(
+                collection_name=self.qdrant_collection_name,
+                field_name="resource_id",
+                field_schema="keyword",
+            )
+            await client.create_payload_index(
+                collection_name=self.qdrant_collection_name,
+                field_name="chunk_id",
+                field_schema="keyword",
+            )
+
+            logger.info(
+                "Created collection and indexes for - {collection_name}",
+                collection_name=self.qdrant_collection_name,
+            )
+        else:
+            logger.info(
+                "Collection already exists - {collection_name}",
+                collection_name=self.qdrant_collection_name,
+            )
 
     def get_database(self):
         return create_engine(self.sqlalchemy_url)
@@ -128,3 +239,9 @@ class CaddyConfig:
             environment=self.env,
             logger=self.get_logger(__name__),
         )
+
+    @staticmethod
+    @lru_cache
+    def get_embedding_handler() -> SparseTextEmbedding:
+        # Using the following embedding model because it has a defined vocabulary size
+        return SparseTextEmbedding(model_name="Qdrant/bm42-all-minilm-l6-v2-attentions")
