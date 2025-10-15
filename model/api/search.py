@@ -11,7 +11,7 @@ from api.environment import config
 from api.models import Resource
 
 
-def build_document(document: Document, session):
+def build_document(document: Document, collection_id: UUID, session: Session):
     """Convert Qdrant search result to Document with metadata enrichment."""
     resource = session.get(Resource, document.metadata["resource_id"])
 
@@ -126,6 +126,8 @@ async def search_collection(
         document = _qdrant_result_to_document(result_dict)
         documents.append(document)
 
-    build_document_for_collection = partial(build_document, session=session)
+    build_document_for_collection = partial(
+        build_document, collection_id=collection_id, session=session
+    )
 
     return list(map(build_document_for_collection, documents))
