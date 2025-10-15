@@ -37,7 +37,7 @@ const fragments = await getResourceFragments(collectionId || '', resourceId || '
 
       { fragments?.map((chunk) =>
         <LitWrapper>
-          <markdown-converter class="border-1 border-solid border-border-grey block p-5 mt-5" content={ chunk.page_content }></markdown-converter>
+          <markdown-converter class="doc-content border-1 border-solid border-border-grey block p-5 mt-5" content={ chunk.page_content }></markdown-converter>
         </LitWrapper>
       )}
 
@@ -49,3 +49,26 @@ const fragments = await getResourceFragments(collectionId || '', resourceId || '
   </div>
 
 </Layout>
+
+
+<style is:global>
+  .doc-content {
+    h2 {
+      font-size: 1.5rem;
+      font-weight: 600;
+    }
+    h3 {
+      font-size: 1.1875rem;
+      font-weight: 600;
+      margin-top: 0.75rem;
+    }
+    ul {
+      list-style-type: disc;
+      margin-top: 0.25rem;
+      padding-left: 1rem;
+    }
+    li {
+      padding: 0.125rem 0;
+    }
+  }
+</style>
