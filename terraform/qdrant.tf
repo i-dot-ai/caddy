@@ -10,7 +10,7 @@ module "qdrant" {
   #source                      = "../../i-dot-ai-core-terraform-modules//modules/infrastructure/ecs" # For testing local changes
   source                       = "git::https://github.com/i-dot-ai/i-dot-ai-core-terraform-modules.git//modules/infrastructure/ecs?ref=v5.4.1-ecs"
 
-  image_tag                    = "latest"
+  image_tag                    = "1.15.5"
   ecr_repository_uri           = "qdrant/qdrant"
 
   vpc_id                       = data.terraform_remote_state.vpc.outputs.vpc_id
