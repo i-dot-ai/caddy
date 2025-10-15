@@ -74,11 +74,21 @@ def get_collection_resources(
             user, session, collection_id, logger, page_size, page
         )
     except (NoPermissionException, ItemNotFoundException) as e:
+        logger.exception(
+            "An exception occurred getting collection resources {message}",
+            message=str(e),
+        )
         raise HTTPException(
             status_code=e.error_code,
             detail=e.message,
         )
     else:
+        resource_ids = [resource.id for resource in result.resources]
+        logger.info(
+            "Resources {resource_ids} retrieved for collection {collection_id}",
+            resource_ids=resource_ids,
+            collection_id=collection_id,
+        )
         return result
 
 
@@ -302,10 +312,21 @@ def get_collections(
     """
     try:
         __set_logger_context(logger, user)
+        logger.info("Getting collections for user {user_email}", user_email=str(user))
         result = get_user_collections(user, session, logger, page, page_size)
+        logger.info("Successfully got collections: {count} total", count=result.total)
     except NoPermissionException as e:
+        logger.exception(
+            "Exception occurred getting collections. {message}", message=str(e)
+        )
         raise HTTPException(status_code=e.error_code, detail=e.message)
     else:
+        collection_ids = (
+            [collection.id for collection in result.collections]
+            if result.collections
+            else []
+        )
+        logger.info("Returning collections {ids}", ids=collection_ids)
         return result
 
 

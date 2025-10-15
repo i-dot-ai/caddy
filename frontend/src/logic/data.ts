@@ -67,7 +67,13 @@ interface Collections {
 
 export const getCollections = async(keycloakToken: string | null) => {
   const { json, error } = await makeRequest('/collections?page_size=100', keycloakToken);
-  const collectionsData = (json as unknown as Collections) || { collections: [], is_admin: false };
+  let collectionsData: Collections = { collections: [], is_admin: false };
+
+  if (Array.isArray(json.collections)) {
+    collectionsData = json as unknown as Collections;
+  } else {
+    console.error('getCollections response in unknown format', json);
+  }
 
   return { collectionsData, error };
 };
@@ -140,6 +146,8 @@ interface ResourceList {
   page: number,
   resources: ResourceDetail[],
 }
+
+
 export const getResources = async(collectionId: string, page: number, itemsPerPage: number, keycloakToken: string | null) => {
   const { json } = await makeRequest(`/collections/${collectionId}/resources?page=${page}&page_size=${itemsPerPage}`, keycloakToken);
   return json as unknown as ResourceList;

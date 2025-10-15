@@ -3,24 +3,11 @@ import os
 
 import boto3
 from botocore.client import Config
-from opensearchpy import RequestsHttpConnection
 
 from api.config import CaddyConfig
 from api.embedding_models import load_embedding_model
 
 embedding_model = load_embedding_model(os.environ["EMBEDDING_MODEL"])
-
-opensearch_kwargs = {
-    "hosts": [
-        {"host": os.environ["OPENSEARCH_URL"], "port": os.environ["OPENSEARCH_PORT"]}
-    ],
-    "http_auth": (os.environ["OPENSEARCH_USER"], os.environ["OPENSEARCH_PASSWORD"]),
-    "connection_class": RequestsHttpConnection,
-    "timeout": 30,
-    "use_ssl": False,
-    "verify_certs": False,
-    "scheme": "http",
-}
 
 sqlalchemy_url = "postgresql+psycopg2://{POSTGRES_USER}:{POSTGRES_PASSWORD}@{POSTGRES_HOST}/{POSTGRES_DB}".format(
     **os.environ
@@ -40,8 +27,12 @@ keycloak_allowed_roles = json.loads(os.environ["KEYCLOAK_ALLOWED_ROLES"])
 
 resource_url_template = "http://localhost:8000/collections/{collection_id}/resources/{resource_id}/documents"
 
+qdrant__service__api_key = os.environ["QDRANT__SERVICE__API_KEY"]
+qdrant_url = os.environ["QDRANT_URL"]
+
 config = CaddyConfig(
-    opensearch_kwargs=opensearch_kwargs,
+    qdrant__service__api_key=qdrant__service__api_key,
+    qdrant_url=qdrant_url,
     embedding_model=embedding_model,
     sqlalchemy_url=sqlalchemy_url,
     s3_client=s3_client,

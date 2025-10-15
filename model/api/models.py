@@ -1,15 +1,14 @@
 from datetime import datetime
-from typing import Any, Self
+from typing import Self
 from uuid import UUID, uuid4
 
 import jwt
-from pgvector.sqlalchemy import Vector
 from pydantic import BaseModel, EmailStr
 from pytz import utc
+from qdrant_client.http.models import PointStruct, SparseVector, models
 from sqlalchemy import event
 from sqlmodel import Field, Relationship, Session, SQLModel, select
 
-from api.config import EMBEDDING_DIMENSION
 from api.environment import config
 from api.types import CollectionBase, PaginatedResponse, ResourceBase, Role
 
@@ -109,7 +108,7 @@ class TextChunk(SQLModel, table=True):
     resource: Resource = Relationship()
 
     text: str = Field(description="text extracted from file")
-    embedding: Any = Field(sa_type=Vector(EMBEDDING_DIMENSION))
+
     order: int = Field(description="extraction order of text-chunk")
 
 
@@ -125,39 +124,80 @@ class UserRoleList(PaginatedResponse):
     user_roles: list[UserCollectionWithEmail] | None = None
 
 
-# OpenSearch sync functions
 def index_document(mapper, connection, target: TextChunk):
-    doc = {
-        "vector_field": target.embedding,
-        "text": target.text,
-        "metadata": {
-            "created_at": target.resource.created_at,
+    """Index a document in Qdrant when a TextChunk is added to the database."""
+    _index_document(target)
+
+
+def delete_document(mapper, connection, target: Resource):
+    """Delete documents from Qdrant when a Resource is removed from the database."""
+    _delete_document(target)
+
+
+def delete_chunk_document(mapper, connection, target: TextChunk):
+    """Delete documents from Qdrant when a TextChunk is removed from the database."""
+    _delete_document(target.resource)
+
+
+def _index_document(target: TextChunk):
+    """Index a document in Qdrant using sync client."""
+    dense_embeddings = config.embedding_model.embed_documents([target.text])
+
+    sparse_embedder = config.get_embedding_handler()
+    sparse_embeddings = list(sparse_embedder.embed(target.text))
+    sparse_embedding = sparse_embeddings[0]
+
+    point = PointStruct(
+        id=str(target.id),
+        vector={
+            "text_sparse": SparseVector(
+                indices=sparse_embedding.indices,
+                values=sparse_embedding.values,
+            ),
+            "text_dense": dense_embeddings[0],
+        },
+        payload={
+            "text": target.text,
+            "created_at": target.created_at.isoformat()
+            if isinstance(target.created_at, datetime)
+            else target.created_at,
             "filename": target.resource.filename,
             "content_type": target.resource.content_type,
             "resource_id": str(target.resource.id),
             "collection_id": str(target.resource.collection_id),
+            "chunk_id": str(target.id),
         },
-    }
-    config.get_os_client().index(
-        index=config.os_index_name,
-        id=target.id,
-        body=doc,
-        refresh=config.env == "TEST",
+    )
+
+    client = config.get_sync_qdrant_client()
+    client.upsert(
+        collection_name=config.qdrant_collection_name,
+        points=[point],
+        wait=False,
     )
 
 
-def delete_document(mapper, connection, target: TextChunk):
-    config.get_os_client().delete_by_query(
-        index=config.os_index_name,
-        body={
-            "query": {
-                "term",
-                {"metadata.collection_id.keyword": str(target.resource.collection_id)},
-            }
-        },
+def _delete_document(target: Resource):
+    """Delete a single document from Qdrant using sync client."""
+    client = config.get_sync_qdrant_client()
+    client.delete(
+        collection_name=config.qdrant_collection_name,
+        points_selector=models.FilterSelector(
+            filter=models.Filter(
+                must=[
+                    models.FieldCondition(
+                        key="resource_id",
+                        match=models.MatchValue(value=str(target.id)),
+                    )
+                ]
+            )
+        ),
     )
 
 
 # Register SQLAlchemy events
+# Cascade deletions don't trigger these hooks when a Resource is deleted
+# So separate deletion hooks are required for TextChunk and Resource
 event.listen(TextChunk, "after_insert", index_document)
-event.listen(TextChunk, "after_delete", delete_document)
+event.listen(Resource, "after_delete", delete_document)
+event.listen(TextChunk, "after_delete", delete_chunk_document)

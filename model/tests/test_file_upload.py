@@ -48,7 +48,7 @@ def test_file_upload(
 @pytest.mark.parametrize(
     "url",
     [
-        # "https://www.gov.uk/check-vehicle-tax",
+        "https://www.gov.uk/check-vehicle-tax",
         "https://www.gov.uk/claim-for-injury-received-while-serving",
     ],
 )
