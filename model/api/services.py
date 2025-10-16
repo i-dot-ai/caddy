@@ -779,7 +779,7 @@ def get_resource_by_id(
             use_file_name = False
 
         download_url = None
-        if not resource.url:
+        if not resource_dto.url:
             s3_client = config.s3_client
 
             s3_url = s3_client.generate_presigned_url(

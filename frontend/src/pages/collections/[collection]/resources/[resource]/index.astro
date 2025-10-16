@@ -34,7 +34,7 @@ const fragments = await getResourceFragments(collectionId || '', resourceId || '
 
       <p><strong>Document:</strong> { resource.filename || resource.id }</p>
 
-      { !resource.download_url &&
+      { resource.download_url &&
         <div class="govuk-button-group mt-7">
           <a class="iai-button" href={ resource.download_url } download>Download original document</a>
           <copy-link>
