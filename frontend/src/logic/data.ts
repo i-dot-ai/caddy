@@ -138,6 +138,7 @@ export interface ResourceDetail {
   created_at?: string,
   process_error?: string,
   permissions: ResourcePermission[],
+  download_url?: string,
 }
 
 interface ResourceList {
@@ -165,6 +166,8 @@ interface ResourceFragment {
     page_content: string,
   }[],
 }
+
+
 export const getResourceFragments = async(collectionId: string, resourceId: string, keycloakToken: string | null) => {
   const { json } = await makeRequest(`/collections/${collectionId}/resources/${resourceId}/documents`, keycloakToken);
   return (json as ResourceFragment).documents;
@@ -207,7 +210,7 @@ interface User {
 }
 export const getUsers = async(collectionId: string, keycloakToken: string | null) => {
   const { json } = await makeRequest(`/collections/${collectionId}/users?page_size=1000`, keycloakToken);
-  return json.user_roles as User[];
+  return (json.user_roles || []) as User[];
 };
 
 

@@ -32,6 +32,7 @@ data_s3_bucket = os.environ["DATA_S3_BUCKET"]
 keycloak_allowed_roles = json.loads(os.environ["KEYCLOAK_ALLOWED_ROLES"])
 
 environment = os.environ["ENVIRONMENT"]
+frontend_host = os.environ["FRONTEND_HOST"]
 
 resource_url_template = os.environ["RESOURCE_URL_TEMPLATE"]
 
@@ -55,4 +56,5 @@ config = CaddyConfig(
     keycloak_allowed_roles=keycloak_allowed_roles,
     git_sha=os.getenv("GIT_SHA"),
     qdrant_access_token_header=qdrant_access_token_header,
+    frontend_host=frontend_host,
 )

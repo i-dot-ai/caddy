@@ -11,7 +11,7 @@ from api.environment import config
 from api.models import Resource
 
 
-def build_document(document: Document, session):
+def build_document(document: Document, collection_id: UUID, session: Session):
     """Convert Qdrant search result to Document with metadata enrichment."""
     resource = session.get(Resource, document.metadata["resource_id"])
 
@@ -21,17 +21,8 @@ def build_document(document: Document, session):
     if resource.url:
         document.metadata["url"] = resource.url
     else:
-        s3_client = config.s3_client
-
-        s3_url = s3_client.generate_presigned_url(
-            "get_object",
-            Params={
-                "Bucket": config.data_s3_bucket,
-                "Key": f"{config.s3_prefix}/{resource.collection_id}/{resource.id}/{resource.filename}",
-            },
-            ExpiresIn=3600,
-        )
-        document.metadata["url"] = s3_url
+        download_url = f"{config.frontend_host}/collections/{collection_id}/resources/{resource.id}"
+        document.metadata["url"] = download_url
         document.metadata["created_at"] = resource.created_at.strftime("%H:%M %d-%m-%Y")
 
     return document
@@ -135,6 +126,8 @@ async def search_collection(
         document = _qdrant_result_to_document(result_dict)
         documents.append(document)
 
-    build_document_for_collection = partial(build_document, session=session)
+    build_document_for_collection = partial(
+        build_document, collection_id=collection_id, session=session
+    )
 
     return list(map(build_document_for_collection, documents))
