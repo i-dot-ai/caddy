@@ -166,9 +166,16 @@ interface ResourceFragment {
     page_content: string,
   }[],
 }
+
+interface ResourceFragments {
+  chunks: ResourceFragment,
+  url: string,
+}
+
+
 export const getResourceFragments = async(collectionId: string, resourceId: string, keycloakToken: string | null) => {
   const { json } = await makeRequest(`/collections/${collectionId}/resources/${resourceId}/documents`, keycloakToken);
-  return (json as ResourceFragment).documents;
+  return json as unknown as ResourceFragments;
 };
 
 
