@@ -8,9 +8,6 @@ const token = Astro.request.headers.get('x-amzn-oidc-accesstoken');
 const { collection: collectionId, resource: resourceId } = Astro.params;
 const resource = await getResourceDetails(collectionId || '', resourceId || '', token);
 const fragments = await getResourceFragments(collectionId || '', resourceId || '', token);
-const chunks = fragments.chunks?.documents
-const download_url = fragments.url
-
 ---
 
 <Layout title={ resource.filename || resource.id }>
@@ -37,22 +34,22 @@ const download_url = fragments.url
 
       <p><strong>Document:</strong> { resource.filename || resource.id }</p>
 
-      { !download_url &&
+      { !resource.download_url &&
         <div class="govuk-button-group mt-7">
-          <a class="iai-button" href={ download_url } download>Download original document</a>
+          <a class="iai-button" href={ resource.download_url } download>Download original document</a>
           <copy-link>
-            <button class="iai-button--secondary ml-3" data-url={ download_url }>Copy link</button>
+            <button class="iai-button--secondary ml-3" data-url={ resource.download_url }>Copy link</button>
           </copy-link>
         </div>
       }
 
-      { chunks?.map((chunk) =>
+      { fragments?.map((chunk) =>
         <LitWrapper>
           <markdown-converter class="border-1 border-solid border-border-grey block p-5 mt-5" content={ chunk.page_content }></markdown-converter>
         </LitWrapper>
       )}
 
-      { !chunks?.length &&
+      { !fragments?.length &&
         <p class="govuk-!-margin-top-7">There is no text data for this document.</p>
       }
 

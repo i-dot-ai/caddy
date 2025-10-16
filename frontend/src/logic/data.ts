@@ -138,7 +138,7 @@ export interface ResourceDetail {
   created_at?: string,
   process_error?: string,
   permissions: ResourcePermission[],
-  download_url: string,
+  download_url?: string,
 }
 
 interface ResourceList {
@@ -167,15 +167,10 @@ interface ResourceFragment {
   }[],
 }
 
-interface ResourceFragments {
-  chunks: ResourceFragment,
-  url: string,
-}
-
 
 export const getResourceFragments = async(collectionId: string, resourceId: string, keycloakToken: string | null) => {
   const { json } = await makeRequest(`/collections/${collectionId}/resources/${resourceId}/documents`, keycloakToken);
-  return json as unknown as ResourceFragments;
+  return (json as ResourceFragment).documents;
 };
 
 

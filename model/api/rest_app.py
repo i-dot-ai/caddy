@@ -38,11 +38,11 @@ from api.services import (
     update_collection_by_id,
 )
 from api.types import (
+    Chunks,
     CollectionBase,
     CollectionDto,
     CollectionResources,
     CollectionsDto,
-    ResourceChunks,
     ResourceDto,
     UserRole,
 )
@@ -278,7 +278,7 @@ def get_resource_documents(
     logger: StructuredLogger = Depends(get_logger(__name__)),
     page: int = Query(1, ge=1),
     page_size: int = Query(10, ge=1),
-) -> ResourceChunks:
+) -> Chunks:
     """get a documents belonging to a resource"""
     try:
         __set_logger_context(logger, user)
