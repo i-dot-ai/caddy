@@ -210,7 +210,7 @@ interface User {
 }
 export const getUsers = async(collectionId: string, keycloakToken: string | null) => {
   const { json } = await makeRequest(`/collections/${collectionId}/users?page_size=1000`, keycloakToken);
-  return json.user_roles as User[];
+  return (json.user_roles || []) as User[];
 };
 
 
