@@ -15,7 +15,7 @@ from api.models import (
     UserCollectionWithEmail,
     UserRoleList,
 )
-from api.types import Chunks, CollectionsDto, ResourceChunks
+from api.types import Chunks, CollectionsDto
 
 s3_client = config.s3_client
 CWD = os.path.dirname(os.path.abspath(__file__))
@@ -117,44 +117,40 @@ def test_get_resource_documents(client, collection_manager, many_documents, admi
     )
 
     assert response.status_code == 200
-    actual_result = ResourceChunks.model_validate(response.json())
+    actual_result = Chunks.model_validate(response.json())
     #  I EXPECT the 4th and 5th documents to be returned
-    expected_result = ResourceChunks(
-        url=f"http://localhost:9000/{config.data_s3_bucket}/{config.s3_prefix}/{collection_manager.collection_id}/{resource_id}",
-        chunks=Chunks(
-            page=3,
-            page_size=2,
-            total=10,
-            collection_id=collection_manager.collection_id,
-            resource_id=resource_id,
-            documents=[
-                Document(
-                    id="00000000-0000-0000-0000-000000000024",
-                    metadata={
-                        "filename": "filename-02",
-                        "resource_id": str(resource_id),
-                        "content_type": "text/plain",
-                        "created_at": "2001-01-01T01:01:00",
-                        "chunk_order": 4,
-                    },
-                    page_content="resource=2, document=4",
-                ),
-                Document(
-                    id="00000000-0000-0000-0000-000000000025",
-                    metadata={
-                        "filename": "filename-02",
-                        "resource_id": str(resource_id),
-                        "content_type": "text/plain",
-                        "created_at": "2001-01-01T01:01:00",
-                        "chunk_order": 5,
-                    },
-                    page_content="resource=2, document=5",
-                ),
-            ],
-        ),
+    expected_result = Chunks(
+        page=3,
+        page_size=2,
+        total=10,
+        collection_id=collection_manager.collection_id,
+        resource_id=resource_id,
+        documents=[
+            Document(
+                id="00000000-0000-0000-0000-000000000024",
+                metadata={
+                    "filename": "filename-02",
+                    "resource_id": str(resource_id),
+                    "content_type": "text/plain",
+                    "created_at": "2001-01-01T01:01:00",
+                    "chunk_order": 4,
+                },
+                page_content="resource=2, document=4",
+            ),
+            Document(
+                id="00000000-0000-0000-0000-000000000025",
+                metadata={
+                    "filename": "filename-02",
+                    "resource_id": str(resource_id),
+                    "content_type": "text/plain",
+                    "created_at": "2001-01-01T01:01:00",
+                    "chunk_order": 5,
+                },
+                page_content="resource=2, document=5",
+            ),
+        ],
     )
-    assert actual_result.chunks == expected_result.chunks
-    assert actual_result.url.startswith(expected_result.url)
+    assert actual_result == expected_result
 
 
 def test_get_resource_documents_404(
@@ -313,6 +309,7 @@ def test_get_collection_resources(
         "process_time": None,
         "created_by_id": str(normal_user.id),
         "url": None,
+        "download_url": None,
     }
 
     expected_result = [

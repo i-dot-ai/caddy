@@ -122,10 +122,3 @@ class CollectionResources(PaginatedResponse):
     resources: list[ResourceDto] = Field(
         description="Resources belonging to this collection", default=None
     )
-
-
-class ResourceChunks(BaseModel):
-    chunks: Chunks = Field(
-        description="Chunks belonging to this resource", default=None
-    )
-    url: str | None = Field(description="url of the uploaded resource", default=None)
