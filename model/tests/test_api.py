@@ -117,10 +117,10 @@ def test_get_resource_documents(client, collection_manager, many_documents, admi
     )
 
     assert response.status_code == 200
-    actual_result = Chunks.model_validate(response.json())
+    actual_result = ResourceChunks.model_validate(response.json())
     #  I EXPECT the 4th and 5th documents to be returned
     expected_result = ResourceChunks(
-        url=f"http://localhost:4322/collections/{collection_manager.collection_id}/resources/{resource_id}",
+        url=f"http://localhost:9000/{config.data_s3_bucket}/{config.s3_prefix}/{collection_manager.collection_id}/{resource_id}",
         chunks=Chunks(
             page=3,
             page_size=2,
@@ -153,7 +153,8 @@ def test_get_resource_documents(client, collection_manager, many_documents, admi
             ],
         ),
     )
-    assert actual_result == expected_result
+    assert actual_result.chunks == expected_result.chunks
+    assert actual_result.url.startswith(expected_result.url)
 
 
 def test_get_resource_documents_404(
