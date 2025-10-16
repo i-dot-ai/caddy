@@ -706,7 +706,7 @@ def get_documents_for_resource_by_id(
     )
 
     url = None
-    if True:
+    if resource.url:
         s3_client = config.s3_client
 
         s3_url = s3_client.generate_presigned_url(
