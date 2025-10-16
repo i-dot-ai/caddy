@@ -21,7 +21,7 @@ def build_document(document: Document, collection_id: UUID, session: Session):
     if resource.url:
         document.metadata["url"] = resource.url
     else:
-        download_url = f"{config.backend_host}/collections/{collection_id}/resources/{resource.id}/download"
+        download_url = f"{config.frontend_host}/collections/{collection_id}/resources/{resource.id}"
         document.metadata["url"] = download_url
         document.metadata["created_at"] = resource.created_at.strftime("%H:%M %d-%m-%Y")
 

@@ -52,7 +52,7 @@ module "model" {
     "AWS_ACCOUNT_ID": var.account_id,
     "GIT_SHA": var.image_tag,
     "QDRANT_URL": "https://${local.host_qdrant}",
-    "BACKEND_HOST" : "http://${aws_service_discovery_service.service_discovery_service.name}.${aws_service_discovery_private_dns_namespace.private_dns_namespace.name}:${local.backend_port}",
+    "FRONTEND_HOST" : local.host,
   }
 
   secrets = [

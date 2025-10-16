@@ -26,7 +26,7 @@ class CaddyConfig:
         qdrant_collection_name: str = "caddy_collection",
         env="local",
         app_name="caddy_model",
-        backend_host="http://localhost:8000",
+        frontend_host="http://localhost:4322",
         disable_auth_signature_verification=False,
         auth_provider_public_key="none",
         sentry_dsn=None,
@@ -49,7 +49,7 @@ class CaddyConfig:
         self.resource_url_template = resource_url_template
         self.git_sha = git_sha
         self.admin_users = os.environ.get("ADMIN_USERS", "").split(",")
-        self.backend_host = backend_host
+        self.frontend_host = frontend_host
         self.qdrant_url = qdrant_url
         self.qdrant__service__api_key = qdrant__service__api_key
         self.qdrant_collection_name = qdrant_collection_name
