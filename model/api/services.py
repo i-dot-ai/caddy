@@ -625,15 +625,11 @@ def get_resource_download_url(
             error_code=401, message="No permission to view documents for this resource"
         )
 
-    s3_client = config.s3_client
+    s3_client = config.get_file_store_client()
 
-    s3_url = s3_client.generate_presigned_url(
-        "get_object",
-        Params={
-            "Bucket": config.data_s3_bucket,
-            "Key": f"{config.s3_prefix}/{collection_id}/{resource_id}/{resource.filename}",
-        },
-        ExpiresIn=3600,
+    s3_url = s3_client.download_object_url(
+        f"{collection.id}/{resource.id}/{resource.filename}",
+        expiration=3600,
     )
 
     return s3_url
@@ -789,15 +785,11 @@ def get_resource_by_id(
 
         download_url = None
         if not resource_dto.url:
-            s3_client = config.s3_client
+            s3_client = config.get_file_store_client()
 
-            s3_url = s3_client.generate_presigned_url(
-                "get_object",
-                Params={
-                    "Bucket": config.data_s3_bucket,
-                    "Key": f"{config.s3_prefix}/{collection_id}/{resource_id}/{resource.filename}",
-                },
-                ExpiresIn=3600,
+            s3_url = s3_client.download_object_url(
+                f"{collection_id}/{resource.id}/{resource.filename}",
+                expiration=3600,
             )
 
             download_url = s3_url
