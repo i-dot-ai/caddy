@@ -309,6 +309,7 @@ def test_get_collection_resources(
         "process_time": None,
         "created_by_id": str(normal_user.id),
         "url": None,
+        "download_url": None,
     }
 
     expected_result = [

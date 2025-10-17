@@ -3,10 +3,11 @@ import Layout from '@layouts/Layout.astro';
 import { getResourceDetails, getResourceFragments } from '@logic/data.ts';
 import LitWrapper from '@components/lit-wrapper.astro';
 
-const { collection: collectionId, resource: resourceId } = Astro.params;
-const resource = await getResourceDetails(collectionId || '', resourceId || '', Astro.request.headers.get('x-amzn-oidc-accesstoken'));
-const fragments = await getResourceFragments(collectionId || '', resourceId || '', Astro.request.headers.get('x-amzn-oidc-accesstoken'));
+const token = Astro.request.headers.get('x-amzn-oidc-accesstoken');
 
+const { collection: collectionId, resource: resourceId } = Astro.params;
+const resource = await getResourceDetails(collectionId || '', resourceId || '', token);
+const fragments = await getResourceFragments(collectionId || '', resourceId || '', token);
 ---
 
 <Layout title={ resource.filename || resource.id }>
@@ -17,10 +18,10 @@ const fragments = await getResourceFragments(collectionId || '', resourceId || '
         <a class="govuk-breadcrumbs__link" href="/">Collections</a>
       </li>
       <li class="govuk-breadcrumbs__list-item">
-        <a class="govuk-breadcrumbs__link" href="../resources">Resources</a>
+        <a class="govuk-breadcrumbs__link" href={ `/collections/${collectionId}` }>Documents</a>
       </li>
       <li class="govuk-breadcrumbs__list-item">
-        Resource details
+        Document details
       </li>
     </ol>
   </nav>
@@ -29,21 +30,65 @@ const fragments = await getResourceFragments(collectionId || '', resourceId || '
   <div class="govuk-grid-row">
     <div class="govuk-grid-column-full">
 
-      <h1 class="govuk-heading-l">Resource details</h1>
+      <h1 class="govuk-heading-l">Document details</h1>
 
-      <p><strong>Resource:</strong> { resource.filename || resource.id }</p>
+      <p><strong>Document:</strong> { resource.filename || resource.id }</p>
+
+      { resource.download_url &&
+        <div class="govuk-button-group mt-7">
+          <a class="iai-button" href={ resource.download_url } download>Download original document</a>
+          <copy-link>
+            <button class="iai-button--secondary ml-3" data-url={ resource.download_url }>Copy link</button>
+          </copy-link>
+        </div>
+      }
 
       { fragments?.map((chunk) =>
         <LitWrapper>
-          <markdown-converter class="govuk-!-display-block govuk-!-padding-5 govuk-!-margin-top-5" style="border: 1px solid #b1b4b6;" content={ chunk.page_content }></markdown-converter>
+          <markdown-converter class="doc-content border-1 border-solid border-border-grey block p-5 mt-5" content={ chunk.page_content }></markdown-converter>
         </LitWrapper>
       )}
 
       { !fragments?.length &&
-        <p class="govuk-!-margin-top-7">There is no text data for this resource.</p>
+        <p class="govuk-!-margin-top-7">There is no text data for this document.</p>
       }
 
     </div>
   </div>
 
 </Layout>
+
+
+<style is:global>
+  .doc-content {
+    h2 {
+      font-size: 1.5rem;
+      font-weight: 600;
+    }
+    h3, h4 {
+      font-size: 1.1875rem;
+      font-weight: 600;
+      margin-top: 0.75rem;
+    }
+    ul, ol {
+      margin-top: 0.25rem;
+      padding-left: 1rem;
+    }
+    ol {
+      list-style-type: decimal;
+    }
+    ul {
+      list-style-type: disc;
+    }
+    li {
+      padding: 0.125rem 0;
+    }
+    pre {
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      overflow-x: auto;
+    }
+  }
+</style>
+
+<script src="@components/copy-link.ts"></script>

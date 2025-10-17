@@ -112,6 +112,9 @@ class ResourceDto(ResourceBase):
     permissions: list[ResourcePermissionEnum] = Field(
         description="Resource permission enum value(s)", default_factory=list
     )
+    download_url: str | None = Field(
+        description="The URL to download the original resource at", default=None
+    )
 
 
 class CollectionResources(PaginatedResponse):

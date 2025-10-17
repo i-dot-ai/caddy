@@ -1,0 +1,17 @@
+---
+
+const { collectionId, webResources } = Astro.props;
+
+---
+
+<div class="flex gap-5 items-center">
+  <a class="iai-button mt-1" href={ `/collections/${collectionId}/resources/add` }>Add documents</a>
+  <form class="pb-[3px]" method="post" action="/api/add-urls/?refresh=true" enctype="multipart/form-data">
+    <input type="hidden" name="collection" value={ collectionId } />
+    <input type="hidden" name="addUrls" value={ webResources } />
+    <button class="cursor-pointer flex govuk-body-s govuk-link mb-0! mt-1! text-pink! disabled:no-underline!">
+      Update all web pages
+      <loading-spinner></loading-spinner>
+    </button>
+  </form>
+</div>

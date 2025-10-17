@@ -239,13 +239,6 @@ def create_new_collection(
     user: User,
     logger: StructuredLogger,
 ) -> Collection:
-    if not is_user_admin_user(user):
-        logger.info(
-            "User {user_email} tried to create a collection {collection_name} without being an admin",
-            user_email=str(user),
-            collection_name=new_collection.name,
-        )
-        raise NoPermissionException(error_code=403, message="User needs to be an admin")
     collection = Collection(**new_collection.model_dump())
     stmt = select(Collection).where(Collection.name == collection.name)
     results = session.exec(stmt).all()
@@ -603,6 +596,49 @@ async def create_resource_from_urls(
         raise ItemNotFoundException(error_code=404, message="Collection not found")
 
 
+def get_resource_download_url(
+    collection_id: UUID,
+    resource_id: UUID,
+    session: Session,
+    logger: StructuredLogger,
+    user: User,
+) -> str:
+    resource = session.get(Resource, resource_id)
+    collection = session.get(Collection, collection_id)
+
+    if not resource:
+        raise ItemNotFoundException(error_code=404, message="Resource not found")
+
+    if not collection:
+        raise ItemNotFoundException(error_code=404, message="Collection not found")
+
+    collection_permissions = get_collection_permissions_for_user(
+        user, collection, session
+    )
+    resource_permissions = get_collection_permissions_for_user(user, resource, session)
+
+    if (
+        CollectionPermissionEnum.VIEW not in collection_permissions
+        or ResourcePermissionEnum.VIEW not in resource_permissions
+    ):
+        raise NoPermissionException(
+            error_code=401, message="No permission to view documents for this resource"
+        )
+
+    s3_client = config.s3_client
+
+    s3_url = s3_client.generate_presigned_url(
+        "get_object",
+        Params={
+            "Bucket": config.data_s3_bucket,
+            "Key": f"{config.s3_prefix}/{collection_id}/{resource_id}/{resource.filename}",
+        },
+        ExpiresIn=3600,
+    )
+
+    return s3_url
+
+
 def get_documents_for_resource_by_id(
     user: User,
     collection_id: UUID,
@@ -750,6 +786,22 @@ def get_resource_by_id(
             use_file_name = True
         else:
             use_file_name = False
+
+        download_url = None
+        if not resource_dto.url:
+            s3_client = config.s3_client
+
+            s3_url = s3_client.generate_presigned_url(
+                "get_object",
+                Params={
+                    "Bucket": config.data_s3_bucket,
+                    "Key": f"{config.s3_prefix}/{collection_id}/{resource_id}/{resource.filename}",
+                },
+                ExpiresIn=3600,
+            )
+
+            download_url = s3_url
+
         return ResourceDto(
             id=resource_dto.id,
             filename=resource_dto.filename if use_file_name else str(resource_dto.id),
@@ -757,6 +809,7 @@ def get_resource_by_id(
             content_type=resource_dto.content_type,
             permissions=permissions,
             url=resource_dto.url,
+            download_url=download_url,
             is_processed=resource_dto.is_processed,
             process_error=resource_dto.process_error,
             process_time=resource_dto.process_time,

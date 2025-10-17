@@ -15,7 +15,7 @@ const resource = await getResourceDetails(collectionId || '', resourceId || '', 
         <a class="govuk-breadcrumbs__link" href="/">Collections</a>
       </li>
       <li class="govuk-breadcrumbs__list-item">
-        <a class="govuk-breadcrumbs__link" href="../../resources">Resources</a>
+        <a class="govuk-breadcrumbs__link" href={ `/collections/${collectionId}` }>Documents</a>
       </li>
       <li class="govuk-breadcrumbs__list-item">
         Delete
@@ -35,9 +35,9 @@ const resource = await getResourceDetails(collectionId || '', resourceId || '', 
         <input type="hidden" value={ collectionId } name="collection"/>
         <input type="hidden" value={ resourceId } name="resourceId"/>
         <input type="hidden" value={ resource.filename || resource.id } name="resourceName"/>
-        <div class="govuk-button-group">
-          <button class={ 'govuk-button plausible-event-name=Delete-Resource plausible-event-collection=' + collectionId + ' plausible-event-resource=' + resource.filename }>Confirm delete</button>
-          <a class="govuk-button govuk-button--secondary" href="../../resources">Cancel</a>
+        <div class="govuk-button-group mt-7">
+          <button class={ 'iai-button plausible-event-name=Delete-Resource plausible-event-collection=' + collectionId + ' plausible-event-resource=' + resource.filename }>Confirm delete</button>
+          <a class="iai-button--secondary ml-3" href={ `/collections/${collectionId}` }>Cancel</a>
         </div>
       </form>
 

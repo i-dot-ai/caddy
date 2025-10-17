@@ -1,8 +1,8 @@
 ---
 import 'dotenv/config';
-import Footer from '@components/footer.astro';
+import SidePanel from '@components/SidePanel.astro';
 import '../../node_modules/i.ai-design-system/dist/iai-design-system.css';
-import LitWrapper from '@components/lit-wrapper.astro';
+import '../styles/global.css';
 
 const { title, error } = Astro.props;
 const version = process.env.GIT_SHA;
@@ -10,6 +10,15 @@ const generator = `caddy-${ version }`;
 const notification = Astro.url.searchParams.get('notification');
 
 const isAdmin = await Astro.session?.get('isAdmin');
+
+const chatUrl = (() => {
+  if (process.env.ENVIRONMENT?.toLowerCase() === 'dev' || process.env.ENVIRONMENT?.toLowerCase() === 'preprod') {
+    return `https://gov-ai-client-${process.env.ENVIRONMENT.toLocaleLowerCase()}.ai.cabinetoffice.gov.uk`;
+  } else if (process.env.ENVIRONMENT?.toLowerCase() === 'local') {
+    return 'http://localhost:4321';
+  }
+  return 'https://gov-ai-client.ai.cabinetoffice.gov.uk';
+})();
 
 ---
 
@@ -28,47 +37,54 @@ const isAdmin = await Astro.session?.get('isAdmin');
 		}
 
 	</head>
-	<body class="govuk-template__body govuk-frontend-supported">
+	<body class="govuk-template__body govuk-frontend-supported relative lg:flex">
 
-		<LitWrapper>
-			<iai-header product-name="Caddy Admin"></iai-header>
-		</LitWrapper>
+		<SidePanel productName="Caddy Admin" productLogo="/caddy.png">
 
-		<div class="govuk-width-container">
-			<main class="govuk-main-wrapper">
+			<a class="flex mt-1 ml-1 gap-2 group items-start no-underline! rounded-sm focus:bg-transparent! focus:shadow-none!" href={ chatUrl }>
+				<span class="rounded-full">
+					<svg class="cursor-pointer w-4 rotate-180 md:w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chevron-right h-4 w-4" focusable="false" aria-label="Back to chat">
+						<path d="m9 18 6-6-6-6"></path>
+					</svg>
+				</span>
+				<span class="sidepanel__hide-on-collapse border-b-1 mt-[2px] hover:border-b-3" aria-hidden="true">Back to chat</span>
+			</a>
 
-				{ error &&
-					<div class="govuk-error-summary" data-module="govuk-error-summary">
-						<div role="alert">
-							<h2 class="govuk-error-summary__title">
-								There is a problem
-							</h2>
-							<div class="govuk-error-summary__body">
-								<p>{ error }</p>
+		</SidePanel>
+
+
+		<div class="overflow-y-auto w-full lg:h-screen" id="scroll-panel">
+			<div class="govuk-width-container ml-17! sm:ml-20! lg:mx-auto! lg:px-4">
+				<main class="govuk-main-wrapper pb-0! pt-4!">
+
+					{ error &&
+						<div class="govuk-error-summary" data-module="govuk-error-summary">
+							<div role="alert">
+								<h2 class="govuk-error-summary__title">
+									There is a problem
+								</h2>
+								<div class="govuk-error-summary__body">
+									<p>{ error }</p>
+								</div>
 							</div>
 						</div>
-					</div>
-				}
+					}
 
-				{ notification &&
-					<div class="govuk-panel govuk-panel--confirmation govuk-!-margin-bottom-6">
-						<div class="govuk-panel__body" set:html={ notification }></div>
-					</div>
-				}
+					{ notification &&
+						<div class="govuk-panel govuk-panel--confirmation govuk-!-margin-bottom-6">
+							<div class="govuk-panel__body" set:html={ notification }></div>
+						</div>
+					}
 
-				<slot />
-			</main>
+					<slot />
+
+				</main>
+			</div>
 		</div>
-
-		<Footer version={ version } />
-
-		<script>
-			import '../../node_modules/i.ai-design-system/dist/iai-design-system.js';
-		</script>
 
 		<style is:global>
 			body:has(.iai-footer) .govuk-main-wrapper {
-				min-height: calc(100vh - 235px);
+				min-height: calc(100vh - 155px);
 			}
 
 			.govuk-panel--confirmation {
@@ -102,7 +118,12 @@ const isAdmin = await Astro.session?.get('isAdmin');
 				margin-left: 0.5rem;
 				position: relative;
 			}
+
+			
+
 		</style>
+
+		<script src="/scripts/iai-design-system.js" is:inline></script>
 
 	</body>
 </html>

@@ -1,8 +1,8 @@
+import type { APIContext } from 'astro';
 import { addUser } from '@logic/data.ts';
-import type { EndpointParams } from './types';
 
 
-export async function POST({ request, redirect }: EndpointParams) {
+export async function POST({ request, redirect }: APIContext) {
 
   const data = await request.formData();
   const collectionId = data.get('collection')?.toString() || '';
@@ -13,6 +13,6 @@ export async function POST({ request, redirect }: EndpointParams) {
 
   const notification = data.get('user') ? `User <strong>${emailAddress}</strong> updated` : `User <strong>${emailAddress}</strong> added to collection`;
 
-  return redirect(`/collections/${collectionId}/users?notification=${encodeURI(notification)}`, 303);
+  return redirect(`/collections/${collectionId}?notification=${encodeURI(notification)}#sharing`, 303);
 
 }

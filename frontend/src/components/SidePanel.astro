@@ -1,0 +1,112 @@
+---
+
+const { productName, productLogo } = Astro.props;
+
+---
+
+<side-panel>
+
+  <header class="sidepanel bg-background-grey border-r-1 border-border-grey fixed flex flex-col h-screen justify-between max-h-screen overflow-x-hidden overflow-y-auto top-0 transition-width w-10 z-10 [.ready>&]:motion-safe:duration-500 md:w-14 lg:sticky">
+    
+    <div class="border-b-1 border-border-grey cursor-pointer flex gap-1 items-center justify-between px-1 py-3 w-60 z-20 md:px-2">
+      <div class="flex gap-1 items-center">
+        <img class="relative w-5 z-10 md:w-7" height="35" width="35" src={ productLogo } alt={ productName || '' } />
+        <span class="font-bold text-xl" aria-hidden="true">{ productName }</span>
+      </div>
+      <button class="sidepanel__toggle absolute bg-background-grey flex h-6 items-center justify-center right-[-3px] transition-transform w-6 aria-pressed:right-0 aria-pressed:rotate-180 [.ready>&]:motion-safe:duration-500 focus:outline-transparent focus-visible:outline-pink" id="sidepanel__toggle" aria-pressed="false">
+        <span class="sr-only">Full menu</span>
+        <svg class="cursor-pointer w-4 md:w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chevron-right h-4 w-4" focusable="false">
+          <path d="m9 18 6-6-6-6"></path>
+        </svg>
+      </button>
+    </div>
+    
+    <nav class="sidepanel__content grow px-2 py-3 w-60">
+      <div class="flex flex-col h-full justify-between">
+        <slot />    
+      </div>
+    </nav>
+    
+    <div class="border-t-1 border-border-grey pl-2 py-3 md:pl-3">
+      <svg class="w-6 md:w-8" viewBox="0 0 286 180" fill="none" aria-label="The Incubator for Artificial Intelligence">
+        <path d="M18.7828 37.6045C29.1563 37.6045 37.5657 29.1864 37.5657 18.8022C37.5657 8.41804 29.1563 0 18.7828 0C8.40936 0 0 8.41804 0 18.8022C0 29.1864 8.40936 37.6045 18.7828 37.6045Z" fill="black"></path>
+        <path d="M62.8599 180C73.2334 180 81.6427 171.582 81.6427 161.198C81.6427 150.814 73.2334 142.396 62.8599 142.396C52.4864 142.396 44.0771 150.814 44.0771 161.198C44.0771 171.582 52.4864 180 62.8599 180Z" fill="black"></path>
+        <path d="M37.5657 42.6184V180H0V42.6184H37.5657Z" fill="black"></path>
+        <path fill-rule="evenodd" clip-rule="evenodd" d="M248.434 0H286V178.496H209.116L196.844 144.15H136.238L124.468 178.496H83.6462L148.76 0H185.574L248.434 168.969V0ZM146.757 109.304L167.042 48.1337L186.326 109.304H146.757Z" fill="#C50878"></path>
+      </svg>
+    </div>
+
+  </header>
+</side-panel>
+
+
+<script is:inline>
+
+  class SidePanel extends HTMLElement {
+    
+    connectedCallback() {
+      
+      // toggle button
+      this.sidepanelToggle = this.querySelector('#sidepanel__toggle');
+      this.sidepanelToggle.parentElement?.addEventListener('click', () => {
+        this.#setState(this.sidepanelToggle.getAttribute('aria-pressed') === 'false');
+      });
+
+      // remember last state
+      const lastState = window.sessionStorage.getItem('sidepanel');
+      // open by default for large screens
+      if (lastState === 'open' || (!lastState && window.innerWidth >= 1400)) {
+        this.#setState(true);
+      }
+      // only add transition after page load
+      window.setTimeout(() => {
+        this.classList.add('ready');
+      }, 500);
+
+    }
+
+    #setState(open) {
+      if (open) {
+        this.sidepanelToggle.setAttribute('aria-pressed', 'true');
+        window.sessionStorage.setItem('sidepanel', 'open');
+      } else {
+        this.sidepanelToggle.setAttribute('aria-pressed', 'false');
+        window.sessionStorage.setItem('sidepanel', 'closed');
+      }
+    }
+
+  };
+  customElements.define('side-panel', SidePanel);
+
+</script>
+
+
+<style is:global>
+
+  .sidepanel:has(.sidepanel__toggle[aria-pressed="true"]) {
+    width: 300px;
+  }
+  .sidepanel:has(.sidepanel__toggle[aria-pressed="false"]) .sidepanel__hide-on-collapse {
+    display: none;
+  }
+
+  a:focus {
+    background-color: transparent;
+    box-shadow: none;
+    color: var(--iai-pink);
+    outline: none;
+  }
+  .sidepanel:has(.sidepanel__toggle[aria-pressed="false"]) a:focus-visible > span {
+    outline: 1px solid var(--iai-pink);
+    outline-color: var(--iai-pink);
+    outline-width: 2px;
+    outline-offset: 2px;
+  }
+  .sidepanel:has(.sidepanel__toggle[aria-pressed="true"]) a:focus-visible {
+    outline-style: solid;
+    outline-color: var(--iai-pink);
+    outline-width: 2px;
+    outline-offset: 2px;
+  }
+
+</style>

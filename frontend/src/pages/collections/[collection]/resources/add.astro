@@ -22,7 +22,7 @@ const resourcesData = await getResources(collectionId || '', 1, 9999, token);
         <a class="govuk-breadcrumbs__link" href="/">Collections</a>
       </li>
       <li class="govuk-breadcrumbs__list-item">
-        <a class="govuk-breadcrumbs__link" href="../resources">Resources</a>
+        <a class="govuk-breadcrumbs__link" href={ `/collections/${collectionId}` }>Documents</a>
       </li>
       <li class="govuk-breadcrumbs__list-item">
         Upload
@@ -50,7 +50,7 @@ const resourcesData = await getResources(collectionId || '', 1, 9999, token);
             <input class="govuk-file-upload" id="file-upload-1" name="fileUpload1" type="file" required multiple>
           </div>
         </div>
-        <button class={ 'govuk-button plausible-event-name=Add+Files plausible-event-collection=' + collection.name }>Add file(s)</button>
+        <button class={ 'iai-button plausible-event-name=Add+Files plausible-event-collection=' + collection.name }>Add file(s)</button>
       </form>
 
       <form method="post" action="/api/add-urls/" enctype="multipart/form-data">
@@ -60,7 +60,7 @@ const resourcesData = await getResources(collectionId || '', 1, 9999, token);
             <label class="govuk-label govuk-label--m" for="add-urls">Add URL(s)</label>
           </h2>
           <div id="add-urls-hint" class="govuk-hint">Add one URL per line</div>
-          <textarea class="govuk-textarea" id="add-urls" name="addUrls" rows="5" aria-describedby="add-urls-hint duplicates-warning"></textarea>
+          <textarea class="govuk-textarea rounded-sm!" id="add-urls" name="addUrls" rows="5" aria-describedby="add-urls-hint duplicates-warning"></textarea>
         </div>
         <duplicate-urls id="duplicates-warning" data-textarea="add-urls" data-existing-urls={ JSON.stringify(resourcesData.resources.filter(resource => resource.url).map(resource => resource.url) ) }>
           <div class="govuk-warning-text">
@@ -72,7 +72,7 @@ const resourcesData = await getResources(collectionId || '', 1, 9999, token);
           </div>
         </duplicate-urls>
         <add-urls>
-          <button class="govuk-button">Add URL(s)</button>
+          <button class="iai-button">Add URL(s)</button>
         </add-urls>
       </form>
 

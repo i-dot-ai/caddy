@@ -51,7 +51,8 @@ module "model" {
     "REPO" : "caddy",
     "AWS_ACCOUNT_ID": var.account_id,
     "GIT_SHA": var.image_tag,
-    "QDRANT_URL": "https://${local.host_qdrant}"
+    "QDRANT_URL": "https://${local.host_qdrant}",
+    "FRONTEND_HOST" : "https://${local.host}",
   }
 
   secrets = [

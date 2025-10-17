@@ -1,0 +1,49 @@
+---
+import Layout from '@layouts/Layout.astro';
+import { getResources, getResourceFragments } from '@logic/data.ts';
+import LitWrapper from '@components/lit-wrapper.astro';
+
+
+const { collection: collectionId } = Astro.params;
+const token = Astro.request.headers.get('x-amzn-oidc-accesstoken');
+
+const allResources = [];
+
+const resourcesData = await getResources(collectionId || '', 1, 9999, token);
+for (const resource of resourcesData.resources) {
+  const fragments = await getResourceFragments(collectionId || '', resource.id || '', token);
+  allResources.push({
+    title: resource.filename || resource.id,
+    fragments: fragments,
+  });
+}
+
+
+---
+
+<Layout title={ `Content for ${collectionId}` }>
+
+  <div class="govuk-grid-row">
+    <div class="govuk-grid-column-full">
+
+      <h1 class="govuk-heading-l">Content for collection: { collectionId }</h1>
+
+      { allResources.map((resource) =>
+        <>
+          <h2 class="govuk-heading-m mt-7!">{ resource.title }</h2>
+          { resource.fragments?.map((chunk) =>
+            <LitWrapper>
+              <markdown-converter class="border-1 border-solid border-border-grey block p-5 mt-5" content={ chunk.page_content }></markdown-converter>
+            </LitWrapper>
+          )}
+
+          { !resource.fragments?.length &&
+            <p class="mt-2">There is no text data for this resource.</p>
+          }
+        </>
+      )}
+
+    </div>
+  </div>
+
+</Layout>
