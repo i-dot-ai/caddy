@@ -84,10 +84,10 @@ def get_collection_resources(
             detail=e.message,
         )
     else:
-        resource_ids = [resource.id for resource in result.resources]
+        resource_ids = [str(resource.id) for resource in result.resources]
         logger.info(
             "Resources {resource_ids} retrieved for collection {collection_id}",
-            resource_ids=resource_ids,
+            resource_ids=",".join(resource_ids),
             collection_id=collection_id,
         )
         return result
@@ -367,11 +367,11 @@ def get_collections(
         raise HTTPException(status_code=e.error_code, detail=e.message)
     else:
         collection_ids = (
-            [collection.id for collection in result.collections]
+            [str(collection.id) for collection in result.collections]
             if result.collections
             else []
         )
-        logger.info("Returning collections {ids}", ids=collection_ids)
+        logger.info("Returning collections {ids}", ids=", ".join(collection_ids))
         return result
 
 

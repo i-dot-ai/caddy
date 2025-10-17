@@ -37,9 +37,10 @@ def test_file_upload(
     assert response.status_code == 200
     assert response.json()["total"] == 1
 
-    s3_object = config.s3_client.get_object(
-        Bucket=config.data_s3_bucket,
-        Key=f"{config.s3_prefix}/{example_collection.id}/{response.json()["resources"][0]["id"]}/{response.json()["resources"][0]["filename"]}",
+    s3_client = config.get_file_store_client()
+    s3_object = s3_client.read_object(
+        key=f"{example_collection.id}/{response.json()["resources"][0]["id"]}/{response.json()["resources"][0]["filename"]}",
+        as_text=True,
     )
 
     assert s3_object is not None
