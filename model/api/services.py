@@ -394,14 +394,12 @@ def delete_collection_by_id(
             raise NoPermissionException(
                 "Permission to delete collection not found", 401
             )
-        objects = config.s3_client.list_objects_v2(
-            Bucket=config.data_s3_bucket, Prefix=f"{config.s3_prefix}/{collection_id}"
-        )
-        if contents := objects.get("Contents"):
-            object_keys = [{"Key": obj["Key"]} for obj in contents]
-            config.s3_client.delete_objects(
-                Bucket=config.data_s3_bucket, Delete={"Objects": object_keys}
-            )
+        s3_client = config.get_file_store_client()
+        objects = s3_client.list_objects(prefix=f"{collection_id}")
+        if objects:
+            object_keys = [obj["Key"] for obj in objects]
+            for object_key in object_keys:
+                s3_client.delete_object(key=object_key)
 
         session.delete(collection)
         session.commit()
@@ -628,7 +626,7 @@ def get_resource_download_url(
     s3_client = config.get_file_store_client()
 
     s3_url = s3_client.download_object_url(
-        f"{collection.id}/{resource.id}/{resource.filename}",
+        key=f"{collection.id}/{resource.id}/{resource.filename}",
         expiration=3600,
     )
 
@@ -788,7 +786,7 @@ def get_resource_by_id(
             s3_client = config.get_file_store_client()
 
             s3_url = s3_client.download_object_url(
-                f"{collection_id}/{resource.id}/{resource.filename}",
+                key=f"{collection_id}/{resource.id}/{resource.filename}",
                 expiration=3600,
             )
 

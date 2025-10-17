@@ -28,7 +28,7 @@ CWD = os.path.dirname(os.path.abspath(__file__))
 
 
 @pytest_asyncio.fixture(autouse=True)
-async def cleanup_opensearch_per_test():
+async def cleanup_qdrant_per_test():
     """Clean up qdrant documents after each test"""
     yield
     # Delete all documents from the test index
