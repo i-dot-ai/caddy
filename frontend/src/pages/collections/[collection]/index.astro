@@ -16,7 +16,7 @@ const { collection, error } = await getCollection(collectionId || '', token);
 
 const resourcesData = await getResources(collectionId || '', 1, PAGE_SIZE, token);
 
-const webResources = resourcesData.resources.filter((resource) => resource.url).map((resource) => resource.url).join().replaceAll(',', '\n');
+const webResources = resourcesData.resources?.filter((resource) => resource.url).map((resource) => resource.url).join().replaceAll(',', '\n');
 
 const users = await getUsers(collectionId || '', token);
 

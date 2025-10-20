@@ -127,6 +127,9 @@ TF_BACKEND_CONFIG=$(CONFIG_DIR)/backend.hcl
 AUTO_APPLY_RESOURCES = module.model.aws_ecs_service.aws-ecs-service \
   					   module.model.data.aws_ecs_task_definition.main \
 					   module.model.aws_ecs_task_definition.task_definition \
+					   module.qdrant.aws_ecs_service.aws-ecs-service \
+  					   module.qdrant.data.aws_ecs_task_definition.main \
+					   module.qdrant.aws_ecs_task_definition.task_definition \
 					   module.frontend.aws_ecs_service.aws-ecs-service \
   					   module.frontend.data.aws_ecs_task_definition.main \
 					   module.frontend.aws_ecs_task_definition.task_definition \
