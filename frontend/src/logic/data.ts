@@ -145,7 +145,7 @@ interface ResourceList {
   total: number,
   page_size: number,
   page: number,
-  resources: ResourceDetail[],
+  resources?: ResourceDetail[],
 }
 
 

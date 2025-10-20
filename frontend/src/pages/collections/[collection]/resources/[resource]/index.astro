@@ -8,6 +8,11 @@ const token = Astro.request.headers.get('x-amzn-oidc-accesstoken');
 const { collection: collectionId, resource: resourceId } = Astro.params;
 const resource = await getResourceDetails(collectionId || '', resourceId || '', token);
 const fragments = await getResourceFragments(collectionId || '', resourceId || '', token);
+
+if (Astro.url.searchParams.get('from-chat') === 'true') {
+  return Astro.redirect(resource.download_url || resource.url);
+}
+
 ---
 
 <Layout title={ resource.filename || resource.id }>
@@ -34,14 +39,17 @@ const fragments = await getResourceFragments(collectionId || '', resourceId || '
 
       <p><strong>Document:</strong> { resource.filename || resource.id }</p>
 
-      { resource.download_url &&
-        <div class="govuk-button-group mt-7">
-          <a class="iai-button" href={ resource.download_url } download>Download original document</a>
-          <copy-link>
-            <button class="iai-button--secondary ml-3" data-url={ resource.download_url }>Copy link</button>
-          </copy-link>
-        </div>
-      }
+      <div class="govuk-button-group mt-7">
+        <a class="iai-button" href={ resource.download_url || resource.url } download>
+          { resource.download_url ?
+            <>Download original document</> :
+            <>View webpage</>
+          }
+        </a>
+        <copy-link>
+          <button class="iai-button--secondary ml-3" data-url={ resource.download_url || resource.url }>Copy link</button>
+        </copy-link>
+      </div>
 
       { fragments?.map((chunk) =>
         <LitWrapper>
