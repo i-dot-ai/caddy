@@ -169,7 +169,7 @@ interface ResourceFragment {
 
 
 export const getResourceFragments = async(collectionId: string, resourceId: string, keycloakToken: string | null) => {
-  const { json } = await makeRequest(`/collections/${collectionId}/resources/${resourceId}/documents`, keycloakToken);
+  const { json } = await makeRequest(`/collections/${collectionId}/resources/${resourceId}/documents?page_size=1000`, keycloakToken);
   return (json as ResourceFragment).documents;
 };
 

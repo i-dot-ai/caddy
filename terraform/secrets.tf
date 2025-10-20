@@ -11,6 +11,10 @@ locals {
       value = module.app_bucket.id
     },
     {
+      name  = "IAI_FS_BUCKET_NAME"
+      value = module.app_bucket.id
+    },
+    {
       name  = "BACKEND_TOKEN"
       value = var.BACKEND_TOKEN
     },

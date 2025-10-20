@@ -17,7 +17,7 @@ from api.models import (
 )
 from api.types import Chunks, CollectionsDto
 
-s3_client = config.s3_client
+s3_client = config.get_file_store_client()
 CWD = os.path.dirname(os.path.abspath(__file__))
 
 
@@ -52,11 +52,10 @@ def test_upload_txt_to_file_upload_endpoint(
     except ValueError:
         pytest.fail(f"Response returned an invalid UUID: {response_uuid}")
 
-    s3_object = s3_client.get_object(
-        Bucket=config.data_s3_bucket,
-        Key=f"{config.s3_prefix}/{example_collection.id}/{response_uuid}/{file_name}",
+    s3_object = s3_client.read_object(
+        key=f"{example_collection.id}/{response_uuid}/{file_name}",
     )
-    assert s3_object["Body"].read() == file_data
+    assert s3_object == file_data
 
     delete_resource(database_transaction, response_uuid)
 
@@ -76,7 +75,7 @@ def test_upload_txt_to_file_upload_endpoint_invalid_file(
     database_transaction,
 ):
     """
-    Test the `upload_txt_to_opensearch` endpoint when an invalid file is uploaded (e.g., PDF).
+    Test the `create_resource` endpoint when an invalid file is uploaded (e.g., PDF).
     """
     response = client.post(
         f"/collections/{example_collection.id}/resources",
