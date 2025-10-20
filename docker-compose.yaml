@@ -7,7 +7,6 @@ services:
     volumes:
       - ./model:/app
       - /app/.venv # do not clobber installed venv
-      - ~/.aws/:/root/.aws:ro
     healthcheck:
       test: curl --fail 'http://localhost:8080/healthcheck' || exit 1
       start_period: 60s
@@ -107,15 +106,6 @@ services:
       retries: 12
       start_period: 60s
       interval: 5s
-
-  client:
-    image: public.ecr.aws/idotai/gov-ai-client:0891f9633f143f967a3382720be9dbfcb3d8c1d8
-    container_name: gov-ai-client
-    expose:
-      - "8081"
-    env_file: .env
-    networks:
-      - caddy-net
 
 volumes:
   postgres_data:
