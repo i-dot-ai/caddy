@@ -1,21 +1,4 @@
 services:
-  nginx:
-    image: nginx:alpine
-    ports:
-      - "8080:80"    # model
-      - "8081:81"    # client
-      - "8082:82"    # frontend
-    volumes:
-      - ./docker-compose-config/nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./docker-compose-config/user-switcher.conf:/etc/nginx/user-switcher.conf:ro
-    depends_on:
-      - model
-      - frontend
-      - client
-    networks:
-      - caddy-net
-    restart: unless-stopped
-
   model:
     build:
       context: ./model
@@ -39,7 +22,7 @@ services:
         condition: service_healthy
     networks:
       - caddy-net
-    env_file: "docker-compose-config/.env"
+    env_file: .env
 
   frontend:
     build:
@@ -47,7 +30,7 @@ services:
     expose:
       - "4322"
     entrypoint: npm run dev
-    env_file: "docker-compose-config/.env"
+    env_file: .env
     networks:
       - caddy-net
     volumes:
@@ -63,7 +46,7 @@ services:
         condition: service_healthy
 
   qdrant:
-    image: qdrant/qdrant
+    image: qdrant/qdrant:v1.15.5
     ports:
       - '6333:6333'
       - '6334:6334'
@@ -77,9 +60,14 @@ services:
       - qdrant_storage:/qdrant/storage:z
     networks:
       - caddy-net
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c ':> /dev/tcp/localhost/6333' || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 3
 
   postgres:
-    image: pgvector/pgvector:pg17
+    image: pgvector/pgvector:pg18
     ports:
       - '5432:5432'
     environment:
@@ -98,7 +86,7 @@ services:
       - caddy-net
 
   minio:
-    image: minio/minio
+    image: minio/minio:RELEASE.2025-07-23T15-54-02Z
     expose:
       - "9000"
       - "9001"
@@ -121,22 +109,13 @@ services:
       interval: 5s
 
   client:
-    image: public.ecr.aws/idotai/gov-ai-client:068ee7adce7c62c6836239c57415d517cf870dd5
+    image: public.ecr.aws/idotai/gov-ai-client:0891f9633f143f967a3382720be9dbfcb3d8c1d8
     container_name: gov-ai-client
     expose:
       - "8081"
-    env_file: "docker-compose-config/.env"
+    env_file: .env
     networks:
       - caddy-net
-
-  welcome:
-    restart: no
-    build:
-      context: docker-compose-config
-      dockerfile: welcome.Dockerfile
-    depends_on:
-      frontend:
-        condition: service_healthy
 
 volumes:
   postgres_data:
