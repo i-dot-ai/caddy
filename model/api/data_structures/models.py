@@ -147,7 +147,7 @@ def delete_chunk_document(mapper, connection, target: TextChunk):
 def _index_document(target: TextChunk):
     """Index a document in Qdrant using sync client."""
     dense_embedder = config.get_dense_embedding_handler()
-    dense_embedding = dense_embedder.embed([target.text])[0]
+    dense_embedding = list(dense_embedder.embed([target.text]))[0]
 
     sparse_embedder = config.get_embedding_handler()
     sparse_embeddings = list(sparse_embedder.embed(target.text))

@@ -133,7 +133,7 @@ def create_missing_points(
             logger.info("Creating missing dense embedding")
             # Generate dense vector as it already overlaps from the chunking
             dense_embedder = config.get_dense_embedding_handler()
-            dense_embedding = dense_embedder.embed([chunk.text])[0]
+            dense_embedding = list(dense_embedder.embed([chunk.text]))[0]
 
             # Generate sparse vector for chunks without it
             logger.info("Creating sparse embedding")
