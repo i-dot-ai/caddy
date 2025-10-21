@@ -2,9 +2,6 @@ import json
 import os
 
 from api.config import CaddyConfig
-from api.embedding_models import load_embedding_model
-
-embedding_model = load_embedding_model(os.environ["EMBEDDING_MODEL"])
 
 sqlalchemy_url = "postgresql+psycopg2://{POSTGRES_USER}:{POSTGRES_PASSWORD}@{POSTGRES_HOST}/{POSTGRES_DB}".format(
     **os.environ
@@ -22,7 +19,6 @@ qdrant_url = os.environ["QDRANT_URL"]
 config = CaddyConfig(
     qdrant__service__api_key=qdrant__service__api_key,
     qdrant_url=qdrant_url,
-    embedding_model=embedding_model,
     sqlalchemy_url=sqlalchemy_url,
     data_s3_bucket=data_s3_bucket,
     resource_url_template=resource_url_template,

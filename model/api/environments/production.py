@@ -5,9 +5,6 @@ import boto3
 from requests_aws4auth import AWS4Auth
 
 from api.config import CaddyConfig
-from api.embedding_models import load_embedding_model
-
-embedding_model = load_embedding_model(os.environ["EMBEDDING_MODEL"])
 
 disable_auth_signature_verification = os.environ["DISABLE_AUTH_SIGNATURE_VERIFICATION"]
 auth_provider_public_key = os.environ["AUTH_PROVIDER_PUBLIC_KEY"]
@@ -41,7 +38,6 @@ qdrant_access_token_header = os.environ["QDRANT_ACCESS_TOKEN_HEADER"]
 config = CaddyConfig(
     qdrant__service__api_key=qdrant__service__api_key,
     qdrant_url=qdrant_url,
-    embedding_model=embedding_model,
     sqlalchemy_url=sqlalchemy_url,
     data_s3_bucket=data_s3_bucket,
     resource_url_template=resource_url_template,
