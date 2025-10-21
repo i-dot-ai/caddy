@@ -217,7 +217,7 @@ class FileUpload:
 
             if batch_failures:
                 print(
-                    f"Batch {i//self.batch_size + 1} had {len(batch_failures)} failures"
+                    f"Batch {i // self.batch_size + 1} had {len(batch_failures)} failures"
                 )
 
         failure_count = len(total_failures)

@@ -39,7 +39,7 @@ def user_token(user):
         "signer": "arn:aws:elasticloadbalancing:eu-west-2:acc:loadbalancer/app/alb/99jd250a03e75des",
         "exp": 1727262399,
     }
-    return f"Bearer {jwt.encode(jwt_dict, "secret", algorithm="HS256", headers=jwt_headers)}"
+    return f"Bearer {jwt.encode(jwt_dict, 'secret', algorithm='HS256', headers=jwt_headers)}"
 
 
 def utc_now() -> datetime:

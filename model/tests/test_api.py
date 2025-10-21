@@ -389,7 +389,7 @@ def test_create_collection(client, admin_user):
     assert response.json()["name"] == collection_name
 
     manager_response = client.get(
-        f"/collections/{response.json()["id"]}/users",
+        f"/collections/{response.json()['id']}/users",
         headers={"Authorization": admin_user.token},
     )
 
