@@ -259,5 +259,5 @@ class CaddyConfig:
     @staticmethod
     @lru_cache
     def get_dense_embedding_handler() -> TextEmbedding:
-        # Using the following embedding model because it has a defined vocabulary size
+        # Using the following embedding model because it has a similar dimension size to previously used model
         return TextEmbedding(model_name="mixedbread-ai/mxbai-embed-large-v1")
