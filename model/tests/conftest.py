@@ -81,7 +81,10 @@ def database_transaction():
         # this is a bit jank but it seems to work: re-patch
         # per test run with a connection wrapped in a transaction
         # this is needed for the MCP tooling which doesnt support dependency injection
-        with patch("api.environment.config.get_database", return_value=session.bind):
+        with patch(
+            "api.environments.environment.config.get_database",
+            return_value=session.bind,
+        ):
             yield session
     finally:
         session.close()
