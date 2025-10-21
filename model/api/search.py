@@ -70,7 +70,8 @@ async def search_collection(
     Returns:
         Documents: relevant documents
     """
-    dense_query_vector = config.embedding_model.embed_documents([query])[0]
+    dense_embedder = config.get_dense_embedding_handler()
+    dense_query_vector = list(dense_embedder.embed(query))[0]
     sparse_embedder = config.get_embedding_handler()
     sparse_query_vector = list(sparse_embedder.embed(query))[0]
 
