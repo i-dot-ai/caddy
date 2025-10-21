@@ -7,21 +7,23 @@ from markitdown import MarkItDown, MarkItDownException
 from sqlmodel import Session
 
 from api.auth import get_current_user
-from api.depends import get_logger
-from api.environment import config, get_session
-from api.exceptions import (
-    DuplicateItemException,
-    InvalidUrlFormatException,
-    ItemNotFoundException,
-    NoPermissionException,
-)
-from api.models import (
+from api.data_structures.models import (
     Collection,
     User,
     UserCollection,
     UserRoleList,
 )
-from api.services import (
+from api.data_structures.types import (
+    Chunks,
+    CollectionBase,
+    CollectionDto,
+    CollectionResources,
+    CollectionsDto,
+    ResourceDto,
+    UserRole,
+)
+from api.environments.environment import config, get_session
+from api.services.services import (
     create_new_collection,
     create_resource_from_file,
     create_resource_from_urls,
@@ -37,14 +39,12 @@ from api.services import (
     get_user_collections,
     update_collection_by_id,
 )
-from api.types import (
-    Chunks,
-    CollectionBase,
-    CollectionDto,
-    CollectionResources,
-    CollectionsDto,
-    ResourceDto,
-    UserRole,
+from api.utilities.depends import get_logger
+from api.utilities.exceptions import (
+    DuplicateItemException,
+    InvalidUrlFormatException,
+    ItemNotFoundException,
+    NoPermissionException,
 )
 
 router = APIRouter()  # Create an APIRouter instance

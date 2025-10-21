@@ -4,8 +4,8 @@ from sqlalchemy import engine_from_config, pool
 from sqlmodel import SQLModel
 
 from alembic import context
-from api.environment import config as caddy_config
-from api.models import *  # noqa
+from api.data_structures.models import *  # noqa
+from api.environments.environment import config as caddy_config
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

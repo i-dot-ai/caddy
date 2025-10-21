@@ -8,7 +8,7 @@ from uuid import UUID
 import requests
 import tqdm
 
-from api.environment import config
+from api.environments.environment import config
 
 logger = config.get_logger(__name__)
 

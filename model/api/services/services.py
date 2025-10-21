@@ -11,15 +11,8 @@ from markitdown import MarkItDown
 from sqlalchemy import func
 from sqlmodel import Session, select
 
-from api.enums import CollectionPermissionEnum, ResourcePermissionEnum
-from api.environment import config
-from api.exceptions import (
-    DuplicateItemException,
-    InvalidUrlFormatException,
-    ItemNotFoundException,
-    NoPermissionException,
-)
-from api.models import (
+from api.data_structures.enums import CollectionPermissionEnum, ResourcePermissionEnum
+from api.data_structures.models import (
     Collection,
     Resource,
     TextChunk,
@@ -29,14 +22,7 @@ from api.models import (
     UserRoleList,
     utc_now,
 )
-from api.permissions import (
-    check_user_is_member_of_collection,
-    get_collection_permissions_for_user,
-    get_resource_permissions_for_user,
-    is_user_admin_user,
-)
-from api.scrape import Scraper
-from api.types import (
+from api.data_structures.types import (
     Chunks,
     CollectionBase,
     CollectionDto,
@@ -46,6 +32,20 @@ from api.types import (
     Role,
     UserRole,
 )
+from api.environments.environment import config
+from api.utilities.exceptions import (
+    DuplicateItemException,
+    InvalidUrlFormatException,
+    ItemNotFoundException,
+    NoPermissionException,
+)
+from api.utilities.permissions import (
+    check_user_is_member_of_collection,
+    get_collection_permissions_for_user,
+    get_resource_permissions_for_user,
+    is_user_admin_user,
+)
+from api.utilities.scrape import Scraper
 
 metric_writer = config.get_metrics_writer()
 md = MarkItDown()

@@ -3,8 +3,8 @@ from logging import getLogger
 import click
 from sqlmodel import Session, select
 
-from api.environment import config
-from api.models import User
+from api.data_structures.models import User
+from api.environments.environment import config
 
 logger = getLogger(__file__)
 

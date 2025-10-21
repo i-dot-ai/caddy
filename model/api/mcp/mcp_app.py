@@ -16,9 +16,9 @@ from starlette.requests import Request
 from starlette.types import Receive, Scope, Send
 
 from api.auth import get_authorised_user
-from api.environment import config
-from api.models import Collection, User, UserCollection
-from api.search import search_collection
+from api.data_structures.models import Collection, User, UserCollection
+from api.embeddings.search import search_collection
+from api.environments.environment import config
 
 logger = config.get_logger(__name__)
 

@@ -12,15 +12,15 @@ from sqlalchemy import text
 from sqlmodel import Session, select
 from starlette.applications import Starlette
 
-from api.environment import config, get_session
-from api.mcp_app import (
+from api.data_structures.models import Collection
+from api.data_structures.types import QueryRequest
+from api.embeddings.search import search_collection
+from api.environments.environment import config, get_session
+from api.mcp.mcp_app import (
     handle_streamable_http,
     session_manager,
 )
-from api.models import Collection
-from api.rest_app import router
-from api.search import search_collection
-from api.types import QueryRequest
+from api.rest_api.rest_app import router
 
 logger = config.get_logger(__name__)
 

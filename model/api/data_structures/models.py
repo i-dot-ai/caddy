@@ -9,8 +9,13 @@ from qdrant_client.http.models import PointStruct, SparseVector, models
 from sqlalchemy import event
 from sqlmodel import Field, Relationship, Session, SQLModel, select
 
-from api.environment import config
-from api.types import CollectionBase, PaginatedResponse, ResourceBase, Role
+from api.data_structures.types import (
+    CollectionBase,
+    PaginatedResponse,
+    ResourceBase,
+    Role,
+)
+from api.environments.environment import config
 
 
 def user_token(user):

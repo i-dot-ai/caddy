@@ -14,8 +14,8 @@ from qdrant_client.http.models import PointStruct, SparseVector
 from sqlalchemy.orm import Session
 
 from alembic import op
-from api.environment import config
-from api.models import Resource, TextChunk
+from api.data_structures.models import Resource, TextChunk
+from api.environments.environment import config
 
 # revision identifiers, used by Alembic.
 revision: str = "37b0cb83d755"  # pragma: allowlist secret

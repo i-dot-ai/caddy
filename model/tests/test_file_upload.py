@@ -2,7 +2,7 @@ import os
 
 import pytest
 
-from api.environment import config
+from api.environments.environment import config
 
 
 @pytest.mark.parametrize(

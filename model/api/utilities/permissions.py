@@ -4,18 +4,18 @@ from uuid import UUID
 from i_dot_ai_utilities.logging.structured_logger import StructuredLogger
 from sqlmodel import Session, select
 
-from api.enums import CollectionPermissionEnum, ResourcePermissionEnum
-from api.environment import config
-from api.exceptions import ItemNotFoundException, NoPermissionException
-from api.models import (
+from api.data_structures.enums import CollectionPermissionEnum, ResourcePermissionEnum
+from api.data_structures.models import (
     Collection,
     Resource,
     User,
     UserCollection,
 )
-from api.types import (
+from api.data_structures.types import (
     Role,
 )
+from api.environments.environment import config
+from api.utilities.exceptions import ItemNotFoundException, NoPermissionException
 
 
 @lru_cache

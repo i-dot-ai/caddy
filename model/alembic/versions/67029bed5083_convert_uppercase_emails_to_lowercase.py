@@ -11,8 +11,8 @@ from typing import Sequence, Union
 from sqlalchemy.orm import Session
 
 from alembic import op
-from api.environment import config
-from api.models import User
+from api.data_structures.models import User
+from api.environments.environment import config
 
 # revision identifiers, used by Alembic.
 revision: str = "67029bed5083"  # pragma: allowlist secret

@@ -7,15 +7,15 @@ import pytest
 from langchain_core.documents import Document
 from sqlmodel import Session
 
-from api.enums import CollectionPermissionEnum, ResourcePermissionEnum
-from api.environment import config
-from api.models import (
+from api.data_structures.enums import CollectionPermissionEnum, ResourcePermissionEnum
+from api.data_structures.models import (
     Resource,
     User,
     UserCollectionWithEmail,
     UserRoleList,
 )
-from api.types import Chunks, CollectionsDto
+from api.data_structures.types import Chunks, CollectionsDto
+from api.environments.environment import config
 
 s3_client = config.get_file_store_client()
 CWD = os.path.dirname(os.path.abspath(__file__))

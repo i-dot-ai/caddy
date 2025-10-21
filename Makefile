@@ -12,7 +12,7 @@ generate_aws_diagram:
 	cd model && poetry run python ../terraform/diagram_script.py
 
 run_backend:
-	cd model && poetry run python -m uvicorn api.app:app --reload
+	cd model && poetry run python -m uvicorn api.main:app --reload
 
 run_frontend:
 	cd frontend && npm run dev

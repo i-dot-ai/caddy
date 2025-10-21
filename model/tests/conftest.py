@@ -12,10 +12,7 @@ from sqlmodel import Session
 from alembic import command
 from alembic.config import Config
 from api.app import app
-from api.config import EMBEDDING_DIMENSION
-from api.environment import config, get_session
-from api.mcp_app import session_manager
-from api.models import (
+from api.data_structures.models import (
     Collection,
     Resource,
     Role,
@@ -23,6 +20,9 @@ from api.models import (
     User,
     UserCollection,
 )
+from api.environments.config import EMBEDDING_DIMENSION
+from api.environments.environment import config, get_session
+from api.mcp.mcp_app import session_manager
 
 CWD = os.path.dirname(os.path.abspath(__file__))
 

@@ -7,8 +7,8 @@ from qdrant_client import models
 from qdrant_client.http.models import QueryResponse, SparseVector
 from sqlmodel import Session
 
-from api.environment import config
-from api.models import Resource
+from api.data_structures.models import Resource
+from api.environments.environment import config
 
 
 def build_document(document: Document, collection_id: UUID, session: Session):

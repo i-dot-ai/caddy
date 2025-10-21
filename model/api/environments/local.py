@@ -1,7 +1,7 @@
 import json
 import os
 
-from api.config import CaddyConfig
+from api.environments.config import CaddyConfig
 
 sqlalchemy_url = "postgresql+psycopg2://{POSTGRES_USER}:{POSTGRES_PASSWORD}@{POSTGRES_HOST}/{POSTGRES_DB}".format(
     **os.environ

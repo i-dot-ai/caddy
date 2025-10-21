@@ -1,7 +1,7 @@
 from fastapi.requests import Request
 from i_dot_ai_utilities.logging.types.enrichment_types import ContextEnrichmentType
 
-from api.environment import config
+from api.environments.environment import config
 
 
 def get_logger(logger_name: str = None):

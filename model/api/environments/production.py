@@ -4,7 +4,7 @@ import os
 import boto3
 from requests_aws4auth import AWS4Auth
 
-from api.config import CaddyConfig
+from api.environments.config import CaddyConfig
 
 disable_auth_signature_verification = os.environ["DISABLE_AUTH_SIGNATURE_VERIFICATION"]
 auth_provider_public_key = os.environ["AUTH_PROVIDER_PUBLIC_KEY"]
