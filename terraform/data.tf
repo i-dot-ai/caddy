@@ -53,11 +53,25 @@ data "terraform_remote_state" "keycloak" {
 }
 
 locals {
+<<<<<<< found
   name                = "${var.team_name}-${var.env}-${var.project_name}"
   host                = terraform.workspace == "prod" ? "${var.project_name}.ai.cabinetoffice.gov.uk" : "${var.project_name}-${terraform.workspace}.ai.cabinetoffice.gov.uk"
   host_backend        = terraform.workspace == "prod" ? "${var.project_name}-model-external.ai.cabinetoffice.gov.uk" : "${var.project_name}-model-external-${terraform.workspace}.ai.cabinetoffice.gov.uk"
   host_qdrant         = terraform.workspace == "prod" ? "${var.project_name}-qdrant-external.ai.cabinetoffice.gov.uk" : "${var.project_name}-qdrant-external-${terraform.workspace}.ai.cabinetoffice.gov.uk"
   record_prefix       = terraform.workspace == "prod" ? var.project_name : "${var.project_name}-${terraform.workspace}"
+||||||| expected
+  name              = "${var.team_name}-${var.env}-${var.project_name}"
+  host              = terraform.workspace == "prod" ? "${var.project_name}.ai.cabinetoffice.gov.uk" : "${var.project_name}-${terraform.workspace}.ai.cabinetoffice.gov.uk"
+  host_backend      = terraform.workspace == "prod" ? "${var.project_name}-backend-external.ai.cabinetoffice.gov.uk" : "${var.project_name}-backend-external-${terraform.workspace}.ai.cabinetoffice.gov.uk" 
+  record_prefix     = terraform.workspace == "prod" ? var.project_name : "${var.project_name}-${terraform.workspace}"
+  auth_from_address = "${local.record_prefix}@auth-notify.${var.domain_name}"
+  auth_ses_identity = "arn:aws:ses:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:identity/auth-notify.ai.cabinetoffice.gov.uk"
+=======
+  name              = "${var.team_name}-${var.env}-${var.project_name}"
+  hosted_zone_name  = terraform.workspace == "prod" ? var.domain_name : "${terraform.workspace}.${var.domain_name}"
+  host              = terraform.workspace == "prod" ? "${var.project_name}.${var.domain_name}" : "${var.project_name}.${terraform.workspace}.${var.domain_name}"
+  host_backend      = terraform.workspace == "prod" ? "${var.project_name}-backend-external.${var.domain_name}" : "${var.project_name}-backend-external.${terraform.workspace}.${var.domain_name}" 
+>>>>>>> replacement
 }
 
 data "aws_ssm_parameter" "client_secret" {
@@ -66,6 +80,10 @@ data "aws_ssm_parameter" "client_secret" {
 
 data "aws_ssm_parameter" "auth_provider_public_key" {
   name = "/i-dot-ai-${terraform.workspace}-core-keycloak/realm_public_key"
+}
+
+data "aws_ssm_parameter" "auth_api_invoke_url" {
+  name = "/i-dot-ai-${terraform.workspace}-core-auth-api/auth/INVOKE_URL"
 }
 
 data "aws_secretsmanager_secret" "slack" {
@@ -79,4 +97,8 @@ data "aws_secretsmanager_secret_version" "platform_slack_webhook" {
 data "aws_wafv2_ip_set" "ip_whitelist_internal" {
   name  = "i-dot-ai-core-ip-config-ip-set-internal"
   scope = var.scope
+}
+
+data "aws_route53_zone" "zone" {
+  name = local.hosted_zone_name
 }
