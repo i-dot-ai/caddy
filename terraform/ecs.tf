@@ -16,7 +16,7 @@ module "model" {
   # checkov:skip=CKV_SECRET_4:Skip secret check as these have to be used within the Github Action
   # checkov:skip=CKV_TF_1: We're using semantic versions instead of commit hash
   #source                      = "../../i-dot-ai-core-terraform-modules//modules/infrastructure/ecs" # For testing local changes
-  source                       = "git::https://github.com/i-dot-ai/i-dot-ai-core-terraform-modules.git//modules/infrastructure/ecs?ref=v5.4.1-ecs"
+  source                       = "git::https://github.com/i-dot-ai/i-dot-ai-core-terraform-modules.git//modules/infrastructure/ecs?ref=v5.6.1-ecs"
   image_tag                    = var.image_tag
   ecr_repository_uri           = "${data.aws_caller_identity.current.account_id}.dkr.ecr.${var.region}.amazonaws.com/caddy-model"
   vpc_id                       = data.terraform_remote_state.vpc.outputs.vpc_id
@@ -28,7 +28,7 @@ module "model" {
   ecs_cluster_name             = data.terraform_remote_state.platform.outputs.ecs_cluster_name
   https_listener_arn           = data.aws_lb_listener.lb_listener_443.arn
   task_additional_iam_policies = local.additional_policy_arns
-  certificate_arn              = data.terraform_remote_state.universal.outputs.certificate_arn
+  certificate_arn              = module.acm_certificate.arn
   target_group_name_override   =  "caddy-mo-${var.env}-tg"
   permissions_boundary_name    = "infra/i-dot-ai-${var.env}-caddy-perms-boundary-app"
 
@@ -50,6 +50,7 @@ module "model" {
     "PORT" : local.backend_port,
     "REPO" : "caddy",
     "AWS_ACCOUNT_ID": var.account_id,
+    "AUTH_API_URL": data.aws_ssm_parameter.auth_api_invoke_url.value,
     "GIT_SHA": var.image_tag,
     "QDRANT_URL": "https://${local.host_qdrant}",
     "FRONTEND_HOST": "https://${local.host}",
@@ -70,7 +71,7 @@ module "model" {
 
   health_check = {
     accepted_response   = 200
-    path                = "/healthcheck"
+    path                = "/api/healthcheck"
     interval            = 60
     timeout             = 70
     healthy_threshold   = 2
@@ -85,7 +86,7 @@ module "frontend" {
   # checkov:skip=CKV_SECRET_4:Skip secret check as these have to be used within the Github Action
   name = "${local.name}-frontend"
   # source = "../../i-dot-ai-core-terraform-modules//modules/infrastructure/ecs" # For testing local changes
-  source                       = "git::https://github.com/i-dot-ai/i-dot-ai-core-terraform-modules.git//modules/infrastructure/ecs?ref=v5.4.1-ecs"
+  source                       = "git::https://github.com/i-dot-ai/i-dot-ai-core-terraform-modules.git//modules/infrastructure/ecs?ref=v5.6.1-ecs"
   image_tag                    = var.image_tag
   ecr_repository_uri           = "${data.aws_caller_identity.current.account_id}.dkr.ecr.${var.region}.amazonaws.com/caddy-frontend"
   vpc_id                       = data.terraform_remote_state.vpc.outputs.vpc_id
@@ -96,7 +97,7 @@ module "frontend" {
   ecs_cluster_id               = data.terraform_remote_state.platform.outputs.ecs_cluster_id
   ecs_cluster_name             = data.terraform_remote_state.platform.outputs.ecs_cluster_name
   create_listener              = true
-  certificate_arn              = data.terraform_remote_state.universal.outputs.certificate_arn
+  certificate_arn              = module.acm_certificate.arn
   target_group_name_override   = "caddy-fe-${var.env}-tg"
   task_additional_iam_policies = local.additional_policy_arns
   permissions_boundary_name    = "infra/i-dot-ai-${var.env}-caddy-perms-boundary-app"
@@ -107,11 +108,26 @@ module "frontend" {
     "APP_NAME" : "caddy"
     "PORT" : local.frontend_port,
     "REPO" : "caddy",
+<<<<<<< found
     "BACKEND_HOST" : "https://${local.host_backend}",
     "GIT_SHA": var.image_tag
   }
 
   secrets = [
+||||||| expected
+    "DOCKER_BUILDER_CONTAINER": "caddy",
+    "AUTH_PROVIDER_PUBLIC_KEY": data.aws_ssm_parameter.auth_provider_public_key.value,
+    
+    "BACKEND_HOST" : "http://${aws_service_discovery_service.service_discovery_service.name}.${aws_service_discovery_private_dns_namespace.private_dns_namespace.name}:${local.backend_port}"
+    "BACKEND_URL" : "http://${aws_service_discovery_service.service_discovery_service.name}.${aws_service_discovery_private_dns_namespace.private_dns_namespace.name}:${local.backend_port}"
+=======
+    "DOCKER_BUILDER_CONTAINER": "caddy",
+    "AUTH_PROVIDER_PUBLIC_KEY": data.aws_ssm_parameter.auth_provider_public_key.value,
+    "AUTH_API_URL": data.aws_ssm_parameter.auth_api_invoke_url.value,
+    
+    "BACKEND_HOST" : "http://${aws_service_discovery_service.service_discovery_service.name}.${aws_service_discovery_private_dns_namespace.private_dns_namespace.name}:${local.backend_port}"
+    "BACKEND_URL" : "http://${aws_service_discovery_service.service_discovery_service.name}.${aws_service_discovery_private_dns_namespace.private_dns_namespace.name}:${local.backend_port}"
+>>>>>>> replacement
     for k, v in aws_ssm_parameter.env_secrets : {
       name      = regex("([^/]+$)", v.arn)[0], # Extract right-most string (param name) after the final slash
       valueFrom = v.arn
