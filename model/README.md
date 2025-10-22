@@ -7,41 +7,22 @@
 
 ### Setup
 
-The setup_dev command installs poetry, the dependencies and creates a .env from the example env file
-
-```bash
-make setup_dev
-```
+Install `poetry`, run `poetry lock` and configure your IDE to use the poetry interpreter.
 
 ### Running the Application
 
-The run_dev command starts the FastAPI and the Streamlit test query processor frontend
+The `make run` command starts the backing services (`Qdrant`, `PostgreSQL`, `Minio`). Once these have come up,
+run either `make run_backend`+`make run_frontend` or run the backend and frontend using your IDE.
 
 ```bash
-make run_dev
-```
-
-
-#### Alternatively with Docker
-
-Using the docker compose:
-
-```
-docker compose up
-```
-
-##### Manually
-
-
-Start the Caddy Model FastAPI server:
-```commandline
-docker build -t caddy .
-docker run -p 8000:8000 caddy
+make run
+make run_frontend
+make run_backend
 ```
 
 ## How to ingest data into Caddy
 
-### PDFs/files in a local directory
+### PDFs/files in a local directory to a remote instance
 If you have a local directory with your files, you can upload them to the Caddy resource by running the following command:
 1. `poetry run python scripts/upload_files.py AUTH_TOKEN --url TARGET_URL --collection COLLECTION_NAME --directory LOCAL_DIRECTORY --client-id CLIENT_ID --client-secret CLIENT_SECRET --username USERNAME --keycloak-token-url KEYCLOAK_TOKEN_URL`
 where
@@ -58,6 +39,7 @@ where
 You'll also need to provide your keycloak password when requested.
 
 ### PDFs/files in an S3 bucket
+
 First download the relevant documents to a local directory, then run the upload script.
 1. `aws s3 sync s3://<my-bucket>/local-caddy-data`
 2. `poetry run python scripts/upload_files.py AUTH_TOKEN --url TARGET_URL --collection COLLECTION_NAME --directory LOCAL_DIRECTORY --client-id CLIENT_ID --client-secret CLIENT_SECRET --username USERNAME --keycloak-token-url KEYCLOAK_TOKEN_URL`
@@ -71,7 +53,7 @@ If you have a website such as the GCOE website, which requires a login, then you
 ## 📂  How to use the collections
 
 ### Find existing collections
-You can find all existing collections, and their meta data such as names, descriptions, ids etc using this command:
+You can find all existing collections, and their metadata such as names, descriptions, ids etc using this command:
 ```
 curl -X GET \
   -H "x-external-access-token: $AUTH_TOKEN" \
