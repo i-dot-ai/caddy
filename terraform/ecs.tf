@@ -64,7 +64,7 @@ module "model" {
   ]
 
   container_port             = local.backend_port
-  memory                     = terraform.workspace == "prod" ? 8152 : 4096
+  memory                     = terraform.workspace == "prod" ? 8192 : 4096
   cpu                        = terraform.workspace == "prod" ? 2048 : 1024
   autoscaling_maximum_target = var.env == "prod" ? 5 : 1
 
