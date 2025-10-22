@@ -5,7 +5,7 @@ from cryptography.hazmat.primitives.serialization import load_pem_public_key
 from i_dot_ai_utilities.logging.structured_logger import StructuredLogger
 from pydantic import EmailStr
 
-from api.environment import config
+from api.environments.environment import config
 
 
 def __convert_to_pem_public_key(key_base64: str) -> RSAPublicKey:

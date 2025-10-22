@@ -14,8 +14,8 @@ from qdrant_client.http.models import PointStruct, SparseVector
 from sqlalchemy.orm import Session
 
 from alembic import op
-from api.environment import config
-from api.models import Resource, TextChunk
+from api.data_structures.models import Resource, TextChunk
+from api.environments.environment import config
 
 # revision identifiers, used by Alembic.
 revision: str = "37b0cb83d755"  # pragma: allowlist secret
@@ -132,7 +132,8 @@ def create_missing_points(
         try:
             logger.info("Creating missing dense embedding")
             # Generate dense vector as it already overlaps from the chunking
-            dense_embeddings = config.embedding_model.embed_documents([chunk.text])
+            dense_embedder = config.get_dense_embedding_handler()
+            dense_embedding = list(dense_embedder.embed([chunk.text]))[0]
 
             # Generate sparse vector for chunks without it
             logger.info("Creating sparse embedding")
@@ -148,7 +149,7 @@ def create_missing_points(
                         indices=sparse_embedding.indices,
                         values=sparse_embedding.values,
                     ),
-                    "text_dense": dense_embeddings[0],
+                    "text_dense": dense_embedding,
                 },
                 payload={
                     "text": chunk.text,

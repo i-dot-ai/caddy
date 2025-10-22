@@ -9,8 +9,13 @@ from qdrant_client.http.models import PointStruct, SparseVector, models
 from sqlalchemy import event
 from sqlmodel import Field, Relationship, Session, SQLModel, select
 
-from api.environment import config
-from api.types import CollectionBase, PaginatedResponse, ResourceBase, Role
+from api.data_structures.types import (
+    CollectionBase,
+    PaginatedResponse,
+    ResourceBase,
+    Role,
+)
+from api.environments.environment import config
 
 
 def user_token(user):
@@ -34,7 +39,7 @@ def user_token(user):
         "signer": "arn:aws:elasticloadbalancing:eu-west-2:acc:loadbalancer/app/alb/99jd250a03e75des",
         "exp": 1727262399,
     }
-    return f"Bearer {jwt.encode(jwt_dict, "secret", algorithm="HS256", headers=jwt_headers)}"
+    return f"Bearer {jwt.encode(jwt_dict, 'secret', algorithm='HS256', headers=jwt_headers)}"
 
 
 def utc_now() -> datetime:
@@ -141,7 +146,8 @@ def delete_chunk_document(mapper, connection, target: TextChunk):
 
 def _index_document(target: TextChunk):
     """Index a document in Qdrant using sync client."""
-    dense_embeddings = config.embedding_model.embed_documents([target.text])
+    dense_embedder = config.get_dense_embedding_handler()
+    dense_embedding = list(dense_embedder.embed([target.text]))[0]
 
     sparse_embedder = config.get_embedding_handler()
     sparse_embeddings = list(sparse_embedder.embed(target.text))
@@ -154,7 +160,7 @@ def _index_document(target: TextChunk):
                 indices=sparse_embedding.indices,
                 values=sparse_embedding.values,
             ),
-            "text_dense": dense_embeddings[0],
+            "text_dense": dense_embedding,
         },
         payload={
             "text": target.text,

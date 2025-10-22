@@ -1,7 +1,7 @@
 import pytest
 from mcp.types import ListToolsResult
 
-from api.mcp_app import ToolResponse
+from api.mcp.mcp_app import ToolResponse
 
 
 @pytest.mark.asyncio()

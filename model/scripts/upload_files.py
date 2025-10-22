@@ -1,7 +1,7 @@
 import click
 import requests
 
-from api.file_upload import FileUpload
+from api.utilities.file_upload import FileUpload
 
 
 @click.command()

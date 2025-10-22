@@ -12,15 +12,16 @@ from sqlalchemy import text
 from sqlmodel import Session, select
 from starlette.applications import Starlette
 
-from api.environment import config, get_session
-from api.mcp_app import (
+from api.data_structures.models import Collection
+from api.data_structures.types import QueryRequest
+from api.embeddings.search import search_collection
+from api.environments.environment import config, get_session
+from api.mcp.mcp_app import (
     handle_streamable_http,
     session_manager,
 )
-from api.models import Collection
-from api.rest_app import router
-from api.search import search_collection
-from api.types import QueryRequest
+from api.rest_api.collections import router as collections_router
+from api.rest_api.resources import router as resources_router
 
 logger = config.get_logger(__name__)
 
@@ -74,7 +75,8 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-app.include_router(router)
+app.include_router(collections_router)
+app.include_router(resources_router)
 
 # Add MCP sub-app
 app.mount("/search", app=handle_streamable_http)

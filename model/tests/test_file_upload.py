@@ -2,7 +2,7 @@ import os
 
 import pytest
 
-from api.environment import config
+from api.environments.environment import config
 
 
 @pytest.mark.parametrize(
@@ -39,7 +39,7 @@ def test_file_upload(
 
     s3_client = config.get_file_store_client()
     s3_object = s3_client.read_object(
-        key=f"{example_collection.id}/{response.json()["resources"][0]["id"]}/{response.json()["resources"][0]["filename"]}",
+        key=f"{example_collection.id}/{response.json()['resources'][0]['id']}/{response.json()['resources'][0]['filename']}",
         as_text=True,
     )
 

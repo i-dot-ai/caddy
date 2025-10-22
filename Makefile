@@ -1,56 +1,25 @@
 -include .env
 export
 
-run_model_locally:
-	./.venv/bin/python -m uvicorn api.app:app --reload
+run:
+	docker compose build && docker compose up
 
-pre-commit-install:
-	pre-commit install
-
-build_model:
-	make docker_login_public && \
-	docker compose build
+stop:
+	docker compose down
 
 .PHONY: generate_aws_diagram
 generate_aws_diagram:
 	cd model && poetry run python ../terraform/diagram_script.py
 
-run_model:
-	cd model && docker compose up -d --wait
-
 run_backend:
-	cd model && poetry run python -m uvicorn api.app:app --reload
+	cd model && poetry run python -m uvicorn api.main:app --reload
+
+run_frontend:
+	cd frontend && npm run dev
 
 run_tests:
 	docker compose up -d qdrant postgres minio --wait && \
 	cd model && poetry install && poetry run pytest --cov=tests -v --cov-report=term-missing --cov-fail-under=60
-
-setup_local_postgres:
-	psql -f model/scripts/postgres-init.sql
-
-run:
-	# will run with local client by default
-	docker compose -f docker-compose.yaml -f docker-compose-config/local-client.yaml up
-
-stop:
-	docker compose down
-
-model_run_evals:
-	@cd model && echo "Running all evaluation scripts..."
-	@cd model && find evals -name "eval_*.py" -exec poetry run python {} \;
-
-model_run_backend:
-	@ cd model && poetry run uvicorn api.app:app --host 0.0.0.0 --port 7001 --reload --log-level debug
-
-model_run_streamlit:
-	@ cd model && poetry run streamlit run streamlit_app.py --server.address 0.0.0.0
-
-model_run_dev:
-	@make model_run_backend & make model_run_streamlit
-
-model_run_tests:
-	echo "Running model tests..." && \
-	cd model && poetry run pytest -vv --cov=tests -v --cov-report=term-missing --cov-fail-under=60
 
 scraper_run:
 	@cd scraper && poetry run python run_scrape.py

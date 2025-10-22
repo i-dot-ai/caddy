@@ -7,9 +7,9 @@ from i_dot_ai_utilities.logging.structured_logger import StructuredLogger
 from langchain_community.document_loaders import AsyncHtmlLoader
 from tqdm import tqdm
 
-from api.decorators import retry
-from api.environment import config
-from api.models import utc_now
+from api.data_structures.models import utc_now
+from api.environments.environment import config
+from api.utilities.decorators import retry
 
 metric_writer = config.get_metrics_writer()
 

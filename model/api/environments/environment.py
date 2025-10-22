@@ -4,7 +4,7 @@ from functools import lru_cache
 from dotenv import load_dotenv
 from sqlmodel import Session
 
-from api.config import CaddyConfig
+from api.environments.config import CaddyConfig
 
 if os.environ.get("ENVIRONMENT", "local").upper() == "LOCAL":
     load_dotenv()

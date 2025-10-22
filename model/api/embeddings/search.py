@@ -7,8 +7,8 @@ from qdrant_client import models
 from qdrant_client.http.models import QueryResponse, SparseVector
 from sqlmodel import Session
 
-from api.environment import config
-from api.models import Resource
+from api.data_structures.models import Resource
+from api.environments.environment import config
 
 
 def build_document(document: Document, collection_id: UUID, session: Session):
@@ -70,7 +70,8 @@ async def search_collection(
     Returns:
         Documents: relevant documents
     """
-    dense_query_vector = config.embedding_model.embed_documents([query])[0]
+    dense_embedder = config.get_dense_embedding_handler()
+    dense_query_vector = list(dense_embedder.embed(query))[0]
     sparse_embedder = config.get_embedding_handler()
     sparse_query_vector = list(sparse_embedder.embed(query))[0]
 

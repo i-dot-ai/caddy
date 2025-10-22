@@ -1,7 +1,7 @@
 import os
 from functools import lru_cache
 
-from fastembed import SparseTextEmbedding
+from fastembed import SparseTextEmbedding, TextEmbedding
 from i_dot_ai_utilities.file_store.factory import create_file_store
 from i_dot_ai_utilities.file_store.types.file_store_destination_enum import (
     FileStoreDestinationEnum,
@@ -20,7 +20,6 @@ EMBEDDING_DIMENSION = 1024
 class CaddyConfig:
     def __init__(
         self,
-        embedding_model,
         sqlalchemy_url: str,
         data_s3_bucket: str,
         resource_url_template: str,
@@ -37,7 +36,6 @@ class CaddyConfig:
         git_sha=None,
         qdrant_access_token_header=None,
     ):
-        self.embedding_model = embedding_model
         self.env = env.upper()
         self.sentry_dsn = sentry_dsn
         self.app_name = app_name
@@ -257,3 +255,9 @@ class CaddyConfig:
     def get_embedding_handler() -> SparseTextEmbedding:
         # Using the following embedding model because it has a defined vocabulary size
         return SparseTextEmbedding(model_name="Qdrant/bm42-all-minilm-l6-v2-attentions")
+
+    @staticmethod
+    @lru_cache
+    def get_dense_embedding_handler() -> TextEmbedding:
+        # Using the following embedding model because it has a similar dimension size to previously used model
+        return TextEmbedding(model_name="mixedbread-ai/mxbai-embed-large-v1")

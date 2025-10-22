@@ -1,6 +1,6 @@
 from langchain_core.documents import Document
 
-from api.search import build_document
+from api.embeddings.search import build_document
 
 
 def test_document_url(database_transaction, web_resource, example_collection):

@@ -5,9 +5,9 @@ from i_dot_ai_utilities.logging.structured_logger import StructuredLogger
 from sqlmodel import Session, select
 
 from api.auth.token_auth import get_authorised_user
-from api.depends import get_logger
-from api.environment import get_session
-from api.models import User
+from api.data_structures.models import User
+from api.environments.environment import get_session
+from api.utilities.depends import get_logger
 
 
 def get_current_user(

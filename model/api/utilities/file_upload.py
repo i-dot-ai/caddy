@@ -8,7 +8,7 @@ from uuid import UUID
 import requests
 import tqdm
 
-from api.environment import config
+from api.environments.environment import config
 
 logger = config.get_logger(__name__)
 
@@ -217,7 +217,7 @@ class FileUpload:
 
             if batch_failures:
                 print(
-                    f"Batch {i//self.batch_size + 1} had {len(batch_failures)} failures"
+                    f"Batch {i // self.batch_size + 1} had {len(batch_failures)} failures"
                 )
 
         failure_count = len(total_failures)

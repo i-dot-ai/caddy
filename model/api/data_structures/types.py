@@ -6,7 +6,7 @@ from langchain_core.documents import Document
 from pydantic import BaseModel, EmailStr, Field, computed_field
 from slugify import slugify
 
-from api.enums import CollectionPermissionEnum, ResourcePermissionEnum
+from api.data_structures.enums import CollectionPermissionEnum, ResourcePermissionEnum
 
 
 class QueryRequest(BaseModel):
