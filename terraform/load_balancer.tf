@@ -6,7 +6,7 @@ module "load_balancer" {
   account_id        = data.aws_caller_identity.current.account_id
   vpc_id            = data.terraform_remote_state.vpc.outputs.vpc_id
   public_subnets    = data.terraform_remote_state.vpc.outputs.public_subnets
-  certificate_arn   = data.terraform_remote_state.universal.outputs.certificate_arn
+  certificate_arn   = module.acm_certificate.arn
   web_acl_arn       = module.waf.web_acl_arn
   env               = var.env
   
@@ -46,7 +46,7 @@ module "waf" {
 }
 
 resource "aws_route53_record" "type_a_record" {
-  zone_id = data.terraform_remote_state.account.outputs.hosted_zone_id
+  zone_id = data.aws_route53_zone.zone.zone_id
   name    = local.host
   type    = "A"
 
@@ -59,7 +59,7 @@ resource "aws_route53_record" "type_a_record" {
 
 
 resource "aws_route53_record" "type_a_record_backend" {
-  zone_id = data.terraform_remote_state.account.outputs.hosted_zone_id
+  zone_id = data.aws_route53_zone.zone.zone_id
   name    = local.host_backend
   type    = "A"
 
